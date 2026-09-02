@@ -1,0 +1,40 @@
+# ── Secrets — never commit these ─────────
+#.env
+.swp
+.swo
+
+# ── JavaScript ───────────────────────────
+frontend/node_modules/
+frontend/dist/
+
+# ── Python ───────────────────────────────
+backend/__pycache__/
+backend/**/__pycache__/
+backend/*.pyc
+backend/**/*.pyc
+backend/venv/
+backend/.venv/
+
+# ── C++ build output ─────────────────────
+engine/engine
+engine/*.o
+engine/*.so
+engine/include/chess.hpp   # downloaded separately, not committed
+
+# ── OS junk ──────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ── Django tmp junk  ─────────────────────
+backend/django/django_tmp
+backend/django/.mypy_cache
+backend/django/requirements.txt.txt
+backend/django/media/
+
+.mypy_cache/
+
+# ── Vault secrets  ─────────────────────
+vault/approle/
+vault/certs/
+vault/secrets/
+

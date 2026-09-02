@@ -1,0 +1,6 @@
+[lint]
+ignore = ["I001"]
+#ignore = ["I001", "iPLC0414", "SIM102"]
+#ignore = ["iPLC0414"]
+#ignore = ["SIM102"]
+

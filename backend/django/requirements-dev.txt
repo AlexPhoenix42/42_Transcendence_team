@@ -1,0 +1,22 @@
+# Dev-only dependencies. Installed only in the `dev` build stage, not `dep`.
+# Install locally with: pip install -r requirements.txt -r requirements-dev.txt
+
+# (intentionally empty — dev tooling runs on the host via Neovim, not in-container)
+
+#ast_serialize==0.6.0
+#django-stubs==6.0.6
+#django-stubs-ext==6.0.6
+#djangorestframework-stubs==3.17.0
+#mypy==2.1.0
+#mypy_extensions==1.1.0
+#types-PyYAML==6.0.12.20260518
+
+# Moved here from the runtime list: pathspec is a mypy dependency
+# (file-pattern matching for its config), not something Channels/Django
+# import at runtime.
+
+#pathspec==1.1.1
+
+# needed for testing the frontend
+django-cors-headers==4.9.0
+

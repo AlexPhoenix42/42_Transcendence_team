@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>OAuth Test (auth.ts powered)</title>
+    <style>
+        body { font-family: sans-serif; max-width: 600px; margin: 2em auto; }
+        section { margin-bottom: 2em; padding: 1em; border: 1px solid #ccc; border-radius: 8px; }
+        input, button { margin: 4px; padding: 6px 10px; }
+        pre { background: #f4f4f4; padding: 10px; border-radius: 6px; }
+    </style>
+</head>
+<body>
+    <h1>OAuth Test Client</h1>
+
+	<section style="background:#f9f9f9">
+        <span id="loginStatus">Not logged in</span>
+        <button id="logoutBtn" style="display:none">Logout</button>
+    </section>
+
+    <section>
+        <h2>1. Start OAuth</h2>
+        <button id="login42">Login with 42</button>
+        <button id="loginGoogle">Login with Google</button>
+    </section>
+
+    <section>
+        <h2>2. Exchange login_token</h2>
+        <input id="loginToken" placeholder="Paste login_token" size="40">
+        <button id="exchangeBtn">Exchange</button>
+        <pre id="exchangeResult"></pre>
+    </section>
+
+    <section>
+        <h2>3. Current Access Token</h2>
+        <button id="showToken">Show Token</button>
+    </section>
+
+    <section>
+        <h2>4. Call /api/me/</h2>
+        <button id="getMe">Get Me</button>
+        <pre id="meResult"></pre>
+    </section>
+
+    <section>
+        <h2>5. Refresh Access Token</h2>
+        <button id="refreshBtn">Refresh</button>
+        <pre id="refreshResult"></pre>
+    </section>
+
+	<section>
+        <h2>6. Register (Create Account)</h2>
+        <input id="regUsername" placeholder="Username">
+        <input id="regEmail" placeholder="Email">
+        <input type="password" id="regPassword" placeholder="Password">
+        <button id="registerBtn">Register</button>
+        <pre id="registerResult"></pre>
+    </section>
+
+    <section>
+        <h2>7. Local Login</h2>
+        <input id="username" placeholder="Username">
+        <input type="password" id="password" placeholder="Password">
+        <button id="localLogin">Login</button>
+        <pre id="loginResult"></pre>
+    </section>
+
+    <section>
+        <h2>8. Link Account (Email Conflict)</h2>
+        <input id="linkToken" placeholder="Paste link_token" size="40">
+        <button id="linkAccountBtn">Link</button>
+        <pre id="linkResult"></pre>
+    </section>
+
+	<section>
+        <h2>9. Enable 2FA</h2>
+        <button id="enable2FABtn">Enable 2FA</button>
+        <pre id="enableResult"></pre>
+        <div id="confirm2FAArea" style="display:none;">
+            <p>Secret: <strong id="secretDisplay"></strong></p>
+            <p>Scan this QR or enter the code manually:</p>
+            <canvas id="qrcode" width="200" height="200" style="display:block; margin:1em 0;"></canvas>
+            <input id="confirmCode" placeholder="000000" maxlength="6">
+            <button id="confirm2FABtn">Confirm</button>
+            <pre id="confirmResult"></pre>
+        </div>
+		<pre id="recoveryCodesDisplay" style="display:none;"></pre>
+    </section>
+
+	<section>
+        <h2>10. Disable 2FA</h2>
+        <p>Enter your password <em>or</em> a TOTP code to disable 2FA.</p>
+        <input type="password" id="disablePassword" placeholder="Password (optional)">
+        <input id="disableCode" placeholder="TOTP code (optional)" maxlength="6">
+        <button id="disable2FABtn">Disable 2FA</button>
+        <pre id="disableResult"></pre>
+    </section>
+
+	<section>
+        <h2>11. Sign‑Up (Backend‑Validated)</h2>
+        <p>All fields are validated by the server. Generic errors are shown below.</p>
+        <input id="signupUsername" placeholder="Username (3-30 chars, letters/digits/-/_ )">
+        <input id="signupEmail" placeholder="Email">
+        <input type="password" id="signupPassword" placeholder="Password (min 8 chars)">
+        <button id="signupBtn">Sign Up</button>
+        <pre id="signupResult"></pre>
+    </section>
+
+	<section>
+        <h2>12. Resend Verification Email</h2>
+        <p>If you didn't receive the verification link, enter your email to get a new one.</p>
+        <input id="resendEmail" placeholder="Your email">
+        <button id="resendVerifyBtn">Resend</button>
+        <pre id="resendResult"></pre>
+    </section>
+
+	<section>
+        <h2>13. Password Reset</h2>
+        <p>Enter your email to receive a reset link.</p>
+        <input id="resetEmail" placeholder="Your email">
+        <button id="requestResetBtn">Send Reset Link</button>
+        <pre id="resetRequestResult"></pre>
+    </section>
+
+	<section>
+        <h2>14. 2FA Reset</h2>
+        <p>Enter your email to receive a 2FA reset link.</p>
+        <input id="reset2FAEmail" placeholder="Your email">
+        <button id="request2FAResetBtn">Send Reset Link</button>
+        <pre id="reset2FARequestResult"></pre>
+    </section>
+
+	<section>
+        <h2>15. Look Up User Profile</h2>
+        <input id="lookupUsername" placeholder="Username">
+        <button id="lookupBtn">Look Up</button>
+        <pre id="lookupResult"></pre>
+    </section>
+
+	<section>
+        <h2>16. Update Profile</h2>
+        <input id="updateDispname" placeholder="Display name (optional)">
+        <input id="updateBio" placeholder="Bio (optional)">
+        <input type="file" id="updateAvatar" accept="image/*">
+        <button id="updateProfileBtn">Update</button>
+        <pre id="updateProfileResult"></pre>
+    </section>
+
+	<script type="module">
+		import {
+			loginWithProvider,
+			exchangeLoginToken,
+			getAccessToken,
+			setAccessToken,
+			loginWithPassword,
+			linkAccount,
+			resolveUsernameConflict,
+			register,
+			verify2FA,
+			enable2FA,
+			disable2FA,
+			confirmEnable2FA,
+			isAuthenticated,
+			logout,
+		} from './auth.js?v=3';
+
+		const BASE = '';
+		const urlParams = new URLSearchParams(window.location.search);
+
+		let currentUser = null;
+
+        // Handle email verification redirect statuses
+        const verifyStatus = urlParams.get('status');
+        if (verifyStatus === 'verified') {
+            alert('Email verified successfully! You can now log in.');
+        } else if (verifyStatus === 'verify_error') {
+            alert('Verification failed. The link may be expired or invalid. Please request a new one.');
+        }
+
+        async function fetchAndDisplayUser() {
+            try {
+                const resp = await fetch(`/api/me/`, {
+                    headers: { 'Authorization': `Bearer ${getAccessToken()}` },
+                });
+                if (resp.ok) {
+                    const data = await resp.json();
+                    currentUser = data.username;
+                    updateLoginStatus();
+                }
+            } catch {
+                // ignore – status bar will just show "Logged in" without a name
+            }
+        }
+
+		function display(where, data) {
+			document.getElementById(where).textContent = JSON.stringify(data, null, 2);
+		}
+
+		//function updateLoginStatus() {
+        //    const loggedIn = isAuthenticated();
+        //    document.getElementById('loginStatus').textContent = loggedIn ? 'Logged in' : 'Not logged in';
+        //    document.getElementById('logoutBtn').style.display = loggedIn ? 'inline' : 'none';
+        //}
+
+		function updateLoginStatus() {
+            const loggedIn = isAuthenticated();
+            if (loggedIn && currentUser) {
+                document.getElementById('loginStatus').textContent = `Logged in as ${currentUser}`;
+            } else if (loggedIn) {
+                document.getElementById('loginStatus').textContent = 'Logged in';
+            } else {
+                document.getElementById('loginStatus').textContent = 'Not logged in';
+            }
+            document.getElementById('logoutBtn').style.display = loggedIn ? 'inline' : 'none';
+        }
+
+        //document.getElementById('logoutBtn').onclick = async () => {
+        //    await logout();
+        //    updateLoginStatus();
+        //};
+
+		document.getElementById('logoutBtn').onclick = async () => {
+            await logout();
+            currentUser = null;
+            updateLoginStatus();
+        };
+
+        updateLoginStatus();   // initial call
+
+        //function show2FAForm(tmpToken) {
+        //    const section = document.createElement('section');
+        //    section.innerHTML = `
+        //        <h2>Two‑Factor Authentication</h2>
+        //        <p>Enter the 6‑digit code from your authenticator app:</p>
+        //        <input id="totpCode" placeholder="000000" maxlength="6">
+        //        <button id="submit2FA">Verify</button>
+        //        <pre id="verifyResult"></pre>
+        //    `;
+        //    document.body.appendChild(section);
+
+        //    document.getElementById('submit2FA').onclick = async () => {
+        //        const code = document.getElementById('totpCode').value;
+        //        try {
+        //            await verify2FA(tmpToken, code);
+        //            display('verifyResult', { status: 'success' });
+        //            section.remove();
+        //            window.history.replaceState({}, document.title, window.location.pathname);
+        //        } catch (e) {
+        //            display('verifyResult', { error: e.message });
+        //        }
+        //    };
+        //}
+
+		//function show2FAForm(tmpToken) {
+        //    const section = document.createElement('section');
+        //    section.innerHTML = `
+        //        <h2>Two‑Factor Authentication</h2>
+        //        <p>Enter the 6‑digit code from your authenticator app:</p>
+        //        <input id="totpCode" placeholder="000000" maxlength="6">
+        //        <button id="submit2FA">Verify</button>
+        //        <pre id="verifyResult"></pre>
+        //    `;
+        //    document.body.appendChild(section);
+
+        //    document.getElementById('submit2FA').onclick = async () => {
+        //        const code = document.getElementById('totpCode').value;
+        //        const resultEl = document.getElementById('verifyResult');
+        //        try {
+        //            await verify2FA(tmpToken, code);
+        //            resultEl.textContent = JSON.stringify({ status: 'success', message: 'Login successful' }, null, 2);
+        //            resultEl.style.color = 'green';
+        //            // Disable further attempts – keep the form for reference
+        //            document.getElementById('submit2FA').disabled = true;
+        //            document.getElementById('totpCode').disabled = true;
+        //            window.history.replaceState({}, document.title, window.location.pathname);
+        //        } catch (e) {
+        //            resultEl.textContent = JSON.stringify({ error: e.message }, null, 2);
+        //            resultEl.style.color = 'red';
+        //        }
+        //    };
+        //}
+
+		function show2FAForm(tmpToken) {
+			// Remove any previous 2FA section so we never have duplicate IDs
+			const oldSection = document.getElementById('twoFactorSection');
+			if (oldSection) oldSection.remove();
+
+			const section = document.createElement('section');
+			section.id = 'twoFactorSection';   // <-- give it a unique ID
+			section.innerHTML = `
+				<h2>Two‑Factor Authentication</h2>
+				<p>Enter the 6‑digit code from your authenticator app:</p>
+				<input id="totpCode" placeholder="Enter code" style="width: 200px;">
+				<button id="submit2FA">Verify</button>
+				<pre id="verifyResult"></pre>
+			`;
+			document.body.appendChild(section);
+
+			document.getElementById('submit2FA').onclick = async () => {
+				const code = document.getElementById('totpCode').value;
+				const resultEl = document.getElementById('verifyResult');
+				try {
+					await verify2FA(tmpToken, code);
+					resultEl.textContent = JSON.stringify({ status: 'success', message: 'Login successful' }, null, 2);
+					resultEl.style.color = 'green';
+					updateLoginStatus();
+					fetchAndDisplayUser();
+					document.getElementById('submit2FA').disabled = true;
+					document.getElementById('totpCode').disabled = true;
+					window.history.replaceState({}, document.title, window.location.pathname);
+				} catch (e) {
+					resultEl.textContent = JSON.stringify({ error: e.message }, null, 2);
+					resultEl.style.color = 'red';
+				}
+			};
+		}
+
+		// ---------- OAuth Login ----------
+		document.getElementById('login42').onclick = () => loginWithProvider('42');
+		document.getElementById('loginGoogle').onclick = () => loginWithProvider('google');
+
+		// ---------- Exchange ----------
+		document.getElementById('exchangeBtn').onclick = async () => {
+			const token = document.getElementById('loginToken').value;
+			try {
+				await exchangeLoginToken(token);
+				display('exchangeResult', { status: 'success' });
+			} catch (e) {
+				display('exchangeResult', { error: e.message });
+			}
+		};
+
+		// ---------- Show Token ----------
+		//document.getElementById('showToken').onclick = () => {
+		//	alert(getAccessToken() || 'No token stored');
+		//};
+
+		document.getElementById('showToken').onclick = () => {
+		const token = getAccessToken();
+			if (token) {
+				window.prompt('Access Token (press Ctrl+C to copy)', token);
+			} else {
+				alert('No token stored');
+			}
+		};
+
+		// ---------- /api/me/ ----------
+		document.getElementById('getMe').onclick = async () => {
+			try {
+				const res = await fetch(`${BASE}/api/me/`, {
+					headers: { 'Authorization': `Bearer ${getAccessToken()}` },
+				});
+				const data = await res.json();
+				display('meResult', data);
+			} catch (e) {
+				display('meResult', { error: e.message });
+			}
+		};
+
+		// ---------- Refresh ----------
+		document.getElementById('refreshBtn').onclick = async () => {
+			try {
+				const res = await fetch(`${BASE}/api/auth/refresh/`, {
+					method: 'POST',
+					headers: { 'X-Requested-With': 'XMLHttpRequest' },
+				});
+				const data = await res.json();
+				display('refreshResult', data);
+				if (data.access) {
+					setAccessToken(data.access);   // update the stored token
+				}
+			} catch (e) {
+				display('refreshResult', { error: e.message });
+			}
+		};
+
+		// ---------- Register ----------
+        document.getElementById('registerBtn').onclick = async () => {
+            const u = document.getElementById('regUsername').value;
+            const e = document.getElementById('regEmail').value;
+            const p = document.getElementById('regPassword').value;
+            try {
+                const data = await register(u, e, p);
+                display('registerResult', { status: 'created', id: data.id, username: data.username });
+            } catch (err) {
+                display('registerResult', { error: err.message });
+            }
+        };
+
+		// ---------- Sign‑Up ----------
+        document.getElementById('signupBtn').onclick = async () => {
+            const u = document.getElementById('signupUsername').value;
+            const e = document.getElementById('signupEmail').value;
+            const p = document.getElementById('signupPassword').value;
+            try {
+                const data = await register(u, e, p);
+                display('signupResult', { status: 'created', id: data.id, username: data.username });
+            } catch (err) {
+                display('signupResult', { error: err.message });
+            }
+        };
+
+		// ---------- Local Login ----------
+		//document.getElementById('localLogin').onclick = async () => {
+		//	const u = document.getElementById('username').value;
+		//	const p = document.getElementById('password').value;
+		//	try {
+		//		await loginWithPassword(u, p);
+		//		display('loginResult', { status: 'success' });
+
+		//		// Auto-link after a username conflict
+		//		if (window.__pendingLinkToken) {
+		//			try {
+		//				await linkAccount(window.__pendingLinkToken);
+		//				display('linkResult', { status: 'linked', note: 'username conflict resolved' });
+		//				delete window.__pendingLinkToken;
+		//				window.history.replaceState({}, document.title, window.location.pathname);
+		//			} catch (e) {
+		//				display('linkResult', { error: e.message });
+		//			}
+		//		}
+		//	} catch (e) {
+		//		display('loginResult', { error: e.message });
+		//	}
+		//};
+
+		// ---------- Local Login ----------
+        document.getElementById('localLogin').onclick = async () => {
+            const u = document.getElementById('username').value;
+            const p = document.getElementById('password').value;
+            try {
+                const resp = await fetch(`/api/login/`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: u, password: p }),
+                });
+                const data = await resp.json();
+                if (!resp.ok) throw new Error(data.error || 'Login failed');
+
+                if (data.tmp_token) {
+                    show2FAForm(data.tmp_token);
+                } else if (data.access) {
+                    setAccessToken(data.access);
+					updateLoginStatus();
+					fetchAndDisplayUser();
+                    display('loginResult', { status: 'success' });
+
+                    // Auto-link after a username conflict
+                    if (window.__pendingLinkToken) {
+                        try {
+                            await linkAccount(window.__pendingLinkToken);
+                            display('linkResult', { status: 'linked', note: 'username conflict resolved' });
+                            delete window.__pendingLinkToken;
+                            window.history.replaceState({}, document.title, window.location.pathname);
+                        } catch (e) {
+                            display('linkResult', { error: e.message });
+                        }
+                    }
+                }
+            } catch (e) {
+                display('loginResult', { error: e.message });
+            }
+        };
+
+		// ---------- Link Account ----------
+		document.getElementById('linkAccountBtn').onclick = async () => {
+			const lt = document.getElementById('linkToken').value;
+			try {
+				await linkAccount(lt);
+				display('linkResult', { status: 'linked' });
+			} catch (e) {
+				display('linkResult', { error: e.message });
+			}
+		};
+
+		// ---------- Enable 2FA ----------
+        let currentSecret = '';
+
+        document.getElementById('enable2FABtn').onclick = async () => {
+            try {
+                const data = await enable2FA();
+                display('enableResult', data);
+                currentSecret = data.secret;
+                document.getElementById('secretDisplay').textContent = currentSecret;
+                // Generate a QR code from the provisioning URI
+                const canvas = document.getElementById('qrcode');
+                // Dynamically load a QR code generator (no extra library needed)
+                const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(data.provisioning_uri)}`;
+                const img = new Image();
+                img.onload = () => {
+                    const ctx = canvas.getContext('2d');
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(img, 0, 0);
+                };
+                img.src = qrCodeUrl;
+                document.getElementById('confirm2FAArea').style.display = 'block';
+            } catch (e) {
+                display('enableResult', { error: e.message });
+            }
+        };
+
+		// ---------- Disable 2FA ----------
+        document.getElementById('disable2FABtn').onclick = async () => {
+            const password = document.getElementById('disablePassword').value;
+            const code = document.getElementById('disableCode').value;
+            try {
+                await disable2FA({ password: password || undefined, code: code || undefined });
+                display('disableResult', { status: '2FA disabled' });
+            } catch (e) {
+                display('disableResult', { error: e.message });
+            }
+        };
+
+        //document.getElementById('confirm2FABtn').onclick = async () => {
+        //    const code = document.getElementById('confirmCode').value;
+        //    try {
+        //        await confirmEnable2FA(code);
+        //        display('confirmResult', { status: '2FA enabled' });
+        //        // Optionally clear the QR / secret after success
+        //        document.getElementById('confirm2FAArea').style.display = 'none';
+        //    } catch (e) {
+        //        display('confirmResult', { error: e.message });
+        //    }
+        //};
+
+		document.getElementById('confirm2FABtn').onclick = async () => {
+            const code = document.getElementById('confirmCode').value;
+            try {
+                const data = await confirmEnable2FA(code);
+                display('confirmResult', { status: '2FA enabled' });
+                if (data.recovery_codes) {
+                    const recoveryEl = document.getElementById('recoveryCodesDisplay');
+                    recoveryEl.textContent = 'Save these recovery codes in a safe place:\n' + data.recovery_codes.join('\n');
+                    recoveryEl.style.color = 'green';
+                    recoveryEl.style.display = 'block';
+                }
+                document.getElementById('confirm2FAArea').style.display = 'none';
+            } catch (e) {
+                display('confirmResult', { error: e.message });
+            }
+        };
+
+		// ---------- Username Conflict ----------
+		if (urlParams.get('status') === 'username_conflict') {
+			const resolveToken = urlParams.get('token');
+			const linkToken = urlParams.get('link_token');
+			const username = urlParams.get('username');
+			if (resolveToken && linkToken && username) {
+				window.__pendingLinkToken = linkToken;
+
+				const section = document.createElement('section');
+				section.innerHTML = `
+					<h2>Username Conflict</h2>
+					<p>Username "${username}" is already taken.</p>
+					<div style="margin-bottom: 1em;">
+						<button id="resolveNewUsernameBtn">Choose a new username</button>
+						<button id="loginToLinkBtn">Log in to link</button>
+					</div>
+					<div id="resolveArea" style="display:none;">
+						<input id="newUsername" placeholder="New username">
+						<button id="submitNewUsername">Submit</button>
+						<pre id="resolveUsernameResult"></pre>
+					</div>
+					<pre id="linkMessage"></pre>
+				`;
+				document.body.appendChild(section);
+
+				// Show resolve area
+				document.getElementById('resolveNewUsernameBtn').onclick = () => {
+					document.getElementById('resolveArea').style.display = 'block';
+					document.getElementById('linkMessage').textContent = '';
+				};
+				// Show message for linking
+				document.getElementById('loginToLinkBtn').onclick = () => {
+					document.getElementById('linkMessage').textContent =
+						'Please log in using the "Local Login" form below. ' +
+						'After successful login, the linking will happen automatically.';
+				};
+
+				// Submit new username
+				document.getElementById('submitNewUsername').onclick = async () => {
+					const newUsername = document.getElementById('newUsername').value;
+					try {
+						await resolveUsernameConflict(newUsername, resolveToken);
+						document.getElementById('resolveUsernameResult').textContent =
+							JSON.stringify({ status: 'success', note: 'user created and logged in' }, null, 2);
+						window.history.replaceState({}, document.title, window.location.pathname);
+						delete window.__pendingLinkToken;
+					} catch (e) {
+						document.getElementById('resolveUsernameResult').textContent =
+							JSON.stringify({ error: e.message }, null, 2);
+					}
+				};
+			}
+		}
+
+		// Auto-detect login_token in URL and exchange it immediately
+		//const autoToken = urlParams.get('login_token');
+		//if (autoToken) {
+		//	(async () => {
+		//		try {
+		//			await exchangeLoginToken(autoToken);
+		//			display('exchangeResult', { status: 'success', note: 'auto-exchanged from URL' });
+		//			window.history.replaceState({}, document.title, window.location.pathname);
+		//		} catch (e) {
+		//			display('exchangeResult', { error: e.message });
+		//		}
+		//	})();
+		//}
+
+		// Auto-detect login_token in URL and exchange it immediately
+        const autoToken = urlParams.get('login_token');
+        if (autoToken) {
+            (async () => {
+                try {
+                    const resp = await fetch(`/api/auth/exchange/`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ login_token: autoToken }),
+                    });
+                    const data = await resp.json();
+                    if (!resp.ok) throw new Error(data.error || 'Exchange failed');
+
+                    if (data.tmp_token) {
+                        show2FAForm(data.tmp_token);
+                    } else if (data.access) {
+                        setAccessToken(data.access);
+						updateLoginStatus();
+						fetchAndDisplayUser();
+                        display('exchangeResult', { status: 'success', note: 'auto-exchanged from URL' });
+                        window.history.replaceState({}, document.title, window.location.pathname);
+                    }
+                } catch (e) {
+                    display('exchangeResult', { error: e.message });
+                }
+            })();
+        }
+		
+		// Attempt to restore the session from the refresh cookie on page load
+		(async () => {
+			try {
+				const resp = await fetch(`/api/auth/refresh/`, {
+					method: 'POST',
+					headers: { 'X-Requested-With': 'XMLHttpRequest' },
+				});
+				if (resp.ok) {
+					const data = await resp.json();
+					if (data.access) {
+						setAccessToken(data.access);
+						updateLoginStatus();
+						fetchAndDisplayUser();
+					}
+				}
+			} catch {
+				// no valid cookie – remain logged out
+			}
+		})();
+
+		// ---------- Resend Verification ----------
+        document.getElementById('resendVerifyBtn').onclick = async () => {
+            const email = document.getElementById('resendEmail').value;
+            try {
+                const resp = await fetch(`/api/resend-verification/`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email }),
+                });
+                const data = await resp.json();
+                display('resendResult', data);
+            } catch (e) {
+                display('resendResult', { error: e.message });
+            }
+        };
+
+		// ---------- Password Reset Request ----------
+        document.getElementById('requestResetBtn').onclick = async () => {
+            const email = document.getElementById('resetEmail').value;
+            try {
+                const resp = await fetch(`/api/password-reset/request/`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email }),
+                });
+                const data = await resp.json();
+                display('resetRequestResult', data);
+            } catch (e) {
+                display('resetRequestResult', { error: e.message });
+            }
+        };
+
+		// ---------- Password Reset / 2FA Reset Confirm ----------
+        const resetToken = urlParams.get('token');
+        const resetUid = urlParams.get('uid');
+        const resetType = urlParams.get('type');
+        if (resetToken && resetUid) {
+            const is2FA = resetType === '2fa';
+            const section = document.createElement('section');
+            if (is2FA) {
+                section.innerHTML = `
+                    <h2>Reset 2FA</h2>
+                    <p>Click the button below to disable two‑factor authentication on your account.</p>
+                    <button id="resetConfirmBtn">Disable 2FA</button>
+                    <pre id="resetConfirmResult"></pre>
+                `;
+            } else {
+                section.innerHTML = `
+                    <h2>Set New Password</h2>
+                    <input type="password" id="newPassword" placeholder="New password">
+                    <button id="resetConfirmBtn">Reset Password</button>
+                    <pre id="resetConfirmResult"></pre>
+                `;
+            }
+            document.body.appendChild(section);
+
+            document.getElementById('resetConfirmBtn').onclick = async () => {
+                const endpoint = is2FA ? '/api/2fa-reset/confirm/' : '/api/password-reset/confirm/';
+                const body = is2FA
+                    ? { token: resetToken, uid: resetUid }
+                    : { token: resetToken, uid: resetUid, new_password: document.getElementById('newPassword').value };
+
+                try {
+                    const resp = await fetch(endpoint, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(body),
+                    });
+                    const data = await resp.json();
+                    display('resetConfirmResult', data);
+                } catch (e) {
+                    display('resetConfirmResult', { error: e.message });
+                }
+            };
+        }
+
+		// ---------- 2FA Reset Request ----------
+        document.getElementById('request2FAResetBtn').onclick = async () => {
+            const email = document.getElementById('reset2FAEmail').value;
+            try {
+                const resp = await fetch(`/api/2fa-reset/request/`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email }),
+                });
+                const data = await resp.json();
+                display('reset2FARequestResult', data);
+            } catch (e) {
+                display('reset2FARequestResult', { error: e.message });
+            }
+        };
+
+		// ---------- Look Up User Profile ----------
+        document.getElementById('lookupBtn').onclick = async () => {
+            const username = document.getElementById('lookupUsername').value;
+            try {
+                const resp = await fetch(`/api/profile/${username}/`, {
+                    headers: { 'Authorization': `Bearer ${getAccessToken()}` },
+                });
+                const data = await resp.json();
+                display('lookupResult', data);
+            } catch (e) {
+                display('lookupResult', { error: e.message });
+            }
+        };
+
+		// ---------- Update Profile ----------
+        document.getElementById('updateProfileBtn').onclick = async () => {
+            const formData = new FormData();
+            const dispname = document.getElementById('updateDispname').value;
+            const bio = document.getElementById('updateBio').value;
+            const avatarFile = document.getElementById('updateAvatar').files[0];
+
+            if (dispname) formData.append('dispname', dispname);
+            if (bio) formData.append('bio', bio);
+            if (avatarFile) formData.append('avatar', avatarFile);
+
+            try {
+                const resp = await fetch(`/api/profile/`, {
+                    method: 'PATCH',
+                    headers: { 'Authorization': `Bearer ${getAccessToken()}` },
+                    body: formData,
+                });
+                const data = await resp.json();
+                display('updateProfileResult', data);
+            } catch (e) {
+                display('updateProfileResult', { error: e.message });
+            }
+        };
+	</script>
+</body>
+</html>
+

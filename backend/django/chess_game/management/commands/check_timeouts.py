@@ -1,0 +1,291 @@
+# game/management/commands/check_timeouts.py
+
+from django.core.cache                  import cache
+from django.core.management.base        import BaseCommand
+from chess_game.models                  import GameStatus, GameResultReason, Game
+from asgiref.sync                       import async_to_sync
+from channels.layers                    import get_channel_layer
+import time
+import logging
+
+logger = logging.getLogger(__name__)
+GRACE_PERIOD = 30
+
+
+class Command(BaseCommand):
+    help = "Continuously checks active games for disconnected players and enforces forfeit/timeout."
+
+    def handle(self, *args, **options):
+        channel_layer = get_channel_layer()
+        assert channel_layer is not None, "Channel layer not configured."
+
+        logger.info("Timeout checker started (using Django cache).")
+
+        while True:
+            try:
+                active_games = cache.get("active_games", set())
+                now = time.time()
+
+                for game_id_str in list(active_games):
+                    game_id = int(game_id_str)
+                    game_key = f"game:{game_id}"
+                    state = cache.get(game_key)
+
+                    if state is None:
+                        active_games.discard(game_id_str)
+                        cache.set("active_games", active_games, timeout=None)
+                        continue
+
+                    # ── Time control check ──────────────────────────────
+                    timer = state.get("timer")
+                    if timer:
+                        last_tick = float(state.get("last_tick", now))
+                        elapsed = now - last_tick
+                        clocks = state.get("clocks", {})
+                        turn_pk = state.get("crnt_turn")
+                        turn_key = str(turn_pk) if turn_pk else None
+
+                        if turn_key and turn_key in clocks:
+                            clocks[turn_key] = float(clocks[turn_key]) - elapsed
+                            state["last_tick"] = now
+
+                            if clocks[turn_key] <= 0:
+                                winner_id = self._determine_winner(state, turn_key)
+                                if winner_id is not None:
+                                    self._finish_game(game_id, winner_id, state, GameResultReason.TIMEOUT)
+                                    self._broadcast_game_over(game_id, winner_id, GameResultReason.TIMEOUT, channel_layer)
+                                    active_games.discard(game_id_str)
+                                    cache.set("active_games", active_games, timeout=None)
+                                    cache.delete(game_key)
+                                    continue
+
+                    # ── Disconnect check ─────────────────────────────────
+                    disconnected = state.get("disconnected", {}) or {}
+                    if disconnected:
+                        for player_pk_str, timestamp in disconnected.items():
+                            if timestamp is None:
+                                continue
+                            elapsed = now - float(timestamp)
+                            if elapsed < GRACE_PERIOD:
+                                continue
+                            winner_id = self._determine_winner(state, player_pk_str)
+                            if winner_id is None:
+                                continue
+                            self._finish_game(game_id, winner_id, state, GameResultReason.DISCONNECT)
+                            self._broadcast_game_over(game_id, winner_id, GameResultReason.DISCONNECT, channel_layer)
+                            active_games.discard(game_id_str)
+                            cache.set("active_games", active_games, timeout=None)
+                            cache.delete(game_key)
+                            break
+
+            except Exception:
+                logger.exception("Error in timeout checker loop")
+
+            time.sleep(1)
+
+    def _determine_winner(self, state, loser_pk_str):
+        loser_pk = int(loser_pk_str)
+        p1 = state.get("player1_id")
+        p2 = state.get("player2_id")
+        if p1 == loser_pk:
+            return p2
+        elif p2 == loser_pk:
+            return p1
+        return None
+
+    def _finish_game(self, game_id, winner_id, state, reason):
+        try:
+            Game.objects.filter(pk=game_id).update(
+                winner_id=winner_id,
+                result_reason=reason,
+                status=GameStatus.FINISHED,
+                board_state=state.get("fen", ""),
+                moves=state.get("moves", []),
+            )
+        except Exception:
+            logger.exception("Failed to persist game %s", game_id)
+
+    def _broadcast_game_over(self, game_id, winner_id, reason, channel_layer):
+        async_to_sync(channel_layer.group_send)(
+            f"game_{game_id}",
+            {
+                "type": "game_over",
+                "winner": winner_id,
+                "reason": reason,
+            },
+        )
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#from django.core.management.base        import BaseCommand
+#
+#import redis
+#
+#from asgiref.sync                       import async_to_sync
+#from channels.layers                    import get_channel_layer
+#
+#from game.models                        import GameStatus, GameResultReason, Game
+#
+#import json
+#import os
+#import time
+#import logging
+#
+#logger = logging.getLogger(__name__)
+#
+#GRACE_PERIOD = 30 # seconds
+#
+#
+#class Command(BaseCommand):
+#    help = "Continuously checks active games for disconnected players and enforces forfeit/timeout."
+#
+#    def handle(self, *args, **options):
+#        redis_client = redis.Redis(
+#            host=os.environ["REDIS_HOST"],
+#            port=int(os.environ["REDIS_PORT"]),
+#            db=2,   # dedicated redis namespace for the time checker
+#            decode_responses=True,
+#        )
+#        channel_layer = get_channel_layer()
+#
+#        assert channel_layer is not None, "channel layer is not configured."
+#
+#        logger.info("Timeout checker started.")
+#
+#        while True:
+#            try:
+#                game_ids = redis_client.smembers("active_games")  # type: ignore[attr-defined]
+#                now = time.time()
+#
+#                for gid in game_ids:
+#                    game_id = int(gid) if isinstance(gid, bytes) else gid
+#
+#                    game_key = f"game:{game_id}"
+#                    state_raw = redis_client.get(game_key)  # type: ignore[attr-defined]
+#
+#                    if state_raw is None:
+#                        redis_client.srem("active_games", game_id)
+#                        continue
+#
+#                    state = json.loads(state_raw)
+#
+#                    # ── Time control check ──────────────────────────────
+#                    timer = state.get("timer")
+#                    if timer:
+#                        last_tick = float(state.get("last_tick", now))
+#                        elapsed = now - last_tick
+#
+#                        clocks = state.get("clocks", {})
+#                        turn_pk = state.get("crnt_turn")
+#                        turn_key = str(turn_pk) if turn_pk else None
+#
+#                        if turn_key and turn_key in clocks:
+#                            clocks[turn_key] = float(clocks[turn_key]) - elapsed
+#                            state["last_tick"] = now
+#
+#                            if clocks[turn_key] <= 0:
+#                                winner_id = self._determine_winner(state, turn_key)
+#                                if winner_id is not None:
+#                                    self._finish_game(game_id, winner_id, state, reason=GameResultReason.TIMEOUT)
+#
+#                                    async_to_sync(channel_layer.group_send)(
+#                                        f"game_{game_id}",
+#                                        {
+#                                            "type": "game_over",
+#                                            "winner": winner_id,
+#                                            "reason": GameResultReason.TIMEOUT,
+#                                        },
+#                                    )
+#
+#                                    redis_client.srem("active_games", game_id)
+#                                    redis_client.delete(game_key)
+#                                    continue  # game finished, skip disconnect check
+#
+#                    # ── Disconnect check ─────────────────────────────────
+#                    disconnected = state.get("disconnected", {}) or {}
+#                    if not disconnected:
+#                        continue
+#
+#                    for player_pk_str, timestamp in disconnected.items():
+#                        if timestamp is None:
+#                            continue
+#
+#                        elapsed = now - float(timestamp)
+#                        if elapsed < GRACE_PERIOD:
+#                            continue
+#
+#                        winner_id = self._determine_winner(state, player_pk_str)
+#                        if winner_id is None:
+#                            continue
+#
+#                        self._finish_game(game_id, winner_id, state, reason=GameResultReason.DISCONNECT)
+#
+#                        async_to_sync(channel_layer.group_send)(
+#                            f"game_{game_id}",
+#                            {
+#                                "type": "game_over",
+#                                "winner": winner_id,
+#                                "reason": GameResultReason.DISCONNECT,
+#                            },
+#                        )
+#
+#                        redis_client.srem("active_games", game_id)
+#                        redis_client.delete(game_key)
+#                        break
+#
+#            except Exception:
+#                logger.exception("Error in timeout checker loop")
+#
+#            time.sleep(1)
+#
+#
+#    def _determine_winner(self, state: dict, loser_pk_str: str) -> int | None:
+#        loser_pk = int(loser_pk_str)
+#        p1 = state.get("player1_id")
+#        p2 = state.get("player2_id")
+#
+#        if p1 == loser_pk:
+#            return p2
+#        elif p2 == loser_pk:
+#            return p1
+#
+#        return None
+#
+#
+#    def _finish_game(self, game_id: int, winner_id: int, state: dict, reason: str = GameResultReason.DISCONNECT) -> None:
+#        try:
+#            Game.objects.filter(pk=game_id).update(
+#                winner_id=winner_id,
+#                result_reason=reason,
+#                status=GameStatus.FINISHED,
+#                board_state=state.get("fen", ""),
+#                moves=state.get("moves", []),
+#            )
+#        except Exception:
+#            logger.exception("Failed to persist game %s on %s.", game_id, reason)
+

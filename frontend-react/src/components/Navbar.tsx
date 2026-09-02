@@ -1,0 +1,104 @@
+// frontend-react/src/components/Navbar.tsx
+
+import { useState, useEffect, useRef } from "react"
+import { Link, useNavigate } from "react-router-dom"
+import { useAuth } from "../context/AuthContext.tsx"
+import { api } from "../api/client.ts"
+
+export default function Navbar() {
+    const { user, logout } = useAuth()
+    const navigate = useNavigate()
+    const [menuOpen, setMenuOpen] = useState(false)
+    const [requestCount, setRequestCount] = useState(0)
+    const menuRef = useRef<HTMLDivElement>(null)
+
+    async function handleLogout() {
+        await logout()
+        navigate("/login")
+    }
+
+    // Poll for incoming friend requests every 30 seconds
+	useEffect(() => {
+        async function fetchRequestCount() {
+            try {
+                const resp = await api("/api/friends/requests/")
+                if (resp.ok) {
+                    const data = await resp.json()
+                    setRequestCount(data.results?.length || 0)
+                }
+            } catch {
+                // Silent fail — next poll will retry
+            }
+        }
+        fetchRequestCount()
+        const interval = setInterval(fetchRequestCount, 10000)
+        return () => clearInterval(interval)
+    }, [])
+
+    useEffect(() => {
+        function handleClickOutside(e: MouseEvent) {
+            if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+                setMenuOpen(false)
+            }
+        }
+
+        if (menuOpen) {
+            document.addEventListener("mousedown", handleClickOutside)
+        }
+
+        return () => document.removeEventListener("mousedown", handleClickOutside)
+    }, [menuOpen])
+
+    return (
+        <nav className="bg-gray-800 p-4 flex gap-6 items-center">
+            <Link to="/" className="text-white font-bold text-xl">♟ Transcendence</Link>
+            <Link to="/games" className="text-gray-300 hover:text-white">Games</Link>
+            <Link to="/tournaments" className="text-gray-300 hover:text-white">Tournaments</Link>
+            <Link to="/friends" className="text-gray-300 hover:text-white relative">
+                Friends
+                {requestCount > 0 && (
+                    <span className="absolute -top-2 -right-3 bg-red-500 text-white text-xs w-4 h-4 rounded-full flex items-center justify-center">
+                        {requestCount}
+                    </span>
+                )}
+            </Link>
+            <Link to="/chat" className="text-gray-300 hover:text-white">Chat</Link>
+            <Link to="/profile" className="text-gray-300 hover:text-white">Profile</Link>
+
+            <div className="ml-auto mr-4 relative" ref={menuRef}>
+                <button
+                    onClick={() => setMenuOpen(!menuOpen)}
+                    className="flex items-center gap-2.5 text-gray-300 hover:text-white"
+                >
+                    <div className="w-8 h-8 bg-gray-700 rounded-full flex items-center justify-center text-sm text-white overflow-hidden">
+                        {user?.avatar
+                            ? <img src={user.avatar} className="w-8 h-8 rounded-full object-cover" />
+                            : user?.username?.[0]?.toUpperCase() || "?"
+                        }
+                    </div>
+                    <span className="font-semibold text-white">{user?.username}</span>
+                    <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                </button>
+
+                {menuOpen && (
+                    <div className="absolute right-0 mt-2 w-48 bg-gray-800 border border-gray-700 rounded-lg shadow-lg z-50">
+                        <Link
+                            to="/profile"
+                            onClick={() => setMenuOpen(false)}
+                            className="block px-4 py-3 text-gray-300 hover:bg-gray-700 hover:text-white rounded-t-lg"
+                        >
+                            ⚙️ Edit Profile
+                        </Link>
+                        <button
+                            onClick={handleLogout}
+                            className="w-full text-left px-4 py-3 text-gray-300 hover:bg-gray-700 hover:text-red-400 rounded-b-lg"
+                        >
+                            🚪 Logout
+                        </button>
+                    </div>
+                )}
+            </div>
+        </nav>
+    )
+}
+

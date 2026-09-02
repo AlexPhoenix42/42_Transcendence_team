@@ -1,0 +1,37 @@
+{
+  "name": "chess-app-frontend",
+  "version": "1.0.0",
+  "description": "ft_transcendence chess web application — React frontend",
+  "private": true,
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "audit": "npm audit --audit-level=moderate",
+    "build-auth": "esbuild src/auth/auth.ts --bundle --outfile=public/auth.js --format=esm"
+  },
+  "dependencies": {
+    "axios": "1.18.1",
+    "chess.js": "1.4.0",
+    "npq": "3.23.3",
+    "react": "19.2.7",
+    "react-chessboard": "5.10.0",
+    "react-dom": "19.2.7",
+    "react-router-dom": "7.18.1",
+    "socket.io-client": "4.8.3"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "6.0.3",
+    "esbuild": "0.28.1",
+    "vite": "8.1.0"
+  },
+  "main": "vite.config.js",
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs"
+}
