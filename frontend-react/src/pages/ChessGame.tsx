@@ -100,8 +100,13 @@ export default function ChessGame() {
     useEffect(() => {
         if (!id) return
 
-        const wsHost = window.location.hostname + ":9000"
-        const ws = new WebSocket(`ws://${wsHost}/ws/game/${id}/`)
+        // Relative to the current page, like ChatSocket and ChessCoach already do.
+        // The old version dialed port 9000 directly with a hardcoded ws://,
+        // bypassing the nginx proxy entirely -- browsers block that as mixed
+        // content the moment the page is served over https (which dep nginx
+        // always uses), so the game socket could never connect there.
+        const protocol = window.location.protocol === "https:" ? "wss:" : "ws:"
+        const ws = new WebSocket(`${protocol}//${window.location.host}/ws/game/${id}/`)
 
         ws.onopen = () => {
             setConnected(true)

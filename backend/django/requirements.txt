@@ -51,6 +51,10 @@ PyJWT==2.13.0
 pyOpenSSL==26.3.0
 PyOTP==2.10.0
 python-dotenv==1.2.2
+
+# Structured (JSON) log records so Logstash can ingest Django's stdout without
+# grok. 3.x exposes the formatter at pythonjsonlogger.json.JsonFormatter.
+python-json-logger==3.3.0
 python3-openid==3.2.0
 redis==4.6.0
 requests==2.34.2

@@ -31,6 +31,15 @@ services:
       - ./vault/approle:/vault/approle:ro
     entrypoint: ["/usr/local/bin/vault-entrypoint.sh"]
     command:    ["postgres"]
+    # stdout/stderr -> Logstash gelf input (ELK log-management module).
+    # 127.0.0.1, not `logstash`: the gelf driver runs inside dockerd on the
+    # host, which has no access to Docker's embedded DNS. `docker logs` keeps
+    # working via Docker's dual-logging cache. UDP and fire-and-forget, so a
+    # container still starts when Logstash is down; those events are just lost.
+    logging:
+      driver: gelf
+      options:
+        gelf-address: "udp://127.0.0.1:12201"
     networks:
       - trans_net
     healthcheck:
@@ -45,6 +54,15 @@ services:
     image:            redis:8-alpine
     container_name:   trans_redis
     restart:          unless-stopped
+    # stdout/stderr -> Logstash gelf input (ELK log-management module).
+    # 127.0.0.1, not `logstash`: the gelf driver runs inside dockerd on the
+    # host, which has no access to Docker's embedded DNS. `docker logs` keeps
+    # working via Docker's dual-logging cache. UDP and fire-and-forget, so a
+    # container still starts when Logstash is down; those events are just lost.
+    logging:
+      driver: gelf
+      options:
+        gelf-address: "udp://127.0.0.1:12201"
     networks:
       - trans_net
     healthcheck:
@@ -175,6 +193,15 @@ services:
       ENGINE_PORT: 4190
     expose:
       - "4190"
+    # stdout/stderr -> Logstash gelf input (ELK log-management module).
+    # 127.0.0.1, not `logstash`: the gelf driver runs inside dockerd on the
+    # host, which has no access to Docker's embedded DNS. `docker logs` keeps
+    # working via Docker's dual-logging cache. UDP and fire-and-forget, so a
+    # container still starts when Logstash is down; those events are just lost.
+    logging:
+      driver: gelf
+      options:
+        gelf-address: "udp://127.0.0.1:12201"
     networks:
       - trans_net
 
@@ -207,6 +234,15 @@ services:
           memory: 512M
           #mem_limit:      512M
           #memswap_limit:  -1
+    # stdout/stderr -> Logstash gelf input (ELK log-management module).
+    # 127.0.0.1, not `logstash`: the gelf driver runs inside dockerd on the
+    # host, which has no access to Docker's embedded DNS. `docker logs` keeps
+    # working via Docker's dual-logging cache. UDP and fire-and-forget, so a
+    # container still starts when Logstash is down; those events are just lost.
+    logging:
+      driver: gelf
+      options:
+        gelf-address: "udp://127.0.0.1:12201"
     networks:
       - trans_net
 
@@ -255,6 +291,15 @@ services:
         condition:  service_healthy
       vault-init:
         condition:  service_completed_successfully
+    # stdout/stderr -> Logstash gelf input (ELK log-management module).
+    # 127.0.0.1, not `logstash`: the gelf driver runs inside dockerd on the
+    # host, which has no access to Docker's embedded DNS. `docker logs` keeps
+    # working via Docker's dual-logging cache. UDP and fire-and-forget, so a
+    # container still starts when Logstash is down; those events are just lost.
+    logging:
+      driver: gelf
+      options:
+        gelf-address: "udp://127.0.0.1:12201"
     networks:
       - trans_net
     healthcheck:
@@ -301,6 +346,15 @@ services:
         condition:  service_healthy
       vault-init:
         condition:  service_completed_successfully
+    # stdout/stderr -> Logstash gelf input (ELK log-management module).
+    # 127.0.0.1, not `logstash`: the gelf driver runs inside dockerd on the
+    # host, which has no access to Docker's embedded DNS. `docker logs` keeps
+    # working via Docker's dual-logging cache. UDP and fire-and-forget, so a
+    # container still starts when Logstash is down; those events are just lost.
+    logging:
+      driver: gelf
+      options:
+        gelf-address: "udp://127.0.0.1:12201"
     networks:
       - trans_net
      
@@ -321,8 +375,17 @@ services:
       - "80:80"
     volumes:
       - ./frontend/logs/modsecurity:/var/log/modsecurity
-      #- ./frontend/dist:/usr/share/nginx/html:ro   # this for dep
-      - ./frontend-Alex/public:/usr/share/nginx/html:ro  # this for dev
+      # frontend-react is the real game UI (chess.js + react-chessboard,
+      # ChessGame/ChessLobby/Tournaments pages). frontend-Alex is an OAuth test
+      # harness with no game screen at all, and was mounted here on the last
+      # commit -- this repo's dep stack had never actually served the game.
+      # Rebuild after any frontend-react change:
+      #   docker run --rm -v "$PWD/frontend-react:/src:ro" -v frr_build:/app \
+      #     -w /app node:22-alpine sh -c \
+      #     "cp -r /src/. /app/ && rm -rf /app/dist && npm ci && npm run build"
+      #   docker run --rm -v frr_build:/app -v "$PWD/frontend-react:/out" \
+      #     alpine sh -c "rm -rf /out/dist && cp -r /app/dist /out/dist && chown -R $(id -u):$(id -g) /out/dist"
+      - ./frontend-react/dist:/usr/share/nginx/html:ro
       - ./vault/certs:/vault/certs:ro
       #- ./frontend/docker_conf/nginx.conf:/etc/nginx/nginx.conf:ro
       #- ./frontend/docker_conf/nginx.conf:/etc/nginx/conf.d/default.conf:ro
@@ -333,6 +396,15 @@ services:
         condition:  service_completed_successfully
     environment:
       FRONTEND_URL: ${FRONTEND_URL}
+    # stdout/stderr -> Logstash gelf input (ELK log-management module).
+    # 127.0.0.1, not `logstash`: the gelf driver runs inside dockerd on the
+    # host, which has no access to Docker's embedded DNS. `docker logs` keeps
+    # working via Docker's dual-logging cache. UDP and fire-and-forget, so a
+    # container still starts when Logstash is down; those events are just lost.
+    logging:
+      driver: gelf
+      options:
+        gelf-address: "udp://127.0.0.1:12201"
     networks:
       - trans_net
     healthcheck:
@@ -377,6 +449,170 @@ services:
     networks:
       - trans_net
 
+  # ── ELK: log management (Devops major module) ───────────────────────────────
+  # Mirrors docker-compose-dev.yml. Differences from dev, both deliberate:
+  #   * Logstash reads ModSecurity's audit log from the ./frontend/logs/
+  #     modsecurity bind mount that frontend_nginx already writes to here (dev
+  #     uses a named volume instead, since it has no such mount).
+  #   * Credentials come from ELK/.env.elk, which ELK/vault/sync-elk-env.sh
+  #     regenerates from Vault's secret/data/elasticsearch.
+  elasticsearch:
+    build:
+      context:              ELK/elasticsearch
+      dockerfile:           docker_conf/Dockerfile
+      pull:                 false
+      # No cache_from/cache_to here, unlike the app services. This image is a
+      # pulled base plus a single COPY, so a local cache export duplicated the
+      # whole base layer set to disk (854M for ES, 535M Kibana, 511M Logstash =
+      # 1.9G) to save a rebuild step that takes seconds. The base image stays in
+      # Docker's image store either way. Revert by restoring the two keys if the
+      # VM ever has disk to spare.
+    container_name:         trans_elasticsearch
+    restart:                unless-stopped
+    # No `ports:` -- 9200 stays on trans_net, reachable only by Logstash and
+    # Kibana. Inspect it with `docker exec`, not from the host.
+    environment:
+      # Never leave ES on its default heap sizing: it takes 50% of host RAM.
+      ES_JAVA_OPTS:         "-Xms1g -Xmx1g"
+    env_file:
+      - ./ELK/.env.elk
+    ulimits:
+      # Required by `bootstrap.memory_lock: true` in elasticsearch.yml.
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    volumes:
+      - ${HOME}/goinfre/trans_data/trans_es_data:/usr/share/elasticsearch/data
+      - ${HOME}/goinfre/trans_data/trans_es_snapshots:/snapshots  # own dir, NOT under trans_backups: up_dep_secure.sh
+                                                              # chowns that tree -R to 100:100 while ES runs as uid 1000
+    networks:
+      - trans_net
+    deploy:
+      resources:
+        limits:
+          cpus:             "1.5"
+          memory: 2G
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf -u elastic:$${ELASTIC_PASSWORD} 'http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=5s' >/dev/null || exit 1"]
+      interval:             15s
+      timeout:              10s
+      retries:              10
+      start_period:         90s
+
+  elk-init:
+    # Reuses the elasticsearch image (it ships curl) rather than pulling a
+    # fourth image for a handful of API calls. Same throwaway-container pattern
+    # as vault-init.
+    image:                  docker.io/library/elasticsearch:9.5.2
+    container_name:         trans_elk_init
+    depends_on:
+      elasticsearch:
+        condition:          service_healthy
+    env_file:
+      - ./ELK/.env.elk
+    volumes:
+      - ./ELK/init/init-elk.sh:/app/init-elk.sh:ro
+      - ./ELK/ilm:/app/ilm:ro
+    entrypoint:             ["/bin/sh", "-c"]
+    command:
+      - |
+        /app/init-elk.sh
+    restart:                "no"
+    networks:
+      - trans_net
+
+  kibana:
+    build:
+      context:              ELK/kibana
+      dockerfile:           docker_conf/Dockerfile
+      pull:                 false
+      # No cache_from/cache_to here, unlike the app services. This image is a
+      # pulled base plus a single COPY, so a local cache export duplicated the
+      # whole base layer set to disk (854M for ES, 535M Kibana, 511M Logstash =
+      # 1.9G) to save a rebuild step that takes seconds. The base image stays in
+      # Docker's image store either way. Revert by restoring the two keys if the
+      # VM ever has disk to spare.
+    container_name:         trans_kibana
+    restart:                unless-stopped
+    depends_on:
+      elasticsearch:
+        condition:          service_healthy
+      elk-init:
+        condition:          service_completed_successfully
+    ports:
+      # Loopback only: Kibana is an admin surface, not part of the public app.
+      # Reach it from another machine over an SSH tunnel.
+      - "127.0.0.1:5601:5601"
+    env_file:
+      - ./ELK/.env.elk
+    environment:
+      NODE_OPTIONS:         "--max-old-space-size=768"
+    networks:
+      - trans_net
+    deploy:
+      resources:
+        limits:
+          cpus:             "1.0"
+          memory: 1280M
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:5601/api/status | grep -q '\"level\":\"available\"' || exit 1"]
+      interval:             15s
+      timeout:              10s
+      retries:              10
+      start_period:         120s
+
+  logstash:
+    build:
+      context:              ELK/logstash
+      dockerfile:           docker_conf/Dockerfile
+      pull:                 false
+      # No cache_from/cache_to here, unlike the app services. This image is a
+      # pulled base plus a single COPY, so a local cache export duplicated the
+      # whole base layer set to disk (854M for ES, 535M Kibana, 511M Logstash =
+      # 1.9G) to save a rebuild step that takes seconds. The base image stays in
+      # Docker's image store either way. Revert by restoring the two keys if the
+      # VM ever has disk to spare.
+    container_name:         trans_logstash
+    restart:                unless-stopped
+    depends_on:
+      elasticsearch:
+        condition:          service_healthy
+      elk-init:
+        condition:          service_completed_successfully
+    ports:
+      # Must be published, unlike ES and Kibana: Docker's gelf driver runs in
+      # dockerd on the host and cannot resolve container names. Bound to
+      # loopback so nothing off-box can inject forged log events.
+      - "127.0.0.1:12201:12201/udp"
+    volumes:
+      # The same host directory frontend_nginx writes ModSecurity's audit log
+      # to, mounted read-only. up_dep_secure.sh creates it with the right owner.
+      - ./frontend/logs/modsecurity:/var/log/modsecurity:ro
+      # Keeps the sincedb across restarts so the audit log is not re-ingested.
+      - logstash_data:/usr/share/logstash/data
+    env_file:
+      - ./ELK/.env.elk
+    environment:
+      LS_JAVA_OPTS:         "-Xms512m -Xmx512m"
+    networks:
+      - trans_net
+    deploy:
+      resources:
+        limits:
+          cpus:             "1.0"
+          memory: 1G
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:9600/_node/stats | grep -q '\"status\":\"green\"' || exit 1"]
+      interval:             15s
+      timeout:              10s
+      retries:              10
+      start_period:         120s
+
+volumes:
+  logstash_data:
 
 networks:
   trans_net:

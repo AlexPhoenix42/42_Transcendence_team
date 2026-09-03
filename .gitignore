@@ -38,3 +38,6 @@ vault/approle/
 vault/certs/
 vault/secrets/
 
+
+# ── ELK generated credentials ──────────
+ELK/.env.elk

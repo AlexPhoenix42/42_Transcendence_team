@@ -1,0 +1,14 @@
+{
+  "schedule": "0 30 1 * * ?",
+  "name": "<logs-snap-{now/d}>",
+  "repository": "trans-log-snapshots",
+  "config": {
+    "indices": ["logs-*"],
+    "include_global_state": false
+  },
+  "retention": {
+    "expire_after": "30d",
+    "min_count": 5,
+    "max_count": 60
+  }
+}

@@ -39,7 +39,12 @@ chmod 700 vault/secrets
 # 7. Prepare nginx log directory
 mkdir -p frontend/logs/modsecurity
 chown 101:101 frontend/logs/modsecurity
-chmod 750 frontend/logs/modsecurity
+# 755, not 750: nginx (uid 101) writes the audit log here, but Logstash reads it
+# as uid 1000 and is in neither that user nor group. With 750 it cannot even
+# traverse the directory, so logs-modsecurity-* stays empty with no error
+# anywhere. The audit.log file itself is created 0644 by ModSecurity, so
+# widening only the directory bit is enough.
+chmod 755 frontend/logs/modsecurity
 
 # 8. Prepare backup data and restic repository (runtime)
 BACKUP_DATA_DIR="$HOME/goinfre/trans_data/trans_backups"
@@ -52,6 +57,13 @@ mkdir -p "$BACKUP_DATA_DIR/restic-repo"
 chown -R 100:100 "$BACKUP_DATA_DIR"
 chmod 750 "$BACKUP_DATA_DIR"
 chmod 700 "$BACKUP_DATA_DIR/restic-repo"
+
+# 8b. Prepare the ELK data directories and credentials file.
+# Elasticsearch runs as uid 1000 and Docker would otherwise create these bind
+# mounts as root:root. Note the snapshot repo deliberately lives OUTSIDE
+# $BACKUP_DATA_DIR, because step 8's `chown -R 100:100` above would take it away
+# from Elasticsearch on every run.
+./ELK/host-setup/prepare-elk-dirs.sh
 
 # 9. Run docker compose (no --build)
 DECRYPTED_SEC_FILE="$DECRYPTED_SEC_ENV" \

@@ -1,0 +1,5 @@
+# Single pipeline. Declared explicitly rather than relying on the image's
+# implicit /usr/share/logstash/pipeline/*.conf glob, so the pipeline set is
+# visible in the repo and easy to split later.
+- pipeline.id: trans-logs
+  path.config: "/usr/share/logstash/pipeline/logstash.conf"

@@ -1,0 +1,14 @@
+# Logstash node settings. The pipeline itself is in logstash.conf.
+
+# NB: these are `api.http.*`, not `http.*` -- the settings were renamed in
+# Logstash 8 and 9.x rejects the old names outright rather than warning.
+api.http.host: "0.0.0.0"
+api.http.port: 9600
+
+# No connection to Elastic's monitoring cluster and no phoning home. Logstash's
+# own health is checked via its local API on 9600.
+xpack.monitoring.enabled: false
+
+# Logstash's own logs as JSON on stdout, matching Elasticsearch and Kibana.
+log.format: json
+log.level: info

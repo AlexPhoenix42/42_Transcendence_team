@@ -15,6 +15,11 @@ RUN			wget -qO /tmp/crs.tar.gz \
 RUN			rm -rf /etc/nginx/templates
 RUN			rm -f /docker-entrypoint.d/90-copy-modsecurity-config.sh
 RUN			rm -f /docker-entrypoint.d/92-update-real_ip.sh
+# 91 runs `sed -i` on /etc/nginx/nginx.conf, which fails with "Resource busy"
+# whenever that file is bind-mounted (as docker-compose-dev.yml does), sending
+# the container into a restart loop. We manage the resolver directive
+# ourselves -- same reasoning as 90 and 92 above.
+RUN			rm -f /docker-entrypoint.d/91-update-resolver.sh
 
 # Create audit log directory
 #RUN			mkdir -p /var/log/modsecurity/trans

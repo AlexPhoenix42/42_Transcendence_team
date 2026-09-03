@@ -1,0 +1,37 @@
+# Kibana config for the ft_transcendence log-management module.
+# Credentials and encryption keys come from the environment (see ELK/.env.elk),
+# never from this file -- it is committed.
+
+server.name: trans-kibana
+
+# Listen on all interfaces *inside the container*. Exposure is controlled by the
+# compose port mapping, which binds to 127.0.0.1 on the host only.
+server.host: "0.0.0.0"
+server.port: 5601
+server.publicBaseUrl: "http://127.0.0.1:5601"
+
+# Plain HTTP to ES over the internal trans_net bridge. Same reasoning as
+# elasticsearch.yml: 9200 is not published, and the subject permits unencrypted
+# connections between containers.
+elasticsearch.hosts: ["http://elasticsearch:9200"]
+
+# elasticsearch.username / .password are injected as env vars
+# (ELASTICSEARCH_USERNAME / ELASTICSEARCH_PASSWORD). Kibana authenticates as the
+# built-in `kibana_system` account, which holds only the privileges Kibana needs
+# -- logging in as `elastic` would hand the whole UI superuser rights.
+
+# No outbound telemetry from a graded project on a VM with no guaranteed egress.
+telemetry.enabled: false
+telemetry.optIn:   false
+
+# Keep Kibana's own logs as JSON on stdout so they are shaped like everything
+# else Logstash ingests once this container is switched to the gelf driver.
+logging:
+  appenders:
+    json_console:
+      type: console
+      layout:
+        type: json
+  root:
+    appenders: [json_console]
+    level: warn

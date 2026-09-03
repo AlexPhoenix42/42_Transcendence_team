@@ -110,9 +110,29 @@ LOGGING = {
     #        'callback': lambda record: '/healthz' not in record.getMessage(),
     #    },
     #},
+    'formatters': {
+        # Logstash ingests this container's stdout via the Docker gelf driver and
+        # parses each line as JSON, so emit one JSON object per record instead of
+        # free text. Keeps the pipeline grok-free for application logs.
+        'json': {
+            # NOTE: asctime here has no timezone and follows the container's
+            # clock, not TIME_ZONE above. The image sets no TZ, so it is UTC,
+            # which is what the ELK pipeline's date filter assumes. Adding a TZ
+            # to this container without updating ELK/logstash/docker_conf/
+            # logstash.conf would shift every Django log.
+            '()': 'pythonjsonlogger.json.JsonFormatter',
+            'format': '%(asctime)s %(levelname)s %(name)s %(module)s %(process)d %(message)s',
+            'rename_fields': {
+                'asctime': 'timestamp',
+                'levelname': 'level',
+                'name': 'logger',
+            },
+        },
+    },
     'handlers': {
         'console': {
             'class': 'logging.StreamHandler',
+            'formatter': 'json',
             #'filters': ['skip_healthcheck'],
         },
     },
@@ -125,7 +145,7 @@ LOGGING = {
             'handlers': ['console'],
             'level': 'DEBUG',
         },
-        'django.db.backends': {'handlers': ['console'], 'level': 'DEBUG'},
+        'django.db.backends': {'handlers': ['console'], 'level': 'WARNING'},
         #'daphne.access': {
         #    'handlers': ['console'],
         #    'level': 'INFO',

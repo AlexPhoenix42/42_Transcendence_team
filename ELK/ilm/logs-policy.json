@@ -1,0 +1,26 @@
+{
+  "policy": {
+    "phases": {
+      "hot": {
+        "min_age": "0ms",
+        "actions": {
+          "set_priority": { "priority": 100 }
+        }
+      },
+      "warm": {
+        "min_age": "2d",
+        "actions": {
+          "set_priority": { "priority": 50 },
+          "forcemerge":   { "max_num_segments": 1 },
+          "readonly":     {}
+        }
+      },
+      "delete": {
+        "min_age": "7d",
+        "actions": {
+          "delete": {}
+        }
+      }
+    }
+  }
+}

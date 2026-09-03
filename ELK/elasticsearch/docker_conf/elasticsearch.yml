@@ -1,0 +1,55 @@
+# Elasticsearch node config for the ft_transcendence log-management module.
+#
+# Single node on purpose: this is one VM, and a multi-node cluster on 2 vCPUs
+# would buy nothing but memory pressure. Everything below is either required by
+# that choice or a deliberate trim to keep ES inside its 1 GB heap.
+
+cluster.name:   trans-logs
+node.name:      trans-es-01
+
+# Skips the production discovery/quorum bootstrap checks. Correct for a
+# one-node cluster; would be wrong the moment a second node joined.
+discovery.type: single-node
+
+network.host:   0.0.0.0
+http.port:      9200
+
+# Filesystem snapshot repository, used by the SLM policy to archive indices
+# before ILM deletes them. Mounted from the host next to the restic repo.
+path.repo:
+  - /snapshots
+
+# ── Security ─────────────────────────────────────────────────────────────────
+# Authentication is ON. The `elastic` superuser password is supplied via the
+# ELASTIC_PASSWORD env var at first boot (later sourced from Vault), and no
+# request reaches this node without credentials.
+xpack.security.enabled: true
+
+# TLS is off on the HTTP and transport layers because 9200 is never published
+# to the host -- it is reachable only by Logstash and Kibana over the internal
+# `trans_net` bridge. The subject permits unencrypted connections *inside* the
+# backend ("web server and database, software inside your container(s)");
+# everything browser-facing still terminates TLS at nginx.
+xpack.security.http.ssl.enabled:      false
+xpack.security.transport.ssl.enabled: false
+
+# ── Trims ────────────────────────────────────────────────────────────────────
+# Machine learning allocates native memory outside the JVM heap and we use none
+# of it. Off, to keep the container inside its 2 GB limit.
+xpack.ml.enabled: false
+
+# Pin to the free Basic license instead of the 30-day trial that ES starts by
+# default. ILM and SLM -- the retention and archiving features this module is
+# graded on -- are both Basic features, so nothing here needs the trial, and a
+# trial would silently expire mid-project.
+xpack.license.self_generated.type: basic
+
+# Stop ES phoning home to Elastic for GeoIP databases on every boot. Nothing in
+# the pipeline enriches by IP, and this keeps the node from logging download
+# failures on a VM with no guaranteed egress.
+ingest.geoip.downloader.enabled: false
+
+# Keep the JVM heap out of swap. This VM has ~1 GB of swap, and a swapped heap
+# turns every query into disk I/O. Requires `ulimits.memlock: -1` on the
+# container, which the compose file sets.
+bootstrap.memory_lock: true

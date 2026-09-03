@@ -20,6 +20,12 @@ services:
       - "${DB_PORT}:5432"   # The internal port stays hard-coded (internal confs deps)
     volumes:
       - ${HOME}/goinfre/trans_data/trans_db_server_data:/var/lib/postgresql
+    # stdout/stderr -> Logstash gelf input. See the `redis` service for why the
+    # address is 127.0.0.1 and what happens when Logstash is down.
+    logging:
+      driver: gelf
+      options:
+        gelf-address: "udp://127.0.0.1:12201"
     networks:
       - trans_net
     healthcheck:
@@ -33,6 +39,21 @@ services:
     image:            redis:8-alpine
     container_name:   trans_redis
     restart:          unless-stopped
+    # Ships stdout/stderr to Logstash's gelf input.
+    #
+    # The address is 127.0.0.1, not `logstash`: the gelf driver runs inside
+    # dockerd on the host, which has no access to Docker's embedded DNS, so a
+    # service name cannot be resolved here.
+    #
+    # `docker logs` keeps working despite the remote driver -- Docker's
+    # dual-logging cache (on by default since 20.10) retains a local copy. The
+    # driver is UDP and fire-and-forget, so a container still starts normally
+    # when Logstash is down; events from that window reach the local cache but
+    # never reach Elasticsearch.
+    logging:
+      driver: gelf
+      options:
+        gelf-address: "udp://127.0.0.1:12201"
     networks:
       - trans_net
     healthcheck:
@@ -75,13 +96,25 @@ services:
     environment:
       VAULT_MODE:               dev
       VAULT_DEV_ROOT_TOKEN_ID:  root
-      VAULT_ADDR:                ${VAULT_URL}
+      # NOT ${VAULT_URL}: that is the dep value (https://vault:8200), but this
+      # stage runs `vault server -dev`, which serves plain HTTP. With the https
+      # URL the `vault status` healthcheck can never succeed, so the container
+      # stayed permanently unhealthy and vault-init -- which waits on
+      # service_healthy -- would never run.
+      VAULT_ADDR:               http://127.0.0.1:8200
     ports:
       - "8200:8200"
-    volumes:
-      #- ./vault/docker_conf/config-dev.hcl:/vault/config/config.hcl:ro
-      #- ./vault/data:/vault/data
-      - ${HOME}/goinfre/trans_data/trans_vault_data:/vault/data
+    # No /vault/data mount: this stage runs `vault server -dev`, which is
+    # auto-unsealed with IN-MEMORY storage (see vault/docker_conf/Dockerfile),
+    # so the mount persisted nothing. It also broke the container outright --
+    # Docker creates a missing bind-mount source as root:root and the entrypoint
+    # runs as uid 100 (vault), so its chown failed and the container crash-looped
+    # on "chown: /vault/data: Operation not permitted".
+    #
+    # The dep compose is different: that stage uses file storage and does need
+    # the directory, owned 100:100 (as up_dep_secure.sh already arranges).
+    #volumes:
+    #  - ${HOME}/goinfre/trans_data/trans_vault_data:/vault/data
     networks:
       - trans_net
     healthcheck:
@@ -132,6 +165,12 @@ services:
       ENGINE_PORT: 4190
     expose:
       - "4190"
+    # stdout/stderr -> Logstash gelf input. See the `redis` service for why the
+    # address is 127.0.0.1 and what happens when Logstash is down.
+    logging:
+      driver: gelf
+      options:
+        gelf-address: "udp://127.0.0.1:12201"
     networks:
       - trans_net
 
@@ -164,6 +203,12 @@ services:
           memory: 512M
           #mem_limit:      512M
           #memswap_limit:  -1
+    # stdout/stderr -> Logstash gelf input. See the `redis` service for why the
+    # address is 127.0.0.1 and what happens when Logstash is down.
+    logging:
+      driver: gelf
+      options:
+        gelf-address: "udp://127.0.0.1:12201"
     networks:
       - trans_net
 
@@ -199,6 +244,12 @@ services:
         condition:  service_healthy
       vault-init:
         condition:  service_completed_successfully
+    # stdout/stderr -> Logstash gelf input. See the `redis` service for why the
+    # address is 127.0.0.1 and what happens when Logstash is down.
+    logging:
+      driver: gelf
+      options:
+        gelf-address: "udp://127.0.0.1:12201"
     networks:
       - trans_net
     healthcheck:
@@ -232,6 +283,12 @@ services:
         condition:  service_healthy
       redis:
         condition:  service_healthy
+    # stdout/stderr -> Logstash gelf input. See the `redis` service for why the
+    # address is 127.0.0.1 and what happens when Logstash is down.
+    logging:
+      driver: gelf
+      options:
+        gelf-address: "udp://127.0.0.1:12201"
     networks:
       - trans_net
      
@@ -251,20 +308,219 @@ services:
     volumes:
       - ./frontend/dist:/usr/share/nginx/html:ro
       - ./frontend/docker_conf/nginx.conf:/etc/nginx/nginx.conf:ro
+      # ModSecurity's audit log is a real file, not stdout, so it is the one
+      # thing the gelf driver cannot carry. Shared with Logstash through a named
+      # volume, which inherits nginx:nginx ownership from the image (the
+      # Dockerfile chowns /var/log/modsecurity) and so needs no host-side chown.
+      # docker-compose-dep.yml instead bind-mounts ./frontend/logs/modsecurity,
+      # prepared with the right owner by up_dep_secure.sh.
+      - modsec_logs:/var/log/modsecurity
       #- ./frontend/docker_conf/nginx.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
       backend_django:
         condition:  service_healthy
     environment:
       FRONTEND_URL: ${FRONTEND_URL}
+    # stdout/stderr -> Logstash gelf input. See the `redis` service for why the
+    # address is 127.0.0.1 and what happens when Logstash is down.
+    logging:
+      driver: gelf
+      options:
+        gelf-address: "udp://127.0.0.1:12201"
     networks:
       - trans_net
     healthcheck:
-      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider $${FRONTEND_URL}/health || exit 1"]
+      # Self-referential, like the dep compose does. The old check used
+      # $${FRONTEND_URL}/health, which depended on SERVER_IP being right AND
+      # produced "/index.html/health" because FRONTEND_URL ends in a filename.
+      # A container's health should not hinge on external DNS or host ports.
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://127.0.0.1/health || exit 1"]
       interval:     30s
       timeout:      10s
       retries:      3
       start_period: 5s
+
+  # ── ELK: log management (Devops major module) ──────────────────────────────
+  elasticsearch:
+    build:
+      context:      ELK/elasticsearch
+      dockerfile:   docker_conf/Dockerfile
+      pull:         false
+      # No cache_from/cache_to here, unlike the app services. This image is a
+      # pulled base plus a single COPY, so a local cache export duplicated the
+      # whole base layer set to disk (854M for ES, 535M Kibana, 511M Logstash =
+      # 1.9G) to save a rebuild step that takes seconds. The base image stays in
+      # Docker's image store either way. Revert by restoring the two keys if the
+      # VM ever has disk to spare.
+    container_name: trans_elasticsearch
+    restart:        unless-stopped
+    # No `ports:` on purpose -- 9200 stays on trans_net, reachable only by
+    # Logstash and Kibana. Verify from the host with `docker exec`, not curl.
+    environment:
+      # Never leave ES on its default heap sizing: it grabs 50% of host RAM
+      # (~3.9G here) and would starve the other 12 services.
+      ES_JAVA_OPTS:     "-Xms1g -Xmx1g"
+    env_file:
+      # Holds ELASTIC_PASSWORD. Git-ignored and generated by
+      # ELK/host-setup/prepare-elk-dirs.sh, so the password never lands in the
+      # tracked .env or in shell history. Superseded by Vault at build step 9.
+      - ./ELK/.env.elk
+    ulimits:
+      # Required by `bootstrap.memory_lock: true` in elasticsearch.yml.
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    volumes:
+      - ${HOME}/goinfre/trans_data/trans_es_data:/usr/share/elasticsearch/data
+      - ${HOME}/goinfre/trans_data/trans_es_snapshots:/snapshots  # own dir, NOT under trans_backups: up_dep_secure.sh
+                                                              # chowns that tree -R to 100:100 while ES runs as uid 1000
+    networks:
+      - trans_net
+    deploy:
+      resources:
+        limits:
+          cpus:           "1.5"
+          memory: 2G
+    healthcheck:
+      # `yellow` is the healthy steady state for a single node once indices with
+      # replicas exist; the logs-* template sets replicas to 0 so it stays green.
+      test: ["CMD-SHELL", "curl -sf -u elastic:$${ELASTIC_PASSWORD} 'http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=5s' >/dev/null || exit 1"]
+      interval:     15s
+      timeout:      10s
+      retries:      10
+      start_period: 90s
+
+  elk-init:
+    # Reuses the already-present elasticsearch image (it ships curl) instead of
+    # pulling a fourth image just to make a few API calls -- worth doing on a
+    # disk-constrained VM. Same throwaway-container pattern as vault-init.
+    image:          docker.io/library/elasticsearch:9.5.2
+    container_name: trans_elk_init
+    depends_on:
+      elasticsearch:
+        condition:  service_healthy
+    env_file:
+      - ./ELK/.env.elk
+    volumes:
+      - ./ELK/init/init-elk.sh:/app/init-elk.sh:ro
+      - ./ELK/ilm:/app/ilm:ro
+    entrypoint:     ["/bin/sh", "-c"]
+    command:
+      - |
+        /app/init-elk.sh
+    restart:        "no"
+    networks:
+      - trans_net
+
+  kibana:
+    build:
+      context:      ELK/kibana
+      dockerfile:   docker_conf/Dockerfile
+      pull:         false
+      # No cache_from/cache_to here, unlike the app services. This image is a
+      # pulled base plus a single COPY, so a local cache export duplicated the
+      # whole base layer set to disk (854M for ES, 535M Kibana, 511M Logstash =
+      # 1.9G) to save a rebuild step that takes seconds. The base image stays in
+      # Docker's image store either way. Revert by restoring the two keys if the
+      # VM ever has disk to spare.
+    container_name: trans_kibana
+    restart:        unless-stopped
+    depends_on:
+      elasticsearch:
+        condition:  service_healthy
+      # Kibana cannot authenticate until elk-init has set the kibana_system
+      # password, so wait for that container to exit 0.
+      elk-init:
+        condition:  service_completed_successfully
+    ports:
+      # Bound to loopback only: Kibana is an admin surface, not part of the
+      # public app. Reach it from another machine over an SSH tunnel.
+      - "127.0.0.1:5601:5601"
+    env_file:
+      # Supplies ELASTICSEARCH_USERNAME/PASSWORD and the XPACK_* encryption keys
+      # under the exact names Kibana expects.
+      - ./ELK/.env.elk
+    environment:
+      # Kibana's Node default heap is far larger than this node needs; cap it so
+      # ES keeps the memory that actually matters.
+      NODE_OPTIONS: "--max-old-space-size=768"
+    networks:
+      - trans_net
+    deploy:
+      resources:
+        limits:
+          cpus:           "1.0"
+          # Measured 902 MiB RSS with a 768 MB Node heap, so a 1G cap left no
+          # room and risked an OOM kill mid-dashboard. Re-measure the whole
+          # stack once Logstash is in and rebalance if 8 GB gets tight.
+          memory: 1280M
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:5601/api/status | grep -q '\"level\":\"available\"' || exit 1"]
+      interval:     15s
+      timeout:      10s
+      retries:      10
+      start_period: 120s
+
+  logstash:
+    build:
+      context:      ELK/logstash
+      dockerfile:   docker_conf/Dockerfile
+      pull:         false
+      # No cache_from/cache_to here, unlike the app services. This image is a
+      # pulled base plus a single COPY, so a local cache export duplicated the
+      # whole base layer set to disk (854M for ES, 535M Kibana, 511M Logstash =
+      # 1.9G) to save a rebuild step that takes seconds. The base image stays in
+      # Docker's image store either way. Revert by restoring the two keys if the
+      # VM ever has disk to spare.
+    container_name: trans_logstash
+    restart:        unless-stopped
+    depends_on:
+      elasticsearch:
+        condition:  service_healthy
+      # Needs the logs-* template and the logstash_internal user to exist.
+      elk-init:
+        condition:  service_completed_successfully
+    ports:
+      # This one MUST be published, unlike ES and Kibana. Docker's gelf log
+      # driver runs inside dockerd on the host, not inside the container, so it
+      # cannot resolve `logstash` via Docker's embedded DNS -- services point at
+      # udp://127.0.0.1:12201. Bound to loopback so nothing off-box can inject
+      # forged log events.
+      - "127.0.0.1:12201:12201/udp"
+    volumes:
+      # Read-only: Logstash tails the ModSecurity audit log, never writes it.
+      - modsec_logs:/var/log/modsecurity:ro
+      # Survives restarts so Logstash resumes where it stopped instead of
+      # re-ingesting the whole audit log and creating duplicates.
+      - logstash_data:/usr/share/logstash/data
+    env_file:
+      # Supplies LOGSTASH_PASSWORD, referenced by the pipeline's ES output.
+      - ./ELK/.env.elk
+    environment:
+      # Explicitly capped for the same reason as Elasticsearch: the JVM default
+      # sizes itself off host RAM.
+      LS_JAVA_OPTS: "-Xms512m -Xmx512m"
+    networks:
+      - trans_net
+    deploy:
+      resources:
+        limits:
+          cpus:           "1.0"
+          memory: 1G
+    healthcheck:
+      # Logstash's local monitoring API reports overall pipeline health.
+      test: ["CMD-SHELL", "curl -sf http://localhost:9600/_node/stats | grep -q '\"status\":\"green\"' || exit 1"]
+      interval:     15s
+      timeout:      10s
+      retries:      10
+      start_period: 120s
+
+volumes:
+  modsec_logs:
+  logstash_data:
 
 networks:
   trans_net:
