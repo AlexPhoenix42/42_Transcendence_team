@@ -21,6 +21,12 @@ FROM	base AS dev
 # Copy dev configuration
 COPY	--chown=vault:vault config/config-dev.hcl	/vault/config/config.hcl
 
+# Entrypoint chowns /vault/data (a host bind mount outside the 42 goinfre
+# setup can be owned by a different uid than the image's 'vault' user, which
+# then can't chown it without CAP_CHOWN) - same fix the dep stage already
+# uses below, for the same reason.
+USER	root
+
 EXPOSE	8200
 
 # Run vault in dev mode (auto-unsealed, in-memory storage)
