@@ -345,6 +345,7 @@ class PublicProfileView(APIView):
             "draw"          : user.draw,
             "is_online"     : user.is_online,
             "friends_cnt"   : user.friends.count(),
+            "role"          : user.role,
         }
         return Response(data)
 # ===========================================================================

@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+
+containers=$(docker ps -aq)
+images=$(docker images -q)
+
+# Stop & remove containers (silence errors if none exist)
+[ -n "$containers" ] && docker stop $containers 2>/dev/null
+[ -n "$containers" ] && docker rm $containers 2>/dev/null
+
+# Remove all images (silence errors if none exist)
+[ -n "$images" ] && docker rmi $images 2>/dev/null
+

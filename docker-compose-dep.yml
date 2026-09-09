@@ -239,6 +239,7 @@ services:
       VAULT_URL:    ${VAULT_URL}
       VAULT_AUTH_METHOD:  approle
       VAULT_CACERT: /vault/certs/ca-cert.pem
+      PYTHONUNBUFFERED: "1"
     ports:
       - "9000:9000"
     volumes:

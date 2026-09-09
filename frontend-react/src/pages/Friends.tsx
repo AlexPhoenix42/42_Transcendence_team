@@ -28,10 +28,18 @@ export default function Friends() {
     const [success, setSuccess] = useState("")
     const [tab, setTab] = useState<"friends" | "requests" | "sent">("friends")
 
-    useEffect(() => {
+	useEffect(() => {
         fetchFriends()
         fetchRequests()
         fetchSentRequests()
+
+        const interval = setInterval(() => {
+            fetchFriends()
+            fetchRequests()
+            fetchSentRequests()
+        }, 10000)
+
+        return () => clearInterval(interval)
     }, [])
 
 	async function fetchFriends() {
@@ -204,7 +212,7 @@ export default function Friends() {
                             </Link>
                             <button
                                 onClick={() => removeFriend(friend.id)}
-                                className="text-gray-400 hover:text-red-400 text-sm"
+								className="px-3 py-1 bg-red-900/50 text-red-400 hover:bg-red-800 hover:text-white rounded text-sm"
                             >
                                 Remove
                             </button>

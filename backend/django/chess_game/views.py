@@ -27,7 +27,6 @@ from django.utils                               import timezone
 from django.db                                  import transaction
 from django.db.models                           import Q
 
-
 import random
 import time
 
@@ -100,13 +99,26 @@ class GameListCreateView(generics.ListCreateAPIView):
     #def perform_create(self, serializer):
     #    serializer.save(created_by=self.request.user, player1=self.request.user)
 
+        #def perform_create(self, serializer):
+        #def fen     = self.request.data.get("fen")
+        #def kwargs  = {"created_by": self.request.user, "player1": self.request.user}
+        #def if  fen:
+        #def     kwargs["board_state"] = fen
+
+        #def serializer.save(**kwargs)
+
     def perform_create(self, serializer):
-        fen     = self.request.data.get("fen")
-        kwargs  = {"created_by": self.request.user, "player1": self.request.user}
+        fen = self.request.data.get("fen")
+        is_practice = bool(self.request.data.get("is_practice", False))
+        kwargs      = {"created_by": self.request.user, "player1": self.request.user}
         if  fen:
             kwargs["board_state"] = fen
 
         serializer.save(**kwargs)
+
+        #Store practice flag for later use by GameJoinView
+        if  is_practice:
+            cache.set(f"practice_flag:{serializer.instance.pk}", True, timeout=86400)
 # ===========================================================================
 
 
@@ -169,16 +181,26 @@ class GameCreateAIView(APIView):
 
             game.save(update_fields=["player1_color", "crnt_turn", "board_state"])
 
-            white_player    = game.player1 if game.player1_color else game.player2
+            if  game.crnt_turn is None:
+                return Response(
+                    {"error": "Failed to determine starting turn."},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                )
+
+            #white_player    = game.player1 if game.player1_color else game.player2
+            crnt_turn_pk = game.crnt_turn.pk if game.crnt_turn else None  # type: ignore[union-attr]
+
+            is_practice     = bool(request.data.get("is_practice", False))
 
             game_key        = f"game:{game.pk}"
             state           = {
                 #"fen"           : Game.INITIAL_FEN,
                 "fen"           : initial_fen,
-                "crnt_turn"     : white_player.pk,
+                "crnt_turn"     : crnt_turn_pk,
                 "check"         : False,
                 "checkmate"     : False,
                 "status"        : GameStatus.IN_PROGRESS,
+                "is_practice"   : is_practice,
                 "moves"         : [],
                 "disconnected"  : {},
                 "player1_id"    : game.player1_id,      # type: ignore[attr-defined]
@@ -267,25 +289,37 @@ class GameJoinView(APIView):
                 white_player    = game.player1 if game.player1_color else game.player2
                 game.crnt_turn  = white_player 
             else:
-                balack_player   = game.player2 if game.player1_color else game.player1
-                game.crnt_turn  = balack_player
+                black_player   = game.player2 if game.player1_color else game.player1
+                game.crnt_turn  = black_player
 
             game.save()
 
-            # Determine white player (player with first move)
-            white_player        = game.player1 if game.player1_color else game.player2
+            if  game.crnt_turn is None:
+                return Response(
+                    {"error": "Failed to determine starting turn."},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                )
 
-            assert white_player is not None # both players exist at this point
+            # Determine white player (player with first move)
+            #white_player        = game.player1 if game.player1_color else game.player2
+
+            #assert white_player is not None # both players exist at this point
+
+
+            crnt_turn_pk = game.crnt_turn.pk if game.crnt_turn else None  # type: ignore[union-attr]
+
+            is_practice         = bool(cache.get(f"practice_flag:{game.pk}"))
 
             # Initialize live game state in Redis
             game_key            = f"game:{game.pk}"
             cache.set(game_key, {
                 #"fen"           : Game.INITIAL_FEN,
                 "fen"           : game.board_state,
-                "crnt_turn"     : white_player.pk,
+                "crnt_turn"     : crnt_turn_pk,
                 "check"         : False,
                 "checkmate"     : False,
                 "status"        : GameStatus.IN_PROGRESS,
+                "is_practice"   : is_practice,
                 "moves"         : [],
                 "disconnected"  : {},
                 "player1_id"    : game.player1_id,
@@ -472,5 +506,87 @@ class GameDetailView(APIView):
 
         serializer = GameSerializer(game)
         return Response(serializer.data)
+# ===========================================================================
+
+
+# ===========================================================================
+class GameAcceptInviteView(APIView):
+    permission_classes      = [IsAuthenticated]
+    authentication_classes  = [JWTAuthentication, SessionAuthentication]
+
+    def post(self, request: Request) -> Response:
+        invite_id = request.data.get("invite_id")
+        if  not invite_id:
+            return Response({"error": "invite_id required"}, status=400)
+
+        invite_data = cache.get(f"game_invite:{invite_id}")
+        if  not invite_data:
+            return Response({"error": "Invite expired or invalid"}, status=400)
+
+        from_user_id = invite_data["from_user_id"]
+
+        if  request.user.pk == from_user_id:
+            return Response({"error": "Cannot accept your own invite"}, status=400)
+
+        from_user = get_user_model().objects.get(pk=from_user_id)
+
+        with transaction.atomic():
+            game = Game.objects.create(
+                player1=from_user,
+                player2=request.user,
+                created_by=from_user,
+                status=GameStatus.IN_PROGRESS,
+            )
+
+            game.player1_color = random.choice([True, False])
+            game.crnt_turn = game.player1 if game.player1_color else game.player2
+            game.save(update_fields=["player1_color", "crnt_turn"])
+
+            white_player = game.player1 if game.player1_color else game.player2
+
+            game_key = f"game:{game.pk}"
+            state = {
+                "fen": Game.INITIAL_FEN,
+                "crnt_turn": white_player.pk,
+                "check": False,
+                "checkmate": False,
+                "status": GameStatus.IN_PROGRESS,
+                "moves": [],
+                "disconnected": {},
+                "player1_id": game.player1_id,
+                "player2_id": game.player2_id,
+            }
+
+            cache.set(game_key, state, timeout=86400)
+
+            active_games = cache.get("active_games", set())
+            active_games.add(str(game.pk))
+            cache.set("active_games", active_games, timeout=None)
+
+        # Consume the invite
+        cache.delete(f"game_invite:{invite_id}")
+
+        # Notify both users via the DM room
+        room_id = invite_data.get("room_id")
+        if  room_id:
+            from chat.utils import send_system_message
+            send_system_message(room_id, f"⚔️ Game started! {from_user.username} vs {request.user.username}")  # type: ignore[union-attr]
+
+            # Broadcast game_started so both users navigate
+            from channels.layers import get_channel_layer
+            from asgiref.sync import async_to_sync
+
+            channel_layer = get_channel_layer()
+            if  channel_layer:
+                async_to_sync(channel_layer.group_send)(
+                    f"chat_room_{room_id}",
+                    {
+                        "type": "game_started",
+                        "game_id": game.pk,
+                    },
+                )
+
+        serializer = GameSerializer(game)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 # ===========================================================================
 

@@ -9,6 +9,7 @@ from rest_framework                 import status
 
 from rest_framework                 import generics
 from rest_framework.permissions     import IsAdminUser, IsAuthenticated
+from users.permissions              import IsModeratorOrAdmin
 from rest_framework.authentication  import SessionAuthentication
 
 from rest_framework_simplejwt.authentication    import JWTAuthentication
@@ -22,6 +23,7 @@ from django.contrib.auth            import get_user_model
 
 from django.core.cache              import cache
 
+import asyncio
 import random
 import time
 
@@ -47,12 +49,24 @@ else:
     User = get_user_model()
 
 # ==========================================================================
+    #class TournamentListCreateView(generics.ListCreateAPIView):
+    #    queryset            = Tournament.objects.all()
+    #    serializer_class    = TournamentSerializer
+    #    permission_classes  = [IsAdminUser]
+    #
+    #    def perform_create(self, serializer):
+    #        serializer.save(created_by=self.request.user)
+
 class TournamentListCreateView(generics.ListCreateAPIView):
     queryset            = Tournament.objects.all()
     serializer_class    = TournamentSerializer
-    permission_classes  = [IsAdminUser]
+    permission_classes  = [IsAuthenticated]
+    authentication_classes  = [JWTAuthentication, SessionAuthentication]
 
     def perform_create(self, serializer):
+        if  not self.request.user.is_staff:     # type: ignore[union-attr]
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied("Only admins can create tournaments.")
         serializer.save(created_by=self.request.user)
 # ==========================================================================
 
@@ -61,7 +75,7 @@ class TournamentListCreateView(generics.ListCreateAPIView):
 class TournamentParticipantListView(generics.ListAPIView):
     serializer_class        = TournamentParticipantSerializer
     permission_classes      = [IsAuthenticated]
-    authentication_classes  = [SessionAuthentication, JWTAuthentication]
+    authentication_classes  = [JWTAuthentication, SessionAuthentication]
 
     def get_queryset(self):
         tournament_id   = self.kwargs["tournament_id"]
@@ -76,7 +90,7 @@ class TournamentParticipantListView(generics.ListAPIView):
 # ==========================================================================
 class TournamentJoinView(APIView):
     permission_classes      = [IsAuthenticated]
-    authentication_classes  = [SessionAuthentication, JWTAuthentication]
+    authentication_classes  = [JWTAuthentication, SessionAuthentication]
     throttle_classes        = [UserRateThrottle]
 
     def post(self, request, tournament_id):
@@ -117,7 +131,7 @@ class TournamentJoinView(APIView):
 # ==========================================================================
 class TournamentLeaveView(APIView):
     permission_classes      = [IsAuthenticated]
-    authentication_classes  = [SessionAuthentication, JWTAuthentication]
+    authentication_classes  = [JWTAuthentication, SessionAuthentication]
 
     def delete(self, request, tournament_id):
         tournament  = generics.get_object_or_404(Tournament, id=tournament_id)
@@ -147,8 +161,8 @@ class TournamentLeaveView(APIView):
 
 # ==========================================================================
 class TournamentStartView(APIView):
-    permission_classes      = [IsAdminUser]
-    authentication_classes  = [SessionAuthentication, JWTAuthentication]
+    permission_classes      = [IsModeratorOrAdmin]
+    authentication_classes  = [JWTAuthentication, SessionAuthentication]
 
     def post(self, request: Request, tournament_id: int) -> Response:
         tournament = generics.get_object_or_404(Tournament, id=tournament_id)
@@ -176,6 +190,13 @@ class TournamentStartView(APIView):
         tournament.status = TournamentStatus.ONGOING
         tournament.save(update_fields=["status", "updated_at"])
 
+        # Auto-start any AI vs AI matches in round 1
+        from .signals import _auto_start_ai_matches
+        _auto_start_ai_matches(tournament)
+
+        # Return all matches (not just round 1)
+        matches = Match.objects.filter(tournament=tournament).order_by("round_nb", "id")
+
         # Return all matches (not just round 1)
         matches = Match.objects.filter(tournament=tournament).order_by("round_nb", "id")
 
@@ -190,8 +211,8 @@ class TournamentStartView(APIView):
 
 # ==========================================================================
 class MatchResultUpdateView(APIView):
-    permission_classes      = [IsAdminUser]
-    authentication_classes  = [SessionAuthentication, JWTAuthentication]
+    permission_classes      = [IsModeratorOrAdmin]
+    authentication_classes  = [JWTAuthentication, SessionAuthentication]
 
     def patch(self, request: Request, tournament_id: int, match_id: int) -> Response:
         match = generics.get_object_or_404(
@@ -296,7 +317,7 @@ class BaseForfeitView(APIView):
 # ==========================================================================
 class TournamentForfeitView(BaseForfeitView):
     permission_classes      = [IsAuthenticated]
-    authentication_classes  = [SessionAuthentication, JWTAuthentication]
+    authentication_classes  = [JWTAuthentication, SessionAuthentication]
 
     def post(self, request: Request, tournament_id: int) -> Response:
         #get the tournament (404 if not found)
@@ -351,8 +372,8 @@ class TournamentForfeitView(BaseForfeitView):
 
 # ==========================================================================
 class TournamentDisqualifyView(BaseForfeitView):
-    permission_classes      = [IsAdminUser]
-    authentication_classes  = [SessionAuthentication, JWTAuthentication]
+    permission_classes      = [IsModeratorOrAdmin]
+    authentication_classes  = [JWTAuthentication, SessionAuthentication]
 
     def post(self, request: Request, tournament_id: int) -> Response:
         # Get the tournament (303 if not found)
@@ -423,7 +444,7 @@ class TournamentDisqualifyView(BaseForfeitView):
 class TournamentMatchListView(generics.ListAPIView):
     serializer_class        = MatchSerializer
     permission_classes      = [IsAuthenticated]
-    authentication_classes  = [SessionAuthentication, JWTAuthentication]
+    authentication_classes  = [JWTAuthentication, SessionAuthentication]
 
     def get_queryset(self):
         tournament_id = self.kwargs["tournament_id"]
@@ -437,115 +458,260 @@ class TournamentMatchListView(generics.ListAPIView):
 # ==========================================================================
 class MatchStartView(APIView):
     permission_classes      = [IsAuthenticated]
-    authentication_classes  = [SessionAuthentication, JWTAuthentication]
-
+    authentication_classes  = [JWTAuthentication, SessionAuthentication]
 
     def post(self, request: Request, tournament_id: int, match_id: int) -> Response:
-        tournament  =  generics.get_object_or_404(Tournament, id=tournament_id)
+        import traceback
+        try:
+            tournament  =  generics.get_object_or_404(Tournament, id=tournament_id)
 
-        if  tournament.status != TournamentStatus.ONGOING:
-            return Response(
-                {"error": "Tournament is not in progress."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            if  tournament.status != TournamentStatus.ONGOING:
+                return Response(
+                    {"error": "Tournament is not in progress."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
-        match = generics.get_object_or_404(
-            Match.objects.filter(tournament=tournament),
-            id=match_id,
-        )
-
-        with transaction.atomic():
-            # Lock the match row to prevent race conditions
             match = generics.get_object_or_404(
-                Match.objects.select_for_update()
-                .select_related("player1", "player2")
-                .filter(tournament=tournament),
+                Match.objects.filter(tournament=tournament),
                 id=match_id,
             )
 
-            if  match.status != MatchStatus.PENDING:
-                return Response(
-                    {"error": "Match is not pending."},
-                    status=status.HTTP_400_BAD_REQUEST,
+            with transaction.atomic():
+                # Lock the match row to prevent race conditions
+                # this causes crash because p1 and p2 are nullable fks and postgres cant lock nullable outer joins
+                #match = generics.get_object_or_404(
+                #    Match.objects.select_for_update()
+                #    .select_related("player1", "player2")
+                #    .filter(tournament=tournament),
+                #    id=match_id,
+                #)
+
+                #match = generics.get_object_or_404(
+                #    Match.objects.select_for_update(of=("self",))
+                #    .select_related("player1", "player2")
+                #    .filter(tournament=tournament),
+                #    id=match_id,
+                #)
+
+                match = generics.get_object_or_404(
+                    Match.objects.select_for_update()
+                    .filter(tournament=tournament),
+                    id=match_id,
                 )
 
-            if  request.user not in [match.player1, match.player2]:
-                return Response(
-                    {"error": "You are not a player in this match"},
-                    status=status.HTTP_403_FORBIDDEN,
+                if  match.status != MatchStatus.PENDING:
+                    return Response(
+                        {"error": "Match is not pending."},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+                if  request.user not in [match.player1, match.player2]:
+                    return Response(
+                        {"error": "You are not a player in this match"},
+                        status=status.HTTP_403_FORBIDDEN,
+                    )
+
+                if  match.game:
+                    return Response(
+                        {"error": "A game has already been created for this match."},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+                # Create the game, inheriting the tournaments time control if set
+                game    = Game.objects.create(
+                    player1=match.player1,
+                    player2=match.player2,
+                    created_by=request.user,
+                    status="IN_PROGRESS",
+                    timer=tournament.timer,
                 )
 
-            if  match.game:
-                return Response(
-                    {"error": "A game has already been created for this match."},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
+                match.game      = game
+                match.status    = MatchStatus.IN_PROGRESS
+                match.save(update_fields=["game", "status", "updated_at"])
 
-            # Create the game, inheriting the tournaments time control if set
-            game    = Game.objects.create(
-                player1=match.player1,
-                player2=match.player2,
-                created_by=request.user,
-                status="IN_PROGRESS",
-                timer=tournament.timer,
+                # Seed Redis with the initial game state and optional clocks
+                # Random assign colors
+                game.player1_color  = random.choice([True, False])
+                game.crnt_turn      = game.player1 if game.player1_color else game.player2
+
+                game.save(update_fields=["player1_color", "crnt_turn"])
+
+                white_player    = game.player1 if game.player1_color else game.player2
+
+                assert white_player is not None # satisfies type checker
+
+                game_key        = f"game:{game.pk}" 
+                state: dict     = {
+                    "fen"           : Game.INITIAL_FEN,
+                    "crnt_turn"     : white_player.pk,
+                    "check"         : False,
+                    "checkmate"     : False,
+                    "status"        : "IN_PROGRESS",
+                    "moves"         : [],
+                    "disconnected"  : {},
+                    "player1_id"    : game.player1_id,  # type: ignore[reportAttributeAccessIssue]
+                    "player2_id"    : game.player2_id,  # type: ignore[reportAttributeAccessIssue]
+                }
+
+                if  tournament.timer:
+                    try:
+                        init_min, inc_sec = map(int, tournament.timer.split("+"))
+                    except ValueError:
+                        pass
+                    else:
+                        init_sec        = init_min * 60
+                        state["clocks"] = {
+                            str(game.player1_id): init_sec, # type: ignore[reportAttributeAccessIssue]
+                            str(game.player2_id): init_sec, # type: ignore[reportAttributeAccessIssue]
+                        }
+                        state["last_tick"]  = time.time()
+                        state["timer"]      = {
+                            "init"  : init_sec,
+                            "inc"   : inc_sec,
+                        }
+
+                cache.set(game_key, state, timeout=86400)
+
+                # Add to active games set for the timeout checker
+                active_games    = cache.get("active_games", set())
+                active_games.add(str(game.pk))
+                cache.set("active_games", active_games, timeout=None)
+                #redis_client    = get_redis_connection("default")
+                #redis_client.sadd("active_games", game.pk)
+
+                serializer      = GameSerializer(game)
+
+                # If both players are AI, start auto-play
+                p1_name = game.player1.username if game.player1 else ""
+                p2_name = game.player2.username if game.player2 else ""
+                if p1_name.startswith("stockfish_ai") and p2_name.startswith("stockfish_ai"):
+                    import threading
+                    from chess_game.ai_autoplay import run_ai_game
+                    threading.Thread(
+                        target=lambda gid=game.pk: asyncio.run(run_ai_game(gid)),
+                        daemon=True,
+                    ).start()
+
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+        except Exception:   # noqa: BLE001
+            traceback.print_exc()
+            return Response(
+                {"error": "Internal server error"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+# ==========================================================================
+
+
+# ==========================================================================
+class TournamentDetailView(generics.RetrieveAPIView):
+    queryset            = Tournament.objects.all()
+    serializer_class    = TournamentSerializer
+    permission_classes  = [IsAuthenticated]
+    authentication_classes  = [JWTAuthentication, SessionAuthentication]
+    lookup_url_kwarg    = "tournament_id"
+# ==========================================================================
+
+
+# ==========================================================================
+class TournamentCancelView(APIView):
+    permission_classes      = [IsModeratorOrAdmin]
+    authentication_classes  = [JWTAuthentication, SessionAuthentication]
+
+    def post(self, request: Request, tournament_id: int) -> Response:
+        tournament = generics.get_object_or_404(Tournament, id=tournament_id)
+
+        if  tournament.status == TournamentStatus.FINISHED:
+            return Response(
+                {"error": "Tournament is already finished."},
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
-            match.game      = game
-            match.status    = MatchStatus.IN_PROGRESS
-            match.save(update_fields=["game", "status", "updated_at"])
+        if  tournament.status == TournamentStatus.CANCELLED:
+            return Response(
+                {"error": "Tournament is already cancelled."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
-            # Seed Redis with the initial game state and optional clocks
-            # Random assign colors
-            game.player1_color  = random.choice([True, False])
-            game.crnt_turn      = game.player1 if game.player1_color else game.player2
+        tournament.status = TournamentStatus.CANCELLED
+        tournament.save(update_fields=["status", "updated_at"])
 
-            game.save(update_fields=["player1_color", "crnt_turn"])
+        return Response({"status": "Tournament cancelled."})
+# ==========================================================================
 
-            white_player    = game.player1 if game.player1_color else game.player2
 
-            assert white_player is not None # satisfies type checker
+# ==========================================================================
+class TournamentDeleteView(APIView):
+    permission_classes      = [IsModeratorOrAdmin]
+    authentication_classes  = [JWTAuthentication, SessionAuthentication]
 
-            game_key        = f"game:{game.pk}" 
-            state: dict     = {
-                "fen"           : Game.INITIAL_FEN,
-                "crnt_turn"     : white_player.pk,
-                "check"         : False,
-                "checkmate"     : False,
-                "status"        : "IN_PROGRESS",
-                "moves"         : [],
-                "disconnected"  : {},
-                "player1_id"    : game.player1_id,  # type: ignore[reportAttributeAccessIssue]
-                "player2_id"    : game.player2_id,  # type: ignore[reportAttributeAccessIssue]
-            }
+    def delete(self, request: Request, tournament_id: int) -> Response:
+        tournament = generics.get_object_or_404(Tournament, id=tournament_id)
 
-            if  tournament.timer:
-                try:
-                    init_min, inc_sec = map(int, tournament.timer.split("+"))
-                except ValueError:
-                    pass
-                else:
-                    init_sec        = init_min * 60
-                    state["clocks"] = {
-                        str(game.player1_id): init_sec, # type: ignore[reportAttributeAccessIssue]
-                        str(game.player2_id): init_sec, # type: ignore[reportAttributeAccessIssue]
-                    }
-                    state["last_tick"]  = time.time()
-                    state["timer"]      = {
-                        "init"  : init_sec,
-                        "inc"   : inc_sec,
-                    }
+        if  tournament.status == TournamentStatus.ONGOING:
+            return Response(
+                {"error": "Cancel the tournament before deleting."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
-            cache.set(game_key, state, timeout=86400)
+        tournament.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+# ==========================================================================
 
-            # Add to active games set for the timeout checker
-            active_games    = cache.get("active_games", set())
-            active_games.add(str(game.pk))
-            cache.set("active_games", active_games, timeout=None)
-            #redis_client    = get_redis_connection("default")
-            #redis_client.sadd("active_games", game.pk)
 
-            serializer      = GameSerializer(game)
+# ==========================================================================
+class TournamentAddAIView(APIView):
+    permission_classes      = [IsModeratorOrAdmin]
+    authentication_classes  = [JWTAuthentication, SessionAuthentication]
 
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+    def post(self, request: Request, tournament_id: int) -> Response:
+        tournament = generics.get_object_or_404(Tournament, id=tournament_id)
+
+        if  tournament.status != TournamentStatus.OPEN:
+            return Response(
+                {"error": "Tournament is not open."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        count = request.data.get("count", 0)
+        try:
+            count = int(count)
+        except (TypeError, ValueError):
+            return Response(
+                {"error": "count must be a number."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if  count < 1 or count > 15:
+            return Response(
+                {"error": "count must be between 1 and 15."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        current_count = TournamentParticipant.objects.filter(tournament=tournament).count()
+        if  current_count + count > tournament.max_players:
+            return Response(
+                {"error": f"Would exceed max players ({tournament.max_players})."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        added = []
+        for i in range(1, count + 1):
+            ai_name = f"stockfish_ai_{i}"
+            ai_user, _ = User.objects.get_or_create(
+                username=ai_name,
+                defaults={"email": f"{ai_name}@local", "email_verfd": True},
+            )
+
+            if  TournamentParticipant.objects.filter(tournament=tournament, player=ai_user).exists():
+                continue
+
+            TournamentParticipant.objects.create(tournament=tournament, player=ai_user)
+            added.append(ai_name)
+
+        return Response(
+            {"status": f"Added {len(added)} AI players", "added": added},
+            status=status.HTTP_201_CREATED,
+        )
 # ==========================================================================
 

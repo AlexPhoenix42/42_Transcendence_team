@@ -23,10 +23,14 @@ from django.urls                import path, include
 from django.conf                import settings
 from django.conf.urls.static    import static
 
-from .views                     import health_check, root_debug
+from .views                     import (
+    health_check, root_debug, system_health, system_health_ready,
+)
 
 urlpatterns = [
-    path('healthz/',            health_check, name='health_check'),
+    path('healthz/',            health_check,        name='health_check'),
+    path('api/health/',         system_health,       name='system_health'),
+    path('api/health/ready',    system_health_ready, name='system_health_ready'),
     path('admin/',              admin.site.urls),
     path('api/',                include('local_auth.urls')),
     path('api/',                include('users.urls')),

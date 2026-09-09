@@ -1,7 +1,7 @@
 # tournament/bracket.py
 
 from django.db      import transaction
-from .models        import Match, MatchStatus, Tournament
+from .models        import Match, MatchStatus, Tournament, TournamentStatus
 
 import math
 import logging
@@ -32,14 +32,17 @@ def build_bracket(tournament):
         with transaction.atomic():
 
             # Step 5 – Get participants and handle edge case
-            participants = list(tournament.participants.all())
+            # this causes crush, fix after it.
+            #participants = list(tournament.participants.all())
+            participants = [p.player for p in tournament.participants.select_related("player").all()]
             n = len(participants)
             if n < 2:
                 return
 
-            # Step 6 – Determine bracket size (next power of 2)
+                    # Step 6 – Determine bracket size (next power of 2)
             total_slots = 2 ** math.ceil(math.log2(n))
             num_byes = total_slots - n
+            num_rounds = int(math.log2(total_slots))
 
             # Step 7 – Distribute byes so no match has two byes
             # Byes are placed at even indices: 0, 2, 4, ...
@@ -53,65 +56,75 @@ def build_bracket(tournament):
                     slots[i] = participants[p_idx]
                     p_idx += 1
 
-            # Step 8 – Build rounds iteratively
-            # Each round halves the number of slots.
-            round_nb = 1
-            current_slots = slots
-
-            while len(current_slots) > 1:
-                next_slots = []
-
-                # Step 8a – Pair adjacent slots to create matches
-                for i in range(0, len(current_slots), 2):
-                    p1 = current_slots[i]
-                    p2 = current_slots[i+1] if i+1 < len(current_slots) else None
-
-                    # Skip if both are None (should not happen with our distribution)
-                    if p1 is None and p2 is None:
-                        continue
-
-                    # Create the match
-                    match = Match.objects.create(
+            # Step 8 – Create ALL matches for ALL rounds upfront (empty)
+            # This ensures advance_winner can always find the next-round match.
+            matches_by_round: dict[int, list[Match]] = {}
+            for r in range(1, num_rounds + 1):
+                num_matches = total_slots // (2 ** r)
+                round_matches = []
+                for _ in range(num_matches):
+                    m = Match.objects.create(
                         tournament=tournament,
-                        round_nb=round_nb,
-                        player1=p1,
-                        player2=p2,
+                        round_nb=r,
+                        player1=None,
+                        player2=None,
                         status=MatchStatus.PENDING,
                         game=None,
                     )
+                    round_matches.append(m)
+                matches_by_round[r] = round_matches
 
-                    # Step 8b – Handle byes immediately
-                    # A bye is a match with only one player → it's finished instantly.
-                    if p1 is None or p2 is None:
-                        winner = p1 if p1 is not None else p2
-                        match.winner = winner
-                        match.status = MatchStatus.FINISHED
-                        match.save()      # signal skips because _building is True
-                        next_slots.append(winner)   # winner advances to next round
-                    else:
-                        # Real match – winner unknown yet
-                        next_slots.append(None)
+            # Step 9 – Fill round 1 matches from seeded slots
+            for i, match in enumerate(matches_by_round[1]):
+                p1 = slots[i * 2]
+                p2 = slots[i * 2 + 1] if (i * 2 + 1) < len(slots) else None
+                match.player1 = p1
+                match.player2 = p2
 
-                # Step 8c – Create placeholders for the next round
-                # The number of placeholders is half the number of advancing players.
-                if len(next_slots) > 1:
-                    for _ in range(len(next_slots) // 2):
-                        Match.objects.create(
-                            tournament=tournament,
-                            round_nb=round_nb + 1,
-                            player1=None,
-                            player2=None,
-                            status=MatchStatus.PENDING,
-                            game=None,
-                        )
-
-                # Step 8d – Advance to the next round
-                round_nb += 1
-                current_slots = next_slots
+                # Step 9a – Handle byes immediately
+                # A bye is a match with only one player → finished instantly.
+                if p1 is None and p2 is None:
+                    # Both empty – should not happen with proper distribution
+                    match.save()
+                elif p1 is None or p2 is None:
+                    winner = p1 if p1 is not None else p2
+                    match.winner = winner
+                    match.status = MatchStatus.FINISHED
+                    match.save()  # signal skips because _building is True
+                    # Step 9b – Place bye winner into the next round match
+                    _place_winner_in_next_round(matches_by_round, 1, i, winner)
+                else:
+                    # Real match – winner unknown yet
+                    match.save()
 
     finally:
-        # Step 9 – Always clear the building flag, even if an error occurs
+        # Step 10 – Always clear the building flag, even if an error occurs
         _building = False
+
+# ── Place a bye winner into the next round's match ─────────────────────────
+def _place_winner_in_next_round(matches_by_round, current_round, match_index, winner):
+    """During bracket building, place a bye winner into the next round."""
+    next_round = current_round + 1
+    if next_round not in matches_by_round:
+        return
+
+    next_match_index = match_index // 2
+    next_matches = matches_by_round[next_round]
+
+    if next_match_index >= len(next_matches):
+        return
+
+    next_match = next_matches[next_match_index]
+    if next_match.player1 is None:
+        next_match.player1 = winner
+    elif next_match.player2 is None:
+        next_match.player2 = winner
+    else:
+        logger.warning("Both slots filled in match %s during bracket build", next_match.pk)
+        return
+
+    next_match.save()
+
 
 # ── Advance a winner to the next round ─────────────────────────────────────
 def advance_winner(match):
@@ -140,7 +153,7 @@ def advance_winner(match):
     # Step 4 – If no next round exists, this was the final match
     # Mark the tournament as FINISHED.
     if not next_round_matches:
-        tournament.status = Tournament.Status.FINISHED
+        tournament.status = TournamentStatus.FINISHED
         tournament.save()
         return
 
@@ -165,7 +178,7 @@ def advance_winner(match):
             return
 
         # Step 6 – Save the updated match
-        next_match.save()
+        locked_match.save()
 
 
 

@@ -6,6 +6,25 @@ PLAIN_ENV=".env.dep"
 ENCRYPTED_SEC_ENV=".env.secrets.enc"
 DECRYPTED_SEC_ENV="/dev/shm/trans.env"
 
+#COMPOSE_FILE="docker-compose-dep.yml"
+#
+## Get the command name of the parent process
+#parent=$(ps -p "$PPID" -o comm= 2>/dev/null)
+#
+## Fallback for Linux systems with /proc
+#if	[ -z "$parent" ] && [ -f "/proc/$PPID/comm" ]; then
+#	parent=$(cat "/proc/$PPID/comm")
+#fi
+#
+#if	[[ "$parent" == *bash* || "$parent" == *zsh* ]]; then
+#	export COMPOSE_FILE 
+#elif [[ "$parent" == *fish* ]]; then
+#	set -gx COMPOSE_FILE $COMPOSE_FILE
+#else
+#	echo "Please use Bash or Fish."
+#	exit 1
+#fi
+
 # 1. Prompt for the passphrase once
 read -s -p "Vault bootstrap passphrase: " PASSPHRASE
 echo
@@ -53,7 +72,7 @@ mkdir -p "$CACHE_BASE"
 
 # Services that use local build cache
 CACHE_SERVICES=(postgres vault-init vault chess_engine stockfish_ai \
-	backend_django timeout_checker frontend_nginx backup)
+	backend_django timeout_checker frontend_nginx backup )
 
 # Add one directory per service that uses cache_from/cache_to
 for service in "${CACHE_SERVICES[@]}"; do
@@ -73,7 +92,9 @@ chown -R 100:100 "$BACKUP_DATA_DIR"
 chmod 750 "$BACKUP_DATA_DIR"
 chmod 700 "$BACKUP_DATA_DIR/restic-repo"
 
-# 11. Run docker compose with inline env var, no export
+# 11. 
+
+# XX. Run docker compose with inline env var, no export
 # only vault-init gets DECRYPTED_SEC_ENV via compose env.
 # All services use plain .env for non-secrets.
 DECRYPTED_SEC_FILE="$DECRYPTED_SEC_ENV" \

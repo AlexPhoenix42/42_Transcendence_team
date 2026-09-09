@@ -9,8 +9,10 @@ export default function Navbar() {
     const { user, logout } = useAuth()
     const navigate = useNavigate()
     const [menuOpen, setMenuOpen] = useState(false)
-    const [requestCount, setRequestCount] = useState(0)
+	const [requestCount, setRequestCount] = useState(0)
+    const [unreadChats, setUnreadChats] = useState(0)
     const menuRef = useRef<HTMLDivElement>(null)
+
 
     async function handleLogout() {
         await logout()
@@ -30,9 +32,35 @@ export default function Navbar() {
                 // Silent fail — next poll will retry
             }
         }
+
+		async function fetchUnreadChats() {
+            try {
+                const resp = await api("/api/chat/unread/")
+                if (resp.ok) {
+                    const data = await resp.json()
+                    const total = data
+                        .filter((entry: { room_type: string }) => entry.room_type === "DM")
+                        .reduce((sum: number, entry: { unread: number }) => sum + entry.unread, 0)
+                    setUnreadChats(total)
+                }
+            } catch {}
+        }
+
         fetchRequestCount()
-        const interval = setInterval(fetchRequestCount, 10000)
-        return () => clearInterval(interval)
+        fetchUnreadChats()
+        const interval = setInterval(() => {
+            fetchRequestCount()
+            fetchUnreadChats()
+        }, 5000)
+		        function handleChatRead() {
+            fetchUnreadChats()
+        }
+        window.addEventListener("chat-read", handleChatRead)
+
+        return () => {
+            clearInterval(interval)
+            window.removeEventListener("chat-read", handleChatRead)
+        }
     }, [])
 
     useEffect(() => {
@@ -54,6 +82,7 @@ export default function Navbar() {
             <Link to="/" className="text-white font-bold text-xl">♟ Transcendence</Link>
             <Link to="/games" className="text-gray-300 hover:text-white">Games</Link>
             <Link to="/tournaments" className="text-gray-300 hover:text-white">Tournaments</Link>
+            <Link to="/leaderboard" className="text-gray-300 hover:text-white">Leaderboard</Link>
             <Link to="/friends" className="text-gray-300 hover:text-white relative">
                 Friends
                 {requestCount > 0 && (
@@ -62,8 +91,18 @@ export default function Navbar() {
                     </span>
                 )}
             </Link>
-            <Link to="/chat" className="text-gray-300 hover:text-white">Chat</Link>
-            <Link to="/profile" className="text-gray-300 hover:text-white">Profile</Link>
+			<Link to="/chat" className="text-gray-300 hover:text-white relative">
+                Chat
+                {unreadChats > 0 && (
+                    <span className="absolute -top-2 -right-3 bg-red-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                        {unreadChats > 9 ? "9+" : unreadChats}
+                    </span>
+                )}
+            </Link>
+			<Link to="/profile" className="text-gray-300 hover:text-white">Profile</Link>
+			{(user?.is_staff || user?.role === "admin" || user?.role === "moderator") && (
+                <Link to="/admin" className="text-yellow-400 hover:text-yellow-300">Admin</Link>
+            )}
 
             <div className="ml-auto mr-4 relative" ref={menuRef}>
                 <button

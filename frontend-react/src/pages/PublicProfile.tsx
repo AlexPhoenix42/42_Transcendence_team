@@ -1,8 +1,10 @@
 // frontend-react/src/pages/PublicProfile.tsx
 
 import { useState, useEffect } from "react"
-import { useParams } from "react-router-dom"
+import { useParams, useNavigate } from "react-router-dom"
 import { api } from "../api/client.ts"
+
+import Achievements from "../components/Achievements.tsx"
 
 interface PublicProfileData {
     id: number
@@ -16,14 +18,17 @@ interface PublicProfileData {
     draw: number
     is_online: boolean
     friends_cnt: number
+	role: string
 }
 
 export default function PublicProfile() {
     const { username } = useParams()
+    const navigate = useNavigate()
     const [profile, setProfile] = useState<PublicProfileData | null>(null)
     const [error, setError] = useState("")
+    const [isBlocked, setIsBlocked] = useState(false)
 
-	useEffect(() => {
+    useEffect(() => {
         async function fetchProfile() {
             try {
                 const resp = await api(`/api/profile/${username}/`)
@@ -39,6 +44,33 @@ export default function PublicProfile() {
         }
         fetchProfile()
     }, [username])
+
+    useEffect(() => {
+        async function checkBlocked() {
+            try {
+                const resp = await api("/api/chat/blocked/")
+                if (resp.ok) {
+                    const data = await resp.json()
+                    setIsBlocked(data.some((b: { username: string }) => b.username === username))
+                }
+            } catch {}
+        }
+        checkBlocked()
+    }, [username])
+
+    async function toggleBlock() {
+        if (!profile) return
+
+        try {
+            if (isBlocked) {
+                const resp = await api(`/api/chat/unblock/${profile.id}/`, { method: "DELETE" })
+                if (resp.ok) setIsBlocked(false)
+            } else {
+                const resp = await api(`/api/chat/block/${profile.id}/`, { method: "POST" })
+                if (resp.ok) setIsBlocked(true)
+            }
+        } catch {}
+    }
 
     if (error) {
         return <p className="text-red-400 text-center mt-10">{error}</p>
@@ -60,7 +92,13 @@ export default function PublicProfile() {
                     </div>
                     <div>
                         <div className="flex items-center gap-2">
-                            <h1 className="text-2xl text-white font-bold">{profile.dispname || profile.username}</h1>
+							<h1 className="text-2xl text-white font-bold">{profile.dispname || profile.username}</h1>
+                            {profile.role === "admin" && (
+                                <span className="px-2 py-0.5 rounded text-xs font-bold bg-red-900/50 text-red-400">Admin</span>
+                            )}
+                            {profile.role === "moderator" && (
+                                <span className="px-2 py-0.5 rounded text-xs font-bold bg-yellow-900/50 text-yellow-400">Mod</span>
+                            )}
                             <span className={`w-2.5 h-2.5 rounded-full ${profile.is_online ? "bg-green-500" : "bg-gray-600"}`}></span>
                         </div>
                         <p className="text-gray-400">@{profile.username}</p>
@@ -95,6 +133,26 @@ export default function PublicProfile() {
 
                 <div className="text-gray-400 text-sm">
                     {profile.friends_cnt} friend{profile.friends_cnt !== 1 ? "s" : ""}
+                </div>
+
+                <button
+                    onClick={() => navigate(`/history/${profile.username}`)}
+                    className="mt-4 px-4 py-2 bg-gray-700 text-white rounded hover:bg-gray-600 text-sm w-full"
+                >
+                    View Match History
+                </button>
+                <button
+                    onClick={toggleBlock}
+                    className={`mt-2 px-4 py-2 rounded text-sm w-full ${
+                        isBlocked
+                            ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                            : "bg-red-800 text-red-300 hover:bg-red-700"
+                    }`}
+                >
+                    {isBlocked ? "Unblock User" : "Block User"}
+                </button>
+				<div className="mt-4">
+                    <Achievements username={profile.username} />
                 </div>
             </div>
         </div>

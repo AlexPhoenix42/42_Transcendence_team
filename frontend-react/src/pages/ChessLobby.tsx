@@ -36,6 +36,9 @@ export default function ChessLobby() {
 
     const [showCreate, setShowCreate] = useState(false)
 
+	const [pvpPractice, setPvpPractice] = useState(false)
+    const [aiPractice, setAiPractice] = useState(false)
+
     const waitingIdsRef = useRef<Set<number>>(new Set())
 
     useEffect(() => {
@@ -108,6 +111,7 @@ export default function ChessLobby() {
             const body: Record<string, string> = {}
             if (pvpTimer) body.timer = pvpTimer
             if (pvpFen.trim()) body.fen = pvpFen.trim()
+			if (pvpPractice) body.is_practice = "true"
 
             const resp = await api("/api/chess/", {
                 method: "POST",
@@ -140,6 +144,7 @@ export default function ChessLobby() {
             const body: Record<string, string> = { ai_difficulty: aiDifficulty }
             if (aiTimer) body.timer = aiTimer
             if (aiFen.trim()) body.fen = aiFen.trim()
+			if (pvpPractice) body.is_practice = "true"
 
             const resp = await api("/api/chess/ai/", {
                 method: "POST",
@@ -192,6 +197,25 @@ export default function ChessLobby() {
             } else {
                 const data = await resp.json()
                 setError(data.error || "Failed to cancel game")
+            }
+        } catch {
+            setError("Network error. Please try again.")
+        }
+    }
+
+	async function resignGame(gameId: number) {
+        setError("")
+
+        try {
+            const resp = await api(`/api/chess/${gameId}/leave/`, {
+                method: "POST",
+            })
+
+            if (resp.ok) {
+                fetchAll()
+            } else {
+                const data = await resp.json()
+                setError(data.error || "Failed to resign")
             }
         } catch {
             setError("Network error. Please try again.")
@@ -255,6 +279,15 @@ export default function ChessLobby() {
                                     placeholder="Paste FEN for testing"
                                     className="w-full px-4 py-2 bg-gray-900 text-white border border-gray-700 rounded focus:outline-none focus:border-blue-500 text-xs"
                                 />
+								<label className="flex items-center gap-2 text-gray-400 text-sm">
+                                <input
+                                    type="checkbox"
+                                    checked={pvpPractice}
+                                    onChange={(e) => setPvpPractice(e.target.checked)}
+                                    className="rounded"
+                                />
+                                Practice mode (allows undo + FEN changes)
+								</label>
                             </div>
                             <button type="submit" className="w-full py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
                                 Create Game
@@ -300,6 +333,15 @@ export default function ChessLobby() {
                                     placeholder="Paste FEN for testing"
                                     className="w-full px-4 py-2 bg-gray-900 text-white border border-gray-700 rounded focus:outline-none focus:border-blue-500 text-xs"
                                 />
+								<label className="flex items-center gap-2 text-gray-400 text-sm">
+                                <input
+                                    type="checkbox"
+                                    checked={pvpPractice}
+                                    onChange={(e) => setPvpPractice(e.target.checked)}
+                                    className="rounded"
+                                />
+                                Practice mode (allows undo + FEN changes)
+								</label>
                             </div>
                             <button type="submit" className="w-full py-2 bg-green-600 text-white rounded hover:bg-green-700">
                                 Play vs AI
@@ -324,6 +366,12 @@ export default function ChessLobby() {
                                     className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
                                 >
                                     Resume
+                                </button>
+								<button
+                                    onClick={() => resignGame(game.id)}
+                                    className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 text-sm"
+                                >
+                                    Resign
                                 </button>
                             </div>
                         ))}

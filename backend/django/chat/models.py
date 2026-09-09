@@ -182,3 +182,84 @@ class Message(models.Model):
         ordering = ["created_at"]
 # ===========================================================================
 
+
+# ===========================================================================
+class BlockedUser(models.Model):
+    blocker     = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="blocked_users",
+    )
+    blocked     = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="blocked_by",
+    )
+    created_at  = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = [["blocker", "blocked"]]
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.blocker} blocked {self.blocked}"
+# ===========================================================================
+
+
+# ===========================================================================
+class MessageReadStatus(models.Model):
+    user        = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="read_statuses",
+    )
+    room        = models.ForeignKey(
+        ChatRoom,
+        on_delete=models.CASCADE,
+        related_name="read_statuses",
+    )
+    last_read_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = [["user", "room"]]
+
+    def __str__(self):
+        return f"{self.user} read {self.room} at {self.last_read_at}"
+# ===========================================================================
+
+
+# ===========================================================================
+class MutedUser(models.Model):
+    user        = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="chat_mutes",
+    )
+    muted_by    = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="mutes_given",
+    )
+    room        = models.ForeignKey(
+        ChatRoom,
+        on_delete=models.CASCADE,
+        related_name="muted_users",
+        null=True,
+        blank=True,
+    )
+    reason      = models.CharField(max_length=200, blank=True)
+    expires_at  = models.DateTimeField()
+    created_at  = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.user} muted until {self.expires_at}"
+
+    @property
+    def is_active(self):
+        from django.utils import timezone
+        return self.expires_at > timezone.now()
+# ===========================================================================
+

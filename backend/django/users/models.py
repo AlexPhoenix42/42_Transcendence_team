@@ -52,6 +52,18 @@ class User(AbstractUser):
     friends     = models.ManyToManyField('self', symmetrical=True, blank=True)
     bio         = models.TextField(blank=True)
 
+
+    class Role(models.TextChoices):
+        USER      = "user",      "User"
+        MODERATOR = "moderator", "Moderator"
+        ADMIN     = "admin",     "Admin"
+
+    role        = models.CharField(
+                    max_length=15,
+                    choices=Role.choices,
+                    default=Role.USER,
+                )
+
     class Meta(AbstractUser.Meta):
         db_table = "users"
 

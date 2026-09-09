@@ -17,6 +17,7 @@ class TournamentSerializer(serializers.ModelSerializer):
             "name",
             "status",
             "max_players",
+            "timer",
             "created_by",
             "created_at",
             "updated_at",
@@ -54,6 +55,7 @@ class MatchSerializer(serializers.ModelSerializer):
         fields  = [
             "id",
             "tournament",
+            "game",
             "player1",
             "player2",
             "winner",
@@ -64,4 +66,5 @@ class MatchSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = fields
 # ===========================================================================
+
 

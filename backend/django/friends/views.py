@@ -168,6 +168,19 @@ class SendFriendRequestView(APIView):
                         status=status.HTTP_400_BAD_REQUEST,
                     )
 
+        # check if either user has blocked the other
+        from chat.models import BlockedUser
+        if  BlockedUser.objects.filter(blocker=request.user, blocked=to_user).exists():
+            return  Response(
+                        {"error": "You have blocked this user."},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+        if  BlockedUser.objects.filter(blocker=to_user, blocked=request.user).exists():
+            return  Response(
+                        {"error": "Cannot send friend request."},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
         # Atomically check for any existing pending request in either direction
         try:
             with transaction.atomic():

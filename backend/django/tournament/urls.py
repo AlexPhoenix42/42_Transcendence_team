@@ -1,12 +1,18 @@
 # tournament/urls.py
 
-from django.urls          import path
+from django.urls        import path
 
-from .views                 import (
-    TournamentForfeitView, TournamentListCreateView, TournamentParticipantListView, 
-    TournamentJoinView, TournamentLeaveView, TournamentStartView,
-    MatchResultUpdateView, TournamentDisqualifyView, TournamentMatchListView,
-    MatchStartView,
+#from .views             import (
+#    TournamentCancelView, TournamentDeleteView, TournamentForfeitView, TournamentListCreateView, TournamentParticipantListView, TournamentJoinView, TournamentLeaveView, TournamentStartView,
+#    MatchResultUpdateView, TournamentDisqualifyView, TournamentMatchListView,
+#    MatchStartView, TournamentDetailView,
+#)
+
+from .views import (
+    TournamentAddAIView, TournamentForfeitView, TournamentListCreateView, TournamentDetailView,
+    TournamentParticipantListView, TournamentCancelView, TournamentDeleteView,
+    TournamentJoinView, TournamentLeaveView, 
+    TournamentStartView, MatchResultUpdateView, TournamentDisqualifyView, TournamentMatchListView, MatchStartView,
 )
 
 urlpatterns = [
@@ -64,6 +70,29 @@ urlpatterns = [
         '<int:tournament_id>/matches/',
         TournamentMatchListView.as_view(),
         name="tournament-matches-list",
+    ),
+
+    path(
+        '<int:tournament_id>/',
+        TournamentDetailView.as_view(),
+        name="tournament-detail"),
+
+    path(
+        '<int:tournament_id>/cancel/',
+        TournamentCancelView.as_view(),
+        name="tournament-cancel",
+    ),
+
+    path(
+        '<int:tournament_id>/delete/',
+        TournamentDeleteView.as_view(),
+        name="tournament-delete",
+    ),
+
+    path(
+        '<int:tournament_id>/add-ai/',
+        TournamentAddAIView.as_view(),
+        name="tournament-add-ai",
     ),
 ]
 

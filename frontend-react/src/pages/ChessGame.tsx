@@ -6,6 +6,7 @@ import { Chessboard } from "react-chessboard"
 import { Chess, Square } from "chess.js"
 import { api } from "../api/client.ts"
 import { useAuth } from "../context/AuthContext.tsx"
+import { ChatSocket, ChatMessage } from "../ws/chat.ts"
 
 interface GameInfo {
     id: number
@@ -16,6 +17,7 @@ interface GameInfo {
     ai_difficulty: string | null
     status: string
     timer: string | null
+	board_state?: string
 }
 
 export default function ChessGame() {
@@ -35,6 +37,20 @@ export default function ChessGame() {
     const [connected, setConnected] = useState(false)
     const [infoLoaded, setInfoLoaded] = useState(false)
 
+    const [isPractice, setIsPractice] = useState(false)
+    const [fenInput, setFenInput] = useState("")
+
+	// Chat room
+	const [chatMessages, setChatMessages] = useState<ChatMessage[]>([])
+    const [chatInput, setChatInput] = useState("")
+    const [chatTypingUser, setChatTypingUser] = useState<string | null>(null)
+    const chatTypingRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+    const [chatConnected, setChatConnected] = useState(false)
+    const [chatError, setChatError] = useState("")
+    const [chatRoomId, setChatRoomId] = useState<number | null>(null)
+    const chatSocketRef = useRef<ChatSocket | null>(null)
+    const chatEndRef = useRef<HTMLDivElement>(null)
+
     // Clocks
     const [whiteTime, setWhiteTime] = useState<number | null>(null)
     const [blackTime, setBlackTime] = useState<number | null>(null)
@@ -43,6 +59,10 @@ export default function ChessGame() {
     // Move highlighting
     const [moveFrom, setMoveFrom] = useState<string | null>(null)
     const [optionSquares, setOptionSquares] = useState<Record<string, React.CSSProperties>>({})
+
+	const [lastMove, setLastMove] = useState<{ from: string; to: string } | null>(null)
+    const [capturedWhite, setCapturedWhite] = useState<string[]>([])
+    const [capturedBlack, setCapturedBlack] = useState<string[]>([])
 
     const chessRef = useRef(new Chess())
     const wsRef = useRef<WebSocket | null>(null)
@@ -61,6 +81,16 @@ export default function ChessGame() {
                     const game: GameInfo = await resp.json()
                     setGameInfo(game)
                     gameInfoRef.current = game
+
+					// Set board position from DB (important for finished games)
+                    if (game.board_state) {
+                        setFen(game.board_state)
+                        try { chessRef.current.load(game.board_state) } catch {}
+                    }
+
+                    if (game.status === "FINISHED") {
+                        setGameOver(true)
+                    }
 
                     const isPlayer1 = game.player1 === user?.username
                     const isPlayer2 = game.player2 === user?.username
@@ -165,6 +195,14 @@ export default function ChessGame() {
         setFen(data.fen)
         setCheck(data.check)
 
+		if (data.last_move) {
+            setLastMove(data.last_move)
+        }
+
+        const { whiteCaptures, blackCaptures } = getCapturedPieces(data.fen)
+        setCapturedWhite(whiteCaptures)
+        setCapturedBlack(blackCaptures)
+
         try {
             chessRef.current.load(data.fen)
         } catch {
@@ -174,6 +212,10 @@ export default function ChessGame() {
         const turnColor = data.fen.split(" ")[1]
         const myColorChar = myColorRef.current === "white" ? "w" : "b"
         setIsMyTurn(turnColor === myColorChar && !isSpectatorRef.current)
+
+		if (data.is_practice !== undefined) {
+            setIsPractice(data.is_practice)
+        }
 
         if (data.status === "FINISHED" || data.checkmate) {
             setGameOver(true)
@@ -192,6 +234,61 @@ export default function ChessGame() {
                 }
             }
         }
+    }
+
+	//function handleSetFen(e: React.FormEvent) {
+    //    e.preventDefault()
+    //    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+    //        setError("Not connected")
+    //        return
+    //    }
+    //    if (!fenInput.trim()) return
+    //    wsRef.current.send(JSON.stringify({ type: "set_fen", fen: fenInput.trim() }))
+    //    setFenInput("")
+    //}
+
+	function handleSetFen(e: React.FormEvent) {
+        e.preventDefault()
+        if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+            setError("Not connected")
+            return
+        }
+        if (!fenInput.trim()) return
+        console.log("SENDING FEN:", fenInput.trim())
+        wsRef.current.send(JSON.stringify({ type: "set_fen", fen: fenInput.trim() }))
+        setFenInput("")
+    }
+
+	function getCapturedPieces(fenStr: string) {
+        const starting: Record<string, number> = {
+            P: 8, R: 2, N: 2, B: 2, Q: 1, K: 1,
+            p: 8, r: 2, n: 2, b: 2, q: 1, k: 1,
+        }
+        const current: Record<string, number> = {}
+        const board = fenStr.split(" ")[0]
+        for (const ch of board) {
+            if ("PRNBQKprnbqk".includes(ch)) {
+                current[ch] = (current[ch] || 0) + 1
+            }
+        }
+
+        const whiteCaptures: string[] = []
+        const blackCaptures: string[] = []
+
+        // Pieces captured BY white (black pieces missing)
+        for (const piece of ["q", "r", "b", "n", "p"]) {
+            const diff = starting[piece] - (current[piece] || 0)
+            const code = "b" + piece.toUpperCase()
+            for (let i = 0; i < diff; i++) whiteCaptures.push(code)
+        }
+        // Pieces captured BY black (white pieces missing)
+        for (const piece of ["Q", "R", "B", "N", "P"]) {
+            const diff = starting[piece] - (current[piece] || 0)
+            const code = "w" + piece
+            for (let i = 0; i < diff; i++) blackCaptures.push(code)
+        }
+
+        return { whiteCaptures, blackCaptures }
     }
 
     function handleGameOver(data: { winner: number; reason: string }) {
@@ -247,6 +344,73 @@ export default function ChessGame() {
         }
         setOptionSquares(options)
         return true
+    }
+
+	// Chat
+	useEffect(() => {
+        chatEndRef.current?.scrollIntoView({ behavior: "smooth" })
+    }, [chatMessages])
+
+	useEffect(() => {
+        if (!id) return
+
+        async function connectChat() {
+            try {
+                const resp = await api(`/api/chat/rooms/game/${id}/`)
+                if (!resp.ok) return
+                const data = await resp.json()
+                const roomId = data.room_id
+                setChatRoomId(roomId)
+
+                // Load history
+                try {
+                    const histResp = await api(`/api/chat/rooms/${roomId}/messages/`)
+                    if (histResp.ok) {
+                        const histData = await histResp.json()
+						setChatMessages(Array.isArray(histData) ? histData : histData.results || [])
+                    }
+                } catch {}
+
+                // Connect WebSocket
+				const socket = new ChatSocket(
+                    roomId,
+                    (msg) => {
+                        setChatMessages((prev) => {
+                            if (prev.some((m) => m.id === msg.id)) return prev
+                            return [...prev, msg]
+                        })
+                    },
+					(err) => {
+                        setChatError(err.error)
+                        setTimeout(() => setChatError(""), 3000)
+                    },
+                    () => { setChatConnected(false) },
+                    (sender) => {
+                        setChatTypingUser(sender)
+                        if (chatTypingRef.current) clearTimeout(chatTypingRef.current)
+                        chatTypingRef.current = setTimeout(() => setChatTypingUser(null), 3000)
+                    },
+                )
+                socket.connect()
+                chatSocketRef.current = socket
+                setChatConnected(true)
+            } catch {}
+        }
+
+        connectChat()
+
+        return () => {
+            chatSocketRef.current?.disconnect()
+        }
+    }, [id])
+
+	function handleChatSend(e: React.FormEvent) {
+        e.preventDefault()
+        if (!chatInput.trim()) return
+        if (chatSocketRef.current?.isConnected()) {
+            chatSocketRef.current.send(chatInput.trim())
+            setChatInput("")
+        }
     }
 
 	{/*
@@ -383,7 +547,11 @@ export default function ChessGame() {
                 to: square,
             })
             if (move) {
-                setFen(chessRef.current.fen())
+				setFen(chessRef.current.fen())
+                setIsMyTurn(false)
+                const { whiteCaptures, blackCaptures } = getCapturedPieces(chessRef.current.fen())
+                setCapturedWhite(whiteCaptures)
+                setCapturedBlack(blackCaptures)
                 setIsMyTurn(false)
                 sendMove(moveFrom, square)
             }
@@ -393,9 +561,27 @@ export default function ChessGame() {
         setOptionSquares({})
     }
 
-    function handlePromotionChoice(piece: string) {
-        if (!pendingPromotion) return
+    //function handlePromotionChoice(piece: string) {
+    //    if (!pendingPromotion) return
 
+    //    try {
+    //        const move = chessRef.current.move({
+    //            from: pendingPromotion.from,
+    //            to: pendingPromotion.to,
+    //            promotion: piece,
+    //        })
+    //        if (move) {
+    //            setFen(chessRef.current.fen())
+    //            setIsMyTurn(false)
+    //            sendMove(pendingPromotion.from, pendingPromotion.to, piece)
+    //        }
+    //    } catch {}
+
+    //    setPendingPromotion(null)
+    //}
+	
+	function handlePromotionChoice(piece: string) {
+        if (!pendingPromotion) return
         try {
             const move = chessRef.current.move({
                 from: pendingPromotion.from,
@@ -405,10 +591,12 @@ export default function ChessGame() {
             if (move) {
                 setFen(chessRef.current.fen())
                 setIsMyTurn(false)
+                const { whiteCaptures, blackCaptures } = getCapturedPieces(chessRef.current.fen())
+                setCapturedWhite(whiteCaptures)
+                setCapturedBlack(blackCaptures)
                 sendMove(pendingPromotion.from, pendingPromotion.to, piece)
             }
         } catch {}
-
         setPendingPromotion(null)
     }
 
@@ -469,7 +657,7 @@ export default function ChessGame() {
 
 	const [pendingPromotion, setPendingPromotion] = useState<{ from: string; to: string } | null>(null)
 
-	    function handlePieceDrop({ sourceSquare, targetSquare }: { piece: string; sourceSquare: string; targetSquare: string }): boolean {
+	function handlePieceDrop({ sourceSquare, targetSquare }: { piece: string; sourceSquare: string; targetSquare: string }): boolean {
         if (isSpectator || gameOver || !isMyTurn) return false
 
         const piece = chessRef.current.get(sourceSquare as Square)
@@ -488,6 +676,10 @@ export default function ChessGame() {
             })
             if (move) {
                 setFen(chessRef.current.fen())
+                setIsMyTurn(false)
+                const { whiteCaptures, blackCaptures } = getCapturedPieces(chessRef.current.fen())
+                setCapturedWhite(whiteCaptures)
+                setCapturedBlack(blackCaptures)
                 setIsMyTurn(false)
                 sendMove(sourceSquare, targetSquare)
                 return true
@@ -590,14 +782,16 @@ export default function ChessGame() {
                     )}
                 </div>
                 <div className="flex gap-2">
-				    {!isSpectator && !gameOver && (
+					{!isSpectator && !gameOver && (
                         <>
-                            <button
+                            {isPractice && (
+						    <button
                                 onClick={handleUndo}
                                 className="px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700"
                             >
                                 Undo
                             </button>
+                            )}
                             <button
                                 onClick={handleResign}
                                 className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
@@ -628,17 +822,43 @@ export default function ChessGame() {
                 </div>
             )}
 
-            <div className="flex gap-6 justify-center">
+			<div className="flex gap-6 justify-center items-stretch">
                 <div className="relative">
                     {/* Opponent info + clock (top) */}
                     <div className="flex items-center justify-between mb-2 px-1">
-                        <div className="flex items-center gap-2">
-                            <span className="text-gray-400 text-sm">{opponentName}</span>
-                            {gameInfo?.player2_is_ai && (
-                                <span className="text-xs text-yellow-400 bg-yellow-900/50 px-1 rounded">
+						{/*<div className="flex items-center gap-2">
+                            <span className="text-gray-300 text-xl font-semibold">{opponentName}</span>
+							{gameInfo?.player2_is_ai && (
+								<span className="text-base text-yellow-400 bg-yellow-900/50 px-2 py-0.5 rounded">
                                     AI {gameInfo.ai_difficulty}
                                 </span>
                             )}
+							<span className="ml-2 flex gap-0.5 items-center bg-gray-600/50 rounded px-1 py-0.5">
+                                {(myColor === "white" ? capturedBlack : capturedWhite).map((p, i) => (
+									<img key={i} src={`/pieces/${p}.svg`} alt={p} className={`w-8 h-8 ${p.startsWith("b") ? "drop-shadow-[0_0_3px_rgba(255,255,255,0.9)]" : ""}`} />
+                                ))}
+                            </span>
+                        </div>*/}
+					    <div>
+							<div className="flex items-center gap-2">
+                                <span
+                                    className="text-gray-300 text-xl font-semibold hover:text-blue-400 cursor-pointer"
+                                    onClick={() => navigate(`/profile/${opponentName}`)}
+                                >
+                                    {opponentName}
+                                </span>
+                                {gameInfo?.player2_is_ai && (
+                                    <span className="text-base text-yellow-400 bg-yellow-900/50 px-2 py-0.5 rounded">
+                                        AI {gameInfo.ai_difficulty}
+                                    </span>
+                                )}
+                            </div>
+						
+                            <div className="flex flex-wrap gap-0.5 items-center mt-1">
+                                {(myColor === "white" ? capturedBlack : capturedWhite).map((p, i) => (
+                                    <img key={i} src={`/pieces/${p}.svg`} alt={p} className={`w-8 h-8 ${p.startsWith("b") ? "drop-shadow-[0_0_3px_rgba(255,255,255,0.9)]" : ""}`} />
+                                ))}
+                            </div>
                         </div>
                         {hasClock && (
                             <span className={`font-mono text-lg px-3 py-1 rounded ${
@@ -652,39 +872,66 @@ export default function ChessGame() {
                         )}
                     </div>
 
-                    <Chessboard
-                        options={{
-                            position: fen,
-                            onPieceDrop: handlePieceDrop,
-                            onSquareClick: handleSquareClick,
-                            boardOrientation: isSpectator ? "white" : myColor,
-                            squareStyles: optionSquares,
-                            boardStyle: {
-                                borderRadius: "4px",
-                                boxShadow: "0 4px 6px rgba(0, 0, 0, 0.3)",
-                            },
-                            allowDragging: !isSpectator && !gameOver && isMyTurn,
-                        }}
-                    />
+                    <div className="relative [&>div>div]:leading-none [&>div>div]:text-[0px]">
+						<Chessboard
+							options={{
+								position: fen,
+								onPieceDrop: handlePieceDrop,
+								onSquareClick: handleSquareClick,
+								boardOrientation: isSpectator ? "white" : myColor,
+								squareStyles: {
+									...optionSquares,
+									...(lastMove ? {
+										[lastMove.from]: { background: "rgba(255, 255, 0, 0.3)" },
+										[lastMove.to]: { background: "rgba(255, 255, 0, 0.3)" },
+									} : {}),
+								},
+								boardStyle: {
+									borderRadius: "4px",
+									boxShadow: "0 4px 6px rgba(0, 0, 0, 0.3)",
+								},
+								allowDragging: !isSpectator && !gameOver && isMyTurn,
+							}}
+						/>
+					</div>
+
+					{/*I am not sure if this is the correct place */}
+					{isPractice && !isSpectator && !gameOver && (
+                        <form onSubmit={handleSetFen} className="flex gap-2 mt-3">
+                            <input
+                                type="text"
+                                value={fenInput}
+                                onChange={(e) => setFenInput(e.target.value)}
+                                placeholder="Set position (FEN)"
+                                className="flex-1 px-3 py-2 bg-gray-900 text-white border border-gray-700 rounded text-xs focus:outline-none focus:border-blue-500"
+                            />
+                            <button
+                                type="submit"
+                                className="px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
+                            >
+                                Set
+                            </button>
+                        </form>
+                    )}
 
 					{pendingPromotion && (
                         <div className="absolute inset-0 bg-black/60 flex items-center justify-center z-10">
                             <div className="bg-gray-800 border border-gray-600 rounded-lg p-4">
                                 <p className="text-white text-center mb-3">Promote to:</p>
                                 <div className="flex gap-2">
-                                    {[
-                                        { piece: "q", label: "♛", name: "Queen" },
-                                        { piece: "r", label: "♜", name: "Rook" },
-                                        { piece: "b", label: "♝", name: "Bishop" },
-                                        { piece: "n", label: "♞", name: "Knight" },
-                                    ].map(({ piece, label, name }) => (
+									{[
+                                        { piece: "q", name: "Queen" },
+                                        { piece: "r", name: "Rook" },
+                                        { piece: "b", name: "Bishop" },
+                                        { piece: "n", name: "Knight" },
+                                    ].map(({ piece, name }) => (
                                         <button
                                             key={piece}
                                             onClick={() => handlePromotionChoice(piece)}
-                                            className="w-16 h-16 bg-gray-700 hover:bg-gray-600 rounded text-4xl flex items-center justify-center"
+                                            className="w-16 h-16 bg-gray-700 hover:bg-gray-600 rounded flex items-center justify-center"
                                             title={name}
                                         >
-                                            {label}
+                                            <img src={`/pieces/${myColor === "white" ? "w" : "b"}${piece.toUpperCase()}.svg`} alt={name} className="w-12 h-12" />
                                         </button>
                                     ))}
                                 </div>
@@ -694,14 +941,41 @@ export default function ChessGame() {
 
                     {/* Your info + clock (bottom) */}
                     <div className="flex items-center justify-between mt-2 px-1">
-                        <div className="flex items-center gap-2">
-                            <span className="text-white text-sm font-semibold">{myName}</span>
+						{/*<div className="flex items-center gap-2">
+                            <span className="text-white text-xl font-bold">{myName}</span>
                             {!isSpectator && isMyTurn && !gameOver && (
-                                <span className="text-xs text-green-400">Your turn</span>
+								<span className="text-base text-green-400 font-semibold">Your turn</span>
                             )}
-                            {check && isMyTurn && (
-                                <span className="text-xs text-red-400 font-bold">CHECK!</span>
+							{check && isMyTurn && (
+                                <span className="text-base text-red-400 font-bold">CHECK!</span>
                             )}
+							<span className="ml-2 flex gap-0.5 items-center bg-gray-600/50 rounded px-1 py-0.5">
+                                {(myColor === "white" ? capturedWhite : capturedBlack).map((p, i) => (
+                                    <img key={i} src={`/pieces/${p}.svg`} alt={p} className="w-8 h-8" />
+
+                                ))}
+                            </span>
+                        </div>*/}
+					    <div>
+						    <div className="flex items-center gap-2">
+                                <span
+                                    className="text-white text-xl font-bold hover:text-blue-400 cursor-pointer"
+                                    onClick={() => navigate(`/profile/${myName}`)}
+                                >
+                                    {myName}
+                                </span>
+                                {!isSpectator && isMyTurn && !gameOver && (
+                                    <span className="text-base text-green-400 font-semibold">Your turn</span>
+                                )}
+                                {check && isMyTurn && (
+                                    <span className="text-base text-red-400 font-bold">CHECK!</span>
+                                )}
+                            </div>
+                            <div className="flex flex-wrap gap-0.5 items-center mt-1">
+                                {(myColor === "white" ? capturedWhite : capturedBlack).map((p, i) => (
+                                    <img key={i} src={`/pieces/${p}.svg`} alt={p} className={`w-6 h-6 ${p.startsWith("b") ? "drop-shadow-[0_0_3px_rgba(255,255,255,0.9)]" : ""}`} />
+                                ))}
+                            </div>
                         </div>
                         {hasClock && (
                             <span className={`font-mono text-lg px-3 py-1 rounded ${
@@ -714,6 +988,72 @@ export default function ChessGame() {
                             </span>
                         )}
                     </div>
+				</div>
+
+                {/* Game Chat */}
+				<div className="w-72 bg-gray-800 rounded-lg border border-gray-700 flex flex-col self-stretch">
+                    <div className="p-3 border-b border-gray-700 flex items-center gap-2">
+                        <span className="text-white text-sm font-semibold">Game Chat</span>
+                        <span className={`w-2 h-2 rounded-full ${chatConnected ? "bg-green-500" : "bg-red-500"}`}></span>
+                    </div>
+                    <div className="flex-1 overflow-y-auto p-3 space-y-2 max-h-96">
+                        {chatMessages.length === 0 && (
+                            <p className="text-gray-500 text-xs text-center">No messages yet</p>
+                        )}
+						{chatMessages.map((msg) => (
+                            <div key={msg.id} className={`text-sm ${
+                                msg.sender === "system"
+                                    ? "text-yellow-400 italic text-center"
+                                    : msg.sender === user?.username
+                                    ? "text-blue-400"
+                                    : "text-gray-300"
+                            }`}>
+                                {msg.sender === "system" ? (
+                                    <span>{msg.content}</span>
+                                ) : (
+                                    <>
+										<span
+                                            className="font-semibold cursor-pointer hover:text-blue-400"
+                                            onClick={() => navigate(`/profile/${msg.sender}`)}
+                                        >
+                                            {msg.sender}:
+                                        </span>{" "}
+                                        <span>{msg.content}</span>
+                                    </>
+                                )}
+                            </div>
+                        ))}
+                        <div ref={chatEndRef} />
+                    </div>
+					{chatTypingUser && (
+                        <div className="px-3 py-1 text-gray-500 text-xs italic">
+                            {chatTypingUser} is typing...
+                        </div>
+                    )}
+					{chatError && (
+                        <div className="px-3 py-1 text-red-400 text-xs text-center bg-red-900/20">
+                            {chatError}
+                        </div>
+                    )}
+                    <form onSubmit={handleChatSend} className="mt-auto p-3 border-t border-gray-700 flex gap-2">
+                        <input
+                            type="text"
+                            value={chatInput}
+                            onChange={(e) => {
+								setChatInput(e.target.value)
+								chatSocketRef.current?.sendTyping()
+							}}
+                            placeholder="Chat..."
+                            className="flex-1 px-2 py-1 bg-gray-900 text-white border border-gray-700 rounded text-sm focus:outline-none focus:border-blue-500"
+                            maxLength={2000}
+                        />
+                        <button
+                            type="submit"
+                            className="px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
+                        >
+                            Send
+                        </button>
+                    </form>
                 </div>
             </div>
         </div>

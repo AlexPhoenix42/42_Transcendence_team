@@ -2,6 +2,8 @@
 
 import { createBrowserRouter } from "react-router-dom"
 
+import Status from "./pages/Status.tsx"
+
 import AuthLayout from "./layouts/AuthLayout.tsx"
 import AppLayout from "./layouts/AppLayout.tsx"
 import ProtectedRoute from "./components/ProtectedRoute.tsx"
@@ -19,6 +21,10 @@ import Tournaments from "./pages/Tournaments.tsx"
 import TournamentDetail from "./pages/TournamentDetail.tsx"
 import Chat from "./pages/Chat.tsx"
 import ChessCoach from "./pages/ChessCoach.tsx"
+import AdminDashboard from "./pages/AdminDashboard.tsx"
+import Leaderboard from "./pages/Leaderboard.tsx"
+import MatchHistory from "./pages/MatchHistory.tsx"
+import Analytics from "./pages/Analytics.tsx"
 
 import ForgotPassword from "./pages/ForgotPassword.tsx"
 import ResetPassword from "./pages/ResetPassword.tsx"
@@ -36,6 +42,9 @@ export const router = createBrowserRouter([
 			{ path: "/2fa", element: <Verify2FA /> },
         ],
     },
+
+	{ path: "/status", element: <Status /> },
+
     {
         element: <ProtectedRoute />,
         children: [
@@ -53,6 +62,11 @@ export const router = createBrowserRouter([
                     { path: "/tournaments/:id", element: <TournamentDetail /> },
                     { path: "/chat", element: <Chat /> },
 					{ path: "/coach", element: <ChessCoach /> },
+					{ path: "/admin", element: <AdminDashboard /> },
+					{ path: "/leaderboard", element: <Leaderboard /> },
+					{ path: "/history", element: <MatchHistory /> },
+					{ path: "/history/:username", element: <MatchHistory /> },
+					{ path: "/analytics", element: <Analytics /> },
                 ],
             },
         ],

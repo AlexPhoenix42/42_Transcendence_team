@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react"
 import { useAuth } from "../context/AuthContext.tsx"
 import { api, getAccessToken } from "../api/client.ts"
+import { useNavigate } from "react-router-dom"
+import Achievements from "../components/Achievements.tsx"
 
 interface ProfileData {
     username: string
@@ -14,10 +16,12 @@ interface ProfileData {
     wins: number
     loss: number
     draw: number
+	role: string
 }
 
 export default function Profile() {
     const { user } = useAuth()
+	const navigate = useNavigate()
     const [profile, setProfile] = useState<ProfileData | null>(null)
     const [editing, setEditing] = useState(false)
     const [dispname, setDispname] = useState("")
@@ -278,8 +282,16 @@ export default function Profile() {
                             className="hidden"
                         />
                     </label>
-                    <div>
-                        <h2 className="text-xl text-white font-semibold">{profile.username}</h2>
+					<div>
+                        <div className="flex items-center gap-2">
+                            <h2 className="text-xl text-white font-semibold">{profile.username}</h2>
+                            {profile.role === "admin" && (
+                                <span className="px-2 py-0.5 rounded text-xs font-bold bg-red-900/50 text-red-400">Admin</span>
+                            )}
+                            {profile.role === "moderator" && (
+                                <span className="px-2 py-0.5 rounded text-xs font-bold bg-yellow-900/50 text-yellow-400">Mod</span>
+                            )}
+                        </div>
                         <p className="text-gray-400">{profile.email}</p>
                     </div>
                 </div>
@@ -303,6 +315,22 @@ export default function Profile() {
                     <p className="text-gray-400 text-sm">Rating</p>
                     <p className="text-white text-lg font-semibold">{profile.rating}</p>
                 </div>
+
+				<button
+                    onClick={() => navigate("/history")}
+                    className="mb-4 px-4 py-2 bg-gray-700 text-white rounded hover:bg-gray-600 text-sm w-full"
+                >
+                    View Match History
+                </button>
+
+				<button
+                    onClick={() => navigate("/analytics")}
+                    className="mb-4 px-4 py-2 bg-gray-700 text-white rounded hover:bg-gray-600 text-sm w-full"
+                >
+                    View Analytics
+                </button>
+
+				<Achievements />
 
                 {editing ? (
                     <form onSubmit={handleSave} className="space-y-4">

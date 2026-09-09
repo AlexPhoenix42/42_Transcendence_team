@@ -144,6 +144,7 @@ class ProfileUpdateSerializer(serializers.ModelSerializer):
     username    = serializers.CharField(read_only=True)
     class Meta:         # pyright: ignore[reportIncompatibleVariableOverride]
         model   = User
-        fields  = ["username", "dispname", "avatar", "bio"]
+        fields  = ["username", "dispname", "avatar", "bio", "rating", "wins", "loss", "draw", "is_online", "role"]
+        read_only_fields = ["username", "rating", "wins", "loss", "draw", "is_online", "role"]
 # ==========================================================================
 
