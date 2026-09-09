@@ -45,13 +45,14 @@ COPY	requirements-dev.txt .
 RUN		--mount=type=cache,target=/root/.cache/pip \
 		pip install -r requirements-dev.txt
 
-#RUN		useradd -u 1000 -m django_user
-USER	django_user
-
 COPY	--chown=django_user . .
 COPY	--chown=django_user docker_conf/entrypoint.sh /entrypoint.sh
 RUN		chmod +x /entrypoint.sh
 
+# Stay root in dev: docker-compose-dev.yml bind-mounts the host's
+# backend/django over this image's /django, which overrides the COPY
+# --chown above with the host's uid -- same reason vault/postgres stay
+# root in their dev stages.
 EXPOSE		9000
 ENTRYPOINT	["/entrypoint.sh"]
 

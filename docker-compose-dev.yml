@@ -1,8 +1,8 @@
 services:
   postgres:
     build:
-      context:      db_server/docker_conf
-      dockerfile:   Dockerfile
+      context:      db_server
+      dockerfile:   docker_conf/Dockerfile
       target:       dev
       pull:         false
       cache_from:
@@ -51,11 +51,11 @@ services:
       VAULT_TOKEN:  root
     volumes:
       - ./.env:/app/.env:ro
-      - ./scripts_dev/seed_vault.sh:/app/seed_vault.sh:ro
+      - ./scripts_dev/seed_vault_dev.sh:/app/seed_vault_dev.sh:ro
     entrypoint:     ["/bin/sh", "-c"]
     command:
       - |
-        /app/seed_vault.sh
+        /app/seed_vault_dev.sh
     restart:        "no"
     networks:
       - trans_net
