@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="fr">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, user-scalable=no">
+        <title>jsPacman - Test des règles</title>
+
+        <link rel="stylesheet" href="./styles.css">
+
+        <script type="importmap">
+        {
+            "imports": {
+                "rasti/Model.js": "https://cdn.jsdelivr.net/npm/rasti@v4.0.0/Model.js/+esm",
+                "rasti/View.js": "https://cdn.jsdelivr.net/npm/rasti@v4.0.0/View.js/+esm"
+            }
+        }
+        </script>
+
+        <style>
+            .rules-panel {
+                position : fixed;
+                top : 0;
+                right : 0;
+                width : 300px;
+                max-height : 100vh;
+                overflow : auto;
+                padding : 12px;
+                background : rgba(0, 0, 0, 0.82);
+                color : #eee;
+                font : 12px/1.5 monospace;
+                z-index : 1000;
+            }
+            .rules-panel h2 {
+                font-size : 13px;
+                color : #ffd83d;
+                margin : 0 0 6px;
+                border-bottom : 1px solid #444;
+                padding-bottom : 4px;
+            }
+            .rules-panel h2:not(:first-child) { margin-top : 14px; }
+            .rules-panel button {
+                display : block;
+                width : 100%;
+                margin : 4px 0;
+                padding : 7px;
+                font : inherit;
+                cursor : pointer;
+                border : 1px solid #666;
+                border-radius : 4px;
+                background : #222;
+                color : #eee;
+            }
+            .rules-panel button:hover { background : #333; border-color : #999; }
+            .rules-panel .state { white-space : pre-wrap; color : #9fe89f; }
+            .rules-panel .hint { color : #999; margin-top : 8px; }
+            .rules-panel .flash { color : #ff8; }
+        </style>
+    </head>
+    <body>
+        <div class="js-pacman-container">
+            <div class="js-pacman-playground"></div>
+        </div>
+
+        <div class="rules-panel">
+            <h2>Contrôles</h2>
+            <div>Ms Pac-Man&nbsp;: flèches</div>
+            <div>Pac-Man Homme&nbsp;: WASD / ZQSD</div>
+            <div class="hint">Clique START, puis teste&nbsp;:</div>
+
+            <h2>Pouvoirs</h2>
+            <button data-act="wall">🧱 Builder pose un mur</button>
+            <button data-act="baby">👶 Forcer la naissance du bébé</button>
+            <button data-act="freeze-woman">🧊 Geler Ms Pac-Man (5s)</button>
+            <button data-act="freeze-man">🧊 Geler Pac-Man Homme (5s)</button>
+            <button data-act="prison-man">🔒 Emprisonner Pac-Man Homme (15s)</button>
+            <div class="flash" id="flash">&nbsp;</div>
+
+            <h2>État</h2>
+            <div class="state" id="state">en attente…</div>
+        </div>
+
+        <script type="module">
+            import RulesGame from './js/RulesGame.js';
+
+            const vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
+            const vh = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0);
+
+            const game = new RulesGame({
+                el : document.querySelector('.js-pacman-playground'),
+                width : vw * 0.9,
+                height : vh * 0.9,
+                position : 'relative'
+            });
+            window.__game = game;
+
+            const flash = document.getElementById('flash');
+            const state = document.getElementById('state');
+
+            const say = msg => {
+                flash.textContent = msg;
+                setTimeout(() => { flash.innerHTML = '&nbsp;'; }, 2000);
+            };
+
+            const actions = {
+                wall : () => say(game.dropWall() ? 'Mur posé' : 'Impossible (cooldown / place)'),
+                baby : () => say(game.forceBaby() ? 'Bébé né' : 'Déjà né / pas prêt'),
+                'freeze-woman' : () => say(game.freeze('woman') ? 'Ms Pac-Man gelée' : '—'),
+                'freeze-man' : () => say(game.freeze('man') ? 'Pac-Man Homme gelé' : '—'),
+                'prison-man' : () => say(game.imprison('man') ? 'Pac-Man Homme emprisonné' : '—')
+            };
+
+            document.querySelector('.rules-panel').addEventListener('click', e => {
+                const act = e.target.dataset.act;
+                if (act && actions[act]) actions[act]();
+            });
+
+            setInterval(() => {
+                const s = game.getRulesState();
+                const effects = s.effects.length
+                    ? s.effects.map(e => `  ${e.who} — ${e.type} (${e.remaining}s)`).join('\n')
+                    : '  aucun';
+                state.textContent =
+                    `config     ${s.config.numPacmen} pac / ${s.config.numGhosts} ghosts\n` +
+                    `builder    ${s.builder.ready ? 'prêt' : 'cooldown'}, ${s.builder.activeWalls} mur(s)\n` +
+                    `bébé       ${s.baby.born ? 'né' : 'pas encore'}\n` +
+                    `effets\n${effects}`;
+            }, 250);
+        </script>
+    </body>
+</html>

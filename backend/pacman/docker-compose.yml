@@ -1,0 +1,85 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: pacman_db
+    environment:
+      - POSTGRES_DB=pacman
+      - POSTGRES_USER=pacman
+      - POSTGRES_PASSWORD=pacman
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    networks:
+      - pacman_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pacman"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: pacman_redis_v2
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - pacman_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: pacman_backend_v2
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - POSTGRES_HOST=db
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=pacman
+      - POSTGRES_USER=pacman
+      - POSTGRES_PASSWORD=pacman
+      - DEBUG=True
+    volumes:
+      - ./backend:/app
+    networks:
+      - pacman_network
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: pacman_frontend_v2
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    volumes:
+      - ./src:/app/src
+      - /app/node_modules
+    networks:
+      - pacman_network
+    restart: unless-stopped
+
+networks:
+  pacman_network:
+    driver: bridge
+
+volumes:
+  redis_data:
+  pg_data:

@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎮 Pac-Man Multiplayer - Menu Principal</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        @font-face {
+            font-family: 'Press Start 2P';
+            src: url('src/fonts/press-start-2p-v9-latin-regular.woff2') format('woff2'),
+                 url('src/fonts/press-start-2p-v9-latin-regular.woff') format('woff');
+            font-weight: normal;
+            font-style: normal;
+        }
+
+        body {
+            font-family: 'Press Start 2P', Arial, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            color: #00ff00;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Animated background */
+        .bg-animation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background:
+                radial-gradient(circle at 20% 50%, rgba(255, 255, 0, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(0, 255, 0, 0.1) 0%, transparent 50%);
+            animation: gradientShift 8s ease infinite;
+            z-index: -1;
+        }
+
+        @keyframes gradientShift {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; }
+        }
+
+        .container {
+            max-width: 800px;
+            width: 100%;
+            padding: 20px;
+            text-align: center;
+            z-index: 1;
+        }
+
+        .logo {
+            font-size: 48px;
+            margin-bottom: 10px;
+            animation: bounce 1s ease-in-out infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+        }
+
+        .title {
+            font-size: 36px;
+            color: #ffff00;
+            text-shadow: 0 0 20px #ffff00, 0 0 40px #ff00ff;
+            margin-bottom: 10px;
+            animation: glow 2s ease-in-out infinite;
+            letter-spacing: 3px;
+        }
+
+        @keyframes glow {
+            0%, 100% { text-shadow: 0 0 20px #ffff00, 0 0 40px #ff00ff; }
+            50% { text-shadow: 0 0 30px #ffff00, 0 0 60px #ff00ff, 0 0 80px #00ffff; }
+        }
+
+        .subtitle {
+            font-size: 14px;
+            color: #00ff00;
+            margin-bottom: 40px;
+            animation: fadeInOut 3s ease-in-out infinite;
+        }
+
+        @keyframes fadeInOut {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; }
+        }
+
+        .menu {
+            background: rgba(0, 0, 0, 0.8);
+            border: 4px solid #00ff00;
+            border-radius: 15px;
+            padding: 40px;
+            box-shadow: 0 0 30px rgba(0, 255, 0, 0.5);
+            margin-bottom: 30px;
+        }
+
+        .menu-title {
+            font-size: 18px;
+            color: #ffff00;
+            margin-bottom: 30px;
+            text-transform: uppercase;
+            border-bottom: 2px solid #00ff00;
+            padding-bottom: 15px;
+        }
+
+        .menu-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .btn {
+            padding: 18px;
+            font-size: 16px;
+            font-family: 'Press Start 2P', Arial, sans-serif;
+            border: 3px solid #00ff00;
+            background: rgba(0, 255, 0, 0.1);
+            color: #00ff00;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            font-weight: bold;
+            letter-spacing: 2px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: #00ff00;
+            transition: left 0.3s ease;
+            z-index: -1;
+        }
+
+        .btn:hover {
+            color: #000;
+            left: 0;
+            transform: scale(1.05);
+            box-shadow: 0 0 20px #00ff00;
+        }
+
+        .btn:hover::before {
+            left: 0;
+        }
+
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        .btn.primary {
+            font-size: 18px;
+            padding: 20px;
+            background: rgba(255, 255, 0, 0.2);
+            border-color: #ffff00;
+            color: #ffff00;
+        }
+
+        .btn.primary::before {
+            background: #ffff00;
+        }
+
+        .btn.primary:hover {
+            color: #000;
+            text-shadow: 0 0 10px #000;
+        }
+
+        .btn.danger {
+            border-color: #ff0000;
+            color: #ff0000;
+            background: rgba(255, 0, 0, 0.1);
+        }
+
+        .btn.danger::before {
+            background: #ff0000;
+        }
+
+        .btn.success {
+            border-color: #00ff00;
+            color: #00ff00;
+            background: rgba(0, 255, 0, 0.1);
+        }
+
+        .btn-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .features {
+            background: rgba(0, 255, 0, 0.1);
+            border: 2px solid #00ff00;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            font-size: 12px;
+        }
+
+        .feature-item {
+            text-align: left;
+            padding: 10px;
+            border-left: 3px solid #ffff00;
+            padding-left: 12px;
+        }
+
+        .feature-icon {
+            font-size: 20px;
+            margin-right: 8px;
+        }
+
+        .stats {
+            background: rgba(0, 0, 0, 0.5);
+            border: 2px solid #666;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+            font-size: 11px;
+            color: #888;
+        }
+
+        .stat-line {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+            border-bottom: 1px dotted #666;
+        }
+
+        .stat-line:last-child {
+            border-bottom: none;
+        }
+
+        .stat-label {
+            text-align: left;
+        }
+
+        .stat-value {
+            text-align: right;
+            color: #00ff00;
+            font-weight: bold;
+        }
+
+        .footer {
+            font-size: 10px;
+            color: #666;
+            margin-top: 30px;
+            text-align: center;
+        }
+
+        .footer a {
+            color: #00ff00;
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .title {
+                font-size: 24px;
+            }
+
+            .logo {
+                font-size: 36px;
+            }
+
+            .btn {
+                font-size: 12px;
+                padding: 14px;
+            }
+
+            .btn-group {
+                grid-template-columns: 1fr;
+            }
+
+            .feature-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .menu {
+                padding: 20px;
+            }
+
+            .subtitle {
+                font-size: 12px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 10px;
+            }
+
+            .menu {
+                padding: 15px;
+                border-width: 3px;
+            }
+
+            .title {
+                font-size: 18px;
+                letter-spacing: 2px;
+            }
+
+            .subtitle {
+                font-size: 10px;
+            }
+
+            .btn {
+                font-size: 11px;
+                padding: 12px;
+            }
+        }
+
+        .blink {
+            animation: blinking 0.7s infinite;
+        }
+
+        @keyframes blinking {
+            0%, 49%, 100% { opacity: 1; }
+            50%, 99% { opacity: 0.3; }
+        }
+
+        .marquee {
+            background: rgba(255, 255, 0, 0.1);
+            border-top: 2px solid #ffff00;
+            border-bottom: 2px solid #ffff00;
+            padding: 10px;
+            margin: 20px 0;
+            overflow: hidden;
+            white-space: nowrap;
+            font-size: 12px;
+        }
+
+        .marquee-content {
+            display: inline-block;
+            padding-left: 100%;
+            animation: scroll 15s linear infinite;
+        }
+
+        @keyframes scroll {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(-100%, 0); }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-animation"></div>
+
+    <div class="container">
+        <!-- Logo and Title -->
+        <div class="logo">👾</div>
+        <h1 class="title">PAC-MAN MULTIPLAYER</h1>
+        <p class="subtitle">🎮 Classic Game Reimagined for 2024 🎮</p>
+
+        <!-- Marquee -->
+        <div class="marquee">
+            <div class="marquee-content">
+                🎵 Welcome to Pac-Man Multiplayer! 🎵 Play with friends! 🎵 Talk while you play! 🎵 Watch the action! 🎵
+            </div>
+        </div>
+
+        <!-- Features -->
+        <div class="features">
+            <div class="feature-grid">
+                <div class="feature-item">
+                    <span class="feature-icon">🎤</span> Players speak via microphone
+                </div>
+                <div class="feature-item">
+                    <span class="feature-icon">💬</span> Spectators chat in real-time
+                </div>
+                <div class="feature-item">
+                    <span class="feature-icon">👥</span> Multiplayer modes (1v1 to 2v4)
+                </div>
+                <div class="feature-item">
+                    <span class="feature-icon">🎨</span> Classic 8-bit graphics
+                </div>
+                <div class="feature-item">
+                    <span class="feature-icon">⚙️</span> Advanced game rules
+                </div>
+                <div class="feature-item">
+                    <span class="feature-icon">🔊</span> Full audio support
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Menu -->
+        <div class="menu">
+            <div class="menu-title">🎮 Select Game Mode</div>
+
+            <div class="menu-buttons">
+                <!-- Primary CTA -->
+                <button class="btn primary" onclick="goToLobby()">
+                    ▶️ START PLAYING
+                </button>
+
+                <!-- Testing Options -->
+                <div class="btn-group">
+                    <button class="btn" onclick="goToAudioTest()">
+                        🔊 AUDIO TEST
+                    </button>
+                    <button class="btn" onclick="goToRulesDoc()">
+                        📋 GAME RULES
+                    </button>
+                </div>
+
+                <!-- Game Modes -->
+                <div style="margin-top: 20px; padding-top: 20px; border-top: 2px solid #666;">
+                    <div style="font-size: 12px; color: #ffff00; margin-bottom: 15px; text-transform: uppercase;">Choose Configuration:</div>
+                    <div class="btn-group">
+                        <button class="btn" onclick="startGame(1, 1)">
+                            1v1<br><span style="font-size: 8px;">1 Pac vs 1 Ghost</span>
+                        </button>
+                        <button class="btn" onclick="startGame(1, 2)">
+                            1v2<br><span style="font-size: 8px;">1 Pac vs 2 Ghosts</span>
+                        </button>
+                        <button class="btn" onclick="startGame(2, 3)">
+                            2v3<br><span style="font-size: 8px;">2 Pacs vs 3 Ghosts</span>
+                        </button>
+                        <button class="btn" onclick="startGame(2, 4)">
+                            2v4<br><span style="font-size: 8px;">2 Pacs vs 4 Ghosts</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Settings -->
+                <button class="btn" onclick="goToSettings()" style="margin-top: 20px;">
+                    ⚙️ SETTINGS
+                </button>
+            </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats">
+            <div class="stat-line">
+                <span class="stat-label">🎮 Total Players Online:</span>
+                <span class="stat-value" id="playerCount">--</span>
+            </div>
+            <div class="stat-line">
+                <span class="stat-label">👥 Active Lobbies:</span>
+                <span class="stat-value" id="lobbyCount">--</span>
+            </div>
+            <div class="stat-line">
+                <span class="stat-label">🎵 Audio Status:</span>
+                <span class="stat-value" id="audioStatus">Checking...</span>
+            </div>
+            <div class="stat-line">
+                <span class="stat-label">📱 Your Device:</span>
+                <span class="stat-value" id="deviceInfo">--</span>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p>© 2024 Pac-Man Multiplayer | Version 1.0</p>
+            <p>Made with ❤️ using HTML5, JavaScript, and WebRTC</p>
+            <p>
+                <a href="GAME_RULES.md">Rules</a> •
+                <a href="IMPLEMENTATION_SUMMARY.md">Summary</a> •
+                <a href="audio-test.html">Audio Test</a> •
+                <a href="lobby.html">Lobby</a>
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // Initialize page
+        window.addEventListener('load', () => {
+            initializePage();
+        });
+
+        function initializePage() {
+            // Check audio support
+            checkAudioSupport();
+
+            // Get device info
+            getDeviceInfo();
+
+            // Simulate online stats (in real app, these come from server)
+            updateStats();
+        }
+
+        function checkAudioSupport() {
+            const audio = new Audio();
+            const supported = audio.canPlayType('audio/mpeg') !== '';
+            const status = document.getElementById('audioStatus');
+            status.textContent = supported ? '✓ Supported' : '✗ Not Supported';
+            status.style.color = supported ? '#00ff00' : '#ff0000';
+        }
+
+        function getDeviceInfo() {
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            const browser = navigator.userAgent.includes('Chrome') ? 'Chrome' :
+                          navigator.userAgent.includes('Safari') ? 'Safari' :
+                          navigator.userAgent.includes('Firefox') ? 'Firefox' : 'Other';
+
+            document.getElementById('deviceInfo').textContent = `${isMobile ? 'Mobile' : 'Desktop'} • ${browser}`;
+        }
+
+        function updateStats() {
+            // Mock data - replace with real API calls
+            document.getElementById('playerCount').textContent = Math.floor(Math.random() * 100 + 50);
+            document.getElementById('lobbyCount').textContent = Math.floor(Math.random() * 15 + 5);
+        }
+
+        // Navigation functions
+        function goToLobby() {
+            window.location.href = 'lobby.html';
+        }
+
+        function goToAudioTest() {
+            window.location.href = 'audio-test.html';
+        }
+
+        function goToRulesDoc() {
+            alert('Rules Documentation:\n\n' +
+                  'Pac-Man 1: Eats grains, dies to killers\n' +
+                  'Pac-Man 2: Invincible, destroys walls, can be imprisoned\n\n' +
+                  'Ghost Types:\n' +
+                  '1. Wall Maker (10s)\n' +
+                  '2. Killers (x2)\n' +
+                  '3. Blocker\n' +
+                  '4. Freezer (5s + 7s recharge)\n\n' +
+                  'See GAME_RULES.md for full details');
+        }
+
+        function goToSettings() {
+            alert('Settings:\n\n' +
+                  '- Volume Control\n' +
+                  '- Microphone Selection\n' +
+                  '- Difficulty Level\n' +
+                  '- Graphics Settings\n' +
+                  '- Audio Preferences\n\n' +
+                  'Coming soon!');
+        }
+
+        function startGame(numPacmen, numGhosts) {
+            console.log(`Starting game with ${numPacmen} Pac-Men and ${numGhosts} Ghosts`);
+            // Store config in localStorage
+            localStorage.setItem('gameConfig', JSON.stringify({ numPacmen, numGhosts }));
+            // Go to lobby
+            goToLobby();
+        }
+
+        // Add click effects
+        document.querySelectorAll('.btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                // Visual feedback
+                this.style.transform = 'scale(0.95)';
+                setTimeout(() => {
+                    this.style.transform = '';
+                }, 100);
+            });
+        });
+
+        // Easter egg: Konami code detection
+        const konamiCode = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a'];
+        let konamiIndex = 0;
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === konamiCode[konamiIndex]) {
+                konamiIndex++;
+                if (konamiIndex === konamiCode.length) {
+                    activateEasterEgg();
+                    konamiIndex = 0;
+                }
+            } else {
+                konamiIndex = 0;
+            }
+        });
+
+        function activateEasterEgg() {
+            console.log('🎉 Easter Egg Activated!');
+            document.querySelector('.title').classList.add('blink');
+            alert('🎉 YOU FOUND THE EASTER EGG! 🎉\n\nPac-Man says: "Waka Waka!"');
+            setTimeout(() => {
+                document.querySelector('.title').classList.remove('blink');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

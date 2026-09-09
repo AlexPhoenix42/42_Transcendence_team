@@ -1,0 +1,16 @@
+FROM node:18-alpine
+
+WORKDIR /app
+
+COPY package.json ./
+COPY package-lock.json ./
+
+# Installer toutes les dépendances sans lancer les scripts (tests)
+RUN npm install --ignore-scripts
+
+COPY src/ ./src/
+COPY scripts/ ./scripts/
+
+EXPOSE 3000
+
+CMD ["npm", "start"]

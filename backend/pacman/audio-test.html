@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎮 Pac-Man Audio Test - Vérification du Son</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Press Start 2P', Arial, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #00ff00;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            width: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            border: 3px solid #00ff00;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.3);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 24px;
+            text-shadow: 0 0 10px #00ff00;
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+            0%, 49% { opacity: 1; }
+            50%, 100% { opacity: 0.7; }
+        }
+
+        .subtitle {
+            font-size: 12px;
+            color: #ffff00;
+            margin-top: 10px;
+        }
+
+        .section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 2px solid #00ff00;
+            border-radius: 5px;
+        }
+
+        .section-title {
+            font-size: 14px;
+            color: #ffff00;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 10px 20px;
+            background: #00ff00;
+            color: #000;
+            border: 2px solid #00ff00;
+            font-family: 'Press Start 2P', Arial, sans-serif;
+            font-size: 10px;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: all 0.3s;
+            font-weight: bold;
+        }
+
+        button:hover {
+            background: #ffff00;
+            border-color: #ffff00;
+            transform: scale(1.05);
+        }
+
+        button:active {
+            transform: scale(0.95);
+        }
+
+        button.danger {
+            background: #ff0000;
+            border-color: #ff0000;
+            color: #fff;
+        }
+
+        button.danger:hover {
+            background: #ff6666;
+            border-color: #ff6666;
+        }
+
+        .sound-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .sound-button {
+            padding: 15px;
+            text-align: center;
+            background: rgba(0, 255, 0, 0.1);
+            border: 2px solid #00ff00;
+            color: #00ff00;
+            font-family: 'Press Start 2P', Arial, sans-serif;
+            font-size: 11px;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: all 0.3s;
+        }
+
+        .sound-button:hover {
+            background: rgba(0, 255, 0, 0.3);
+            transform: scale(1.05);
+            box-shadow: 0 0 10px #00ff00;
+        }
+
+        .sound-button:active {
+            transform: scale(0.95);
+        }
+
+        .sound-button.playing {
+            background: #00ff00;
+            color: #000;
+            font-weight: bold;
+        }
+
+        .volume-control {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .volume-control input {
+            flex: 1;
+            height: 20px;
+            cursor: pointer;
+        }
+
+        .volume-label {
+            font-size: 11px;
+            min-width: 80px;
+            text-align: right;
+        }
+
+        .status-box {
+            background: rgba(0, 255, 0, 0.1);
+            border: 2px solid #00ff00;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+            font-size: 11px;
+        }
+
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            margin: 8px 0;
+            padding: 5px;
+        }
+
+        .status-label {
+            color: #ffff00;
+        }
+
+        .status-value {
+            color: #00ff00;
+            font-weight: bold;
+        }
+
+        .status-value.error {
+            color: #ff0000;
+        }
+
+        .status-value.success {
+            color: #00ff00;
+        }
+
+        .test-results {
+            margin: 20px 0;
+        }
+
+        .result-item {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 12px;
+            margin: 8px 0;
+            border-left: 4px solid #00ff00;
+            border-radius: 3px;
+            font-size: 10px;
+        }
+
+        .result-item.success {
+            border-left-color: #00ff00;
+        }
+
+        .result-item.error {
+            border-left-color: #ff0000;
+        }
+
+        .result-item.pending {
+            border-left-color: #ffff00;
+        }
+
+        .result-name {
+            font-weight: bold;
+            color: #ffff00;
+        }
+
+        .result-status {
+            color: #00ff00;
+            display: inline-block;
+            margin-left: 10px;
+        }
+
+        .result-status.error {
+            color: #ff0000;
+        }
+
+        .info-box {
+            background: rgba(255, 255, 0, 0.1);
+            border: 2px solid #ffff00;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+            font-size: 10px;
+            line-height: 1.6;
+        }
+
+        .toggle-switch {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .switch {
+            position: relative;
+            width: 50px;
+            height: 25px;
+            background: #555;
+            border-radius: 12px;
+            cursor: pointer;
+            border: 2px solid #00ff00;
+        }
+
+        .switch.active {
+            background: #00ff00;
+        }
+
+        .switch-knob {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 20px;
+            height: 20px;
+            background: #000;
+            border-radius: 10px;
+            transition: left 0.3s;
+        }
+
+        .switch.active .switch-knob {
+            left: 25px;
+            background: #000;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            font-size: 10px;
+            color: #666;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #000;
+            border: 2px solid #00ff00;
+            border-radius: 5px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00ff00, #ffff00);
+            width: 0%;
+            transition: width 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #000;
+            font-weight: bold;
+            font-size: 10px;
+        }
+
+        @media (max-width: 600px) {
+            .header {
+                font-size: 16px;
+            }
+
+            button {
+                font-size: 8px;
+                padding: 8px 12px;
+            }
+
+            .sound-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .subtitle {
+                font-size: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            🎮 PAC-MAN AUDIO TEST 🔊
+            <div class="subtitle">Vérification complète du système audio</div>
+        </div>
+
+        <!-- Status Box -->
+        <div class="section">
+            <div class="section-title">📊 Statut Système</div>
+            <div class="status-box">
+                <div class="status-item">
+                    <span class="status-label">Support Audio:</span>
+                    <span class="status-value" id="audioSupport">Vérification...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Son Activé:</span>
+                    <span class="status-value" id="soundEnabled">✓ OUI</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Volume:</span>
+                    <span class="status-value" id="volumeDisplay">100%</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Fichiers Chargés:</span>
+                    <span class="status-value" id="loadedCount">0/9</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Volume Control -->
+        <div class="section">
+            <div class="section-title">🔊 Contrôle du Volume</div>
+            <div class="volume-control">
+                <input type="range" id="volumeSlider" min="0" max="100" value="100">
+                <span class="volume-label" id="volumeLabel">100%</span>
+            </div>
+            <div class="toggle-switch">
+                <span>Son:</span>
+                <div class="switch active" id="soundToggle">
+                    <div class="switch-knob"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Controls -->
+        <div class="section">
+            <div class="section-title">⚙️ Contrôles</div>
+            <div class="controls">
+                <button onclick="testAllSounds()">🧪 Tester Tous les Sons</button>
+                <button onclick="playAllSequentially()">▶️ Lecture Séquentielle</button>
+                <button onclick="stopAllSounds()" class="danger">⏹️ Arrêter Tous</button>
+            </div>
+            <div id="testProgress" style="display: none;">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sound Buttons -->
+        <div class="section">
+            <div class="section-title">🎵 Boutons de Test Audio</div>
+            <div class="sound-grid" id="soundGrid"></div>
+        </div>
+
+        <!-- Test Results -->
+        <div class="section" id="resultsSection" style="display: none;">
+            <div class="section-title">✅ Résultats des Tests</div>
+            <div id="testResults"></div>
+        </div>
+
+        <!-- Info Box -->
+        <div class="info-box">
+            <strong>💡 Comment utiliser :</strong><br>
+            1. Cliquez sur "Tester Tous les Sons" pour diagnostiquer<br>
+            2. Utilisez les boutons individuels pour tester chaque son<br>
+            3. Ajustez le volume avec le curseur<br>
+            4. Vérifiez que tous les sons sont audibles<br>
+            <br>
+            <strong>👥 Pour les spectateurs :</strong><br>
+            Assurez-vous que votre navigateur supporte l'audio HTML5 et que le volume est activé.
+        </div>
+
+        <div class="footer">
+            © 2024 Pac-Man Multiplayer Audio System | Test v1.0
+        </div>
+    </div>
+
+    <script>
+        // Audio configuration
+        const sounds = {
+            'back': 'audio/back.mp3',
+            'bonus': 'audio/bonus.mp3',
+            'dead': 'audio/dead.mp3',
+            'dot': 'audio/dot.mp3',
+            'eaten': 'audio/eaten.mp3',
+            'eat': 'audio/eat.mp3',
+            'frightened': 'audio/frightened.mp3',
+            'intro': 'audio/intro.mp3',
+            'life': 'audio/life.mp3'
+        };
+
+        const soundLabels = {
+            'back': '🔙 Retour',
+            'bonus': '⭐ Bonus',
+            'dead': '💀 Mort',
+            'dot': '●  Grain',
+            'eaten': '👻 Mangé',
+            'eat': '😋 Manger',
+            'frightened': '😨 Effrayé',
+            'intro': '🎬 Intro',
+            'life': '❤️ Vie'
+        };
+
+        const audioElements = new Map();
+        let testResults = {};
+        let isPlaying = new Set();
+
+        // Initialize
+        function init() {
+            createSoundButtons();
+            initializeAudio();
+            checkAudioSupport();
+            setupEventListeners();
+        }
+
+        // Create sound buttons
+        function createSoundButtons() {
+            const grid = document.getElementById('soundGrid');
+            Object.entries(sounds).forEach(([name, path]) => {
+                const button = document.createElement('button');
+                button.className = 'sound-button';
+                button.textContent = soundLabels[name];
+                button.onclick = () => playSound(name);
+                grid.appendChild(button);
+            });
+        }
+
+        // Initialize audio elements
+        function initializeAudio() {
+            Object.entries(sounds).forEach(([name, path]) => {
+                const audio = new Audio();
+                audio.src = path;
+                audio.volume = 1.0;
+                audio.preload = 'auto';
+
+                audio.addEventListener('play', () => {
+                    isPlaying.add(name);
+                    updateButtonState(name, true);
+                });
+
+                audio.addEventListener('pause', () => {
+                    isPlaying.delete(name);
+                    updateButtonState(name, false);
+                });
+
+                audio.addEventListener('ended', () => {
+                    isPlaying.delete(name);
+                    updateButtonState(name, false);
+                });
+
+                audioElements.set(name, audio);
+            });
+        }
+
+        // Check audio support
+        function checkAudioSupport() {
+            const audio = new Audio();
+            const supported = audio.canPlayType('audio/mpeg') !== '';
+            document.getElementById('audioSupport').textContent = supported ? '✓ OUI' : '✗ NON';
+            document.getElementById('audioSupport').className = 'status-value ' + (supported ? 'success' : 'error');
+        }
+
+        // Play sound
+        async function playSound(soundName) {
+            const audio = audioElements.get(soundName);
+            if (!audio) return;
+
+            try {
+                audio.currentTime = 0;
+                await audio.play();
+            } catch (error) {
+                console.error(`Failed to play ${soundName}:`, error);
+            }
+        }
+
+        // Stop all sounds
+        function stopAllSounds() {
+            audioElements.forEach(audio => {
+                audio.pause();
+                audio.currentTime = 0;
+            });
+            isPlaying.clear();
+            updateAllButtonStates();
+        }
+
+        // Update button state
+        function updateButtonState(soundName, playing) {
+            const grid = document.getElementById('soundGrid');
+            const buttons = grid.querySelectorAll('button');
+            buttons.forEach(btn => {
+                if (btn.textContent.includes(soundLabels[soundName])) {
+                    btn.classList.toggle('playing', playing);
+                }
+            });
+        }
+
+        // Update all button states
+        function updateAllButtonStates() {
+            const grid = document.getElementById('soundGrid');
+            const buttons = grid.querySelectorAll('button');
+            buttons.forEach(btn => {
+                btn.classList.remove('playing');
+            });
+        }
+
+        // Test all sounds
+        async function testAllSounds() {
+            document.getElementById('testProgress').style.display = 'block';
+            const results = {};
+            let tested = 0;
+
+            for (const [name] of audioElements) {
+                results[name] = await testSound(name);
+                tested++;
+                updateProgress((tested / audioElements.size) * 100);
+            }
+
+            testResults = results;
+            displayTestResults();
+        }
+
+        // Test single sound
+        function testSound(soundName) {
+            return new Promise((resolve) => {
+                const audio = audioElements.get(soundName);
+                const timeout = setTimeout(() => {
+                    resolve({
+                        name: soundName,
+                        status: 'timeout',
+                        message: 'Timeout de chargement'
+                    });
+                }, 5000);
+
+                audio.oncanplay = () => {
+                    clearTimeout(timeout);
+                    resolve({
+                        name: soundName,
+                        status: 'success',
+                        duration: audio.duration,
+                        message: `Chargé - ${Math.round(audio.duration)}s`
+                    });
+                };
+
+                audio.onerror = () => {
+                    clearTimeout(timeout);
+                    resolve({
+                        name: soundName,
+                        status: 'error',
+                        message: 'Erreur de chargement'
+                    });
+                };
+
+                audio.load();
+            });
+        }
+
+        // Update progress bar
+        function updateProgress(percent) {
+            const fill = document.getElementById('progressFill');
+            fill.style.width = percent + '%';
+            fill.textContent = Math.round(percent) + '%';
+        }
+
+        // Display test results
+        function displayTestResults() {
+            const section = document.getElementById('resultsSection');
+            const container = document.getElementById('testResults');
+            section.style.display = 'block';
+            container.innerHTML = '';
+
+            let successCount = 0;
+            Object.entries(testResults).forEach(([name, result]) => {
+                const item = document.createElement('div');
+                item.className = `result-item ${result.status}`;
+                const statusEmoji = result.status === 'success' ? '✓' : result.status === 'error' ? '✗' : '⏳';
+                item.innerHTML = `
+                    <span class="result-name">${soundLabels[name]}</span>
+                    <span class="result-status">${statusEmoji} ${result.message}</span>
+                `;
+                container.appendChild(item);
+                if (result.status === 'success') successCount++;
+            });
+
+            document.getElementById('loadedCount').textContent = `${successCount}/${Object.keys(sounds).length}`;
+            document.getElementById('testProgress').style.display = 'none';
+        }
+
+        // Play all sounds sequentially
+        async function playAllSequentially() {
+            stopAllSounds();
+            await new Promise(r => setTimeout(r, 500));
+
+            for (const [name] of audioElements) {
+                await playSound(name);
+                await new Promise(r => setTimeout(r, 2000));
+            }
+        }
+
+        // Setup event listeners
+        function setupEventListeners() {
+            // Volume control
+            document.getElementById('volumeSlider').addEventListener('input', (e) => {
+                const vol = e.target.value / 100;
+                audioElements.forEach(audio => audio.volume = vol);
+                document.getElementById('volumeLabel').textContent = e.target.value + '%';
+                document.getElementById('volumeDisplay').textContent = e.target.value + '%';
+            });
+
+            // Sound toggle
+            document.getElementById('soundToggle').addEventListener('click', () => {
+                const toggle = document.getElementById('soundToggle');
+                const isEnabled = toggle.classList.contains('active');
+                toggle.classList.toggle('active');
+
+                if (isEnabled) {
+                    stopAllSounds();
+                    document.getElementById('soundEnabled').textContent = '✗ NON';
+                } else {
+                    document.getElementById('soundEnabled').textContent = '✓ OUI';
+                }
+            });
+        }
+
+        // Start
+        init();
+    </script>
+</body>
+</html>

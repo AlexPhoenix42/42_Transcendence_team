@@ -1,0 +1,1046 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎮 Pac-Man Lobby - Salle d'Attente</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Press Start 2P', Arial, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #ffe14d;
+            min-height: 100vh;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 28px;
+            text-shadow: 0 0 10px #ffe14d;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { text-shadow: 0 0 10px #ffe14d; }
+            50% { text-shadow: 0 0 20px #ff9d00; }
+        }
+
+        .grid-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .panel {
+            background: rgba(0, 0, 0, 0.8);
+            border: 3px solid #ffe14d;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 0 20px rgba(255, 225, 77, 0.2);
+        }
+
+        .panel-title {
+            font-size: 16px;
+            color: #ff9d00;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            border-bottom: 2px solid #ffe14d;
+            padding-bottom: 10px;
+        }
+
+        .user-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .user-item {
+            background: rgba(255, 225, 77, 0.1);
+            padding: 12px;
+            margin: 8px 0;
+            border-radius: 5px;
+            border-left: 4px solid #ffe14d;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .user-info {
+            flex: 1;
+        }
+
+        .user-name {
+            font-size: 12px;
+            color: #ffe14d;
+            font-weight: bold;
+        }
+
+        .user-role {
+            font-size: 10px;
+            color: #ff9d00;
+            margin-top: 3px;
+        }
+
+        .user-status {
+            font-size: 10px;
+            color: #666;
+            margin-top: 3px;
+        }
+
+        .status-badge {
+            padding: 4px 10px;
+            border-radius: 3px;
+            font-size: 10px;
+            font-weight: bold;
+            background: #ffe14d;
+            color: #000;
+        }
+
+        .status-badge.waiting {
+            background: #ff9d00;
+            color: #000;
+        }
+
+        .status-badge.ready {
+            background: #ffe14d;
+            color: #000;
+        }
+
+        .status-badge.ghost {
+            background: #ff00ff;
+            color: #fff;
+        }
+
+        .status-badge.pacman {
+            background: #ff9d00;
+            color: #000;
+        }
+
+        /* Join Section */
+        .join-section {
+            background: rgba(255, 225, 77, 0.1);
+            padding: 20px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            border: 2px solid #ffe14d;
+        }
+
+        .join-section-title {
+            font-size: 14px;
+            color: #ff9d00;
+            margin-bottom: 15px;
+        }
+
+        .role-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .role-btn {
+            flex: 1;
+            padding: 12px;
+            background: rgba(255, 225, 77, 0.2);
+            border: 2px solid #ffe14d;
+            color: #ffe14d;
+            font-family: 'Press Start 2P', Arial, sans-serif;
+            font-size: 11px;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: all 0.3s;
+        }
+
+        .role-btn:hover {
+            background: rgba(255, 225, 77, 0.4);
+            transform: scale(1.05);
+        }
+
+        .role-btn.active {
+            background: #ffe14d;
+            color: #000;
+            font-weight: bold;
+        }
+
+        /* Personnage déjà pris par un autre joueur du salon */
+        .role-btn.taken,
+        .role-btn:disabled {
+            background: rgba(255, 60, 60, 0.18);
+            border-color: #ff4d4d;
+            color: #ff8080;
+            cursor: not-allowed;
+            opacity: 0.7;
+            text-decoration: line-through;
+        }
+        .role-btn.taken:hover,
+        .role-btn:disabled:hover {
+            background: rgba(255, 60, 60, 0.18);
+            transform: none;
+        }
+        .role-btn .taken-by {
+            display: block;
+            margin-top: 4px;
+            font-size: 8px;
+            color: #ff8080;
+            text-decoration: none;
+        }
+
+        /* Panneau joueurs : pastille du personnage pris */
+        .char-chip {
+            display: inline-block;
+            padding: 3px 8px;
+            border: 1px solid #ffe14d;
+            border-radius: 4px;
+            font-size: 10px;
+            color: #ffe14d;
+        }
+        .user-item.just-joined {
+            animation: flashIn 1.2s ease-out;
+        }
+        @keyframes flashIn {
+            from { background: rgba(0, 255, 120, 0.35); }
+            to { background: transparent; }
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 12px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 2px solid #ffe14d;
+            color: #ffe14d;
+            font-family: 'Press Start 2P', Arial, sans-serif;
+            font-size: 10px;
+            border-radius: 5px;
+        }
+
+        input[type="text"]::placeholder {
+            color: #666;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            background: rgba(255, 225, 77, 0.2);
+            box-shadow: 0 0 10px #ffe14d;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        button {
+            flex: 1;
+            padding: 12px;
+            background: #ffe14d;
+            color: #000;
+            border: 2px solid #ffe14d;
+            font-family: 'Press Start 2P', Arial, sans-serif;
+            font-size: 11px;
+            cursor: pointer;
+            border-radius: 5px;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        button:hover {
+            background: #ff9d00;
+            border-color: #ff9d00;
+            transform: scale(1.05);
+        }
+
+        button:active {
+            transform: scale(0.95);
+        }
+
+        button.danger {
+            background: #ff0000;
+            border-color: #ff0000;
+            color: #fff;
+        }
+
+        button.danger:hover {
+            background: #ff6666;
+            border-color: #ff6666;
+        }
+
+        button.secondary {
+            background: transparent;
+            border: 2px solid #ffe14d;
+            color: #ffe14d;
+        }
+
+        button.secondary:hover {
+            background: rgba(255, 225, 77, 0.2);
+        }
+
+        /* action buttons stay neutral until you actually click / hover them */
+        button.ghost {
+            background: transparent;
+            color: #ffe14d;
+        }
+
+        button.ghost:hover {
+            background: #ffe14d;
+            color: #000;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Waiting List */
+        .waiting-item {
+            background: rgba(255, 255, 0, 0.1);
+            padding: 12px;
+            margin: 8px 0;
+            border-radius: 5px;
+            border-left: 4px solid #ff9d00;
+            border-radius: 5px;
+        }
+
+        .waiting-number {
+            display: inline-block;
+            background: #ff9d00;
+            color: #000;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 30px;
+            font-weight: bold;
+            margin-right: 10px;
+            font-size: 12px;
+        }
+
+        /* Game Config */
+        .config-panel {
+            background: rgba(255, 225, 77, 0.1);
+            padding: 15px;
+            border-radius: 5px;
+            border: 2px solid #ffe14d;
+            margin: 15px 0;
+        }
+
+        .config-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 10px 0;
+            font-size: 11px;
+        }
+
+        .config-label {
+            color: #ff9d00;
+            font-weight: bold;
+        }
+
+        .config-value {
+            color: #ffe14d;
+        }
+
+        /* Status Box */
+        .status-box {
+            background: rgba(255, 225, 77, 0.1);
+            border: 2px solid #ffe14d;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+            font-size: 11px;
+        }
+
+        .status-line {
+            display: flex;
+            justify-content: space-between;
+            margin: 8px 0;
+            padding: 5px 0;
+            border-bottom: 1px dotted #666;
+        }
+
+        .status-label {
+            color: #ff9d00;
+        }
+
+        .status-value {
+            color: #ffe14d;
+            font-weight: bold;
+        }
+
+        /* Controls */
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        .controls button {
+            flex: 1;
+        }
+
+        /* Messages */
+        .messages {
+            background: rgba(0, 0, 0, 0.5);
+            border: 2px solid #ffe14d;
+            border-radius: 5px;
+            padding: 15px;
+            max-height: 200px;
+            overflow-y: auto;
+            margin: 20px 0;
+        }
+
+        .message {
+            font-size: 10px;
+            color: #ffe14d;
+            margin: 5px 0;
+            padding: 5px;
+            border-left: 2px solid #ffe14d;
+            padding-left: 10px;
+        }
+
+        .message.error {
+            color: #ff0000;
+            border-left-color: #ff0000;
+        }
+
+        .message.success {
+            color: #ffe14d;
+            border-left-color: #ffe14d;
+        }
+
+        .message.info {
+            color: #ff9d00;
+            border-left-color: #ff9d00;
+        }
+
+        /* Microphone Status */
+        .mic-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 15px;
+            background: rgba(255, 225, 77, 0.1);
+            border: 2px solid #ffe14d;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+
+        .mic-indicator {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #666;
+            animation: pulse-slow 1s infinite;
+        }
+
+        .mic-indicator.active {
+            background: #ffe14d;
+            animation: pulse-fast 0.5s infinite;
+        }
+
+        @keyframes pulse-slow {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; }
+        }
+
+        @keyframes pulse-fast {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .mic-text {
+            font-size: 11px;
+            flex: 1;
+        }
+
+        .full-width {
+            grid-column: 1 / -1;
+        }
+
+        @media (max-width: 768px) {
+            .grid-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .header {
+                font-size: 18px;
+            }
+
+            .role-selector {
+                flex-direction: column;
+            }
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #ffe14d;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #ff9d00;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            🎮 PAC-MAN MULTIPLAYER LOBBY 👾
+        </div>
+
+        <!-- Join Section -->
+        <div class="join-section">
+            <div class="join-section-title">📝 Rejoindre la Partie</div>
+            <div style="font-size:10px;color:#aaa;margin-bottom:10px;">
+                Tu joues en tant que <span id="meName" style="color:#fff">...</span>
+                <button type="button" id="authBtn" class="role-btn"
+                    style="flex:0 0 auto;padding:6px 12px;font-size:9px;margin-left:8px;"></button>
+            </div>
+
+            <div class="input-group">
+                <input type="text" id="roomName" placeholder="Nom du nouveau salon..." maxlength="24">
+            </div>
+            <div style="font-size:9px;color:#aaa;margin:4px 0 6px;">Salons actifs (clique pour rejoindre) :</div>
+            <div id="roomsList" style="max-height:120px;overflow-y:auto;margin-bottom:6px;">
+                <div style="color:#666;font-size:9px;">chargement...</div>
+            </div>
+            <div id="pickedRoom" style="font-size:9px;color:#fff;margin-bottom:10px;">&nbsp;</div>
+
+            <div>
+                <div class="join-section-title" style="font-size: 12px; margin-top: 10px; margin-bottom: 10px;">Choisir votre Rôle:</div>
+                <div class="role-selector">
+                    <button type="button" class="role-btn active" data-kind="spectator" onclick="selectRole('spectator')">👁️ SPECTATEUR</button>
+                    <button type="button" class="role-btn" data-kind="player" onclick="selectRole('player')">🎮 JOUEUR</button>
+                </div>
+            </div>
+
+            <div id="playerOptions" style="display: none;">
+                <div class="join-section-title" style="font-size: 12px; margin-top: 10px; margin-bottom: 10px;">Sélectionnez votre Personnage:</div>
+                <div class="role-selector" style="flex-wrap: wrap;">
+                    <button type="button" class="role-btn active" data-char="pacman" onclick="selectCharacter('pacman', this)">🟡 PAC-MAN</button>
+                    <button type="button" class="role-btn" data-char="madame_pacman" onclick="selectCharacter('madame_pacman', this)">💗 MS PAC-MAN</button>
+                    <button type="button" class="role-btn" data-char="blocker" onclick="selectCharacter('blocker', this)">🧱 BLOCKER</button>
+                    <button type="button" class="role-btn" data-char="ghost" onclick="selectCharacter('ghost', this)">👻 FANTÔME</button>
+                    <button type="button" class="role-btn" data-char="builder" onclick="selectCharacter('builder', this)">👷 BUILDER</button>
+                </div>
+                <div style="font-size: 9px; color: #888; margin-top: 8px;">Le bébé naît en jeu (Pac-Man + Ms Pac-Man).</div>
+            </div>
+
+            <div class="button-group" style="margin-top: 15px;">
+                <button type="button" class="ghost" onclick="joinLobby()" id="joinBtn">✓ REJOINDRE</button>
+                <button type="button" class="secondary" onclick="resetForm()">🔄 RESET</button>
+            </div>
+        </div>
+
+        <!-- Messages -->
+        <div class="messages" id="messages"></div>
+
+        <!-- Layout Grid -->
+        <div class="grid-layout">
+            <!-- Players Panel -->
+            <div class="panel">
+                <div class="panel-title">🎮 Joueurs Connectés</div>
+                <div class="user-list" id="playersList">
+                    <div style="color: #666; font-size: 10px; text-align: center; padding: 20px;">
+                        En attente de joueurs...
+                    </div>
+                </div>
+                <div class="status-box" style="margin: 15px 0; font-size: 10px;">
+                    <div class="status-line">
+                        <span class="status-label">Total Joueurs:</span>
+                        <span class="status-value" id="playerCount">0/2</span>
+                    </div>
+                    <div class="status-line">
+                        <span class="status-label">Prêts à Jouer:</span>
+                        <span class="status-value" id="readyCount">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Spectators Panel -->
+            <div class="panel">
+                <div class="panel-title">👁️ Spectateurs Connectés</div>
+                <div class="user-list" id="spectatorsList">
+                    <div style="color: #666; font-size: 10px; text-align: center; padding: 20px;">
+                        En attente de spectateurs...
+                    </div>
+                </div>
+                <div class="status-box" style="margin: 15px 0; font-size: 10px;">
+                    <div class="status-line">
+                        <span class="status-label">Total Spectateurs:</span>
+                        <span class="status-value" id="spectatorCount">0/50</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Waiting List Panel -->
+            <div class="panel">
+                <div class="panel-title">⏳ Liste d'Attente</div>
+                <div class="user-list" id="waitingList">
+                    <div style="color: #666; font-size: 10px; text-align: center; padding: 20px;">
+                        Liste vide
+                    </div>
+                </div>
+            </div>
+
+            <!-- Game Config Panel -->
+            <div class="panel">
+                <div class="panel-title">⚙️ Configuration du Jeu</div>
+                <div class="config-panel">
+                    <div class="config-row">
+                        <span class="config-label">Pac-Men:</span>
+                        <span class="config-value" id="configPacmen">1</span>
+                    </div>
+                    <div class="config-row">
+                        <span class="config-label">Fantômes:</span>
+                        <span class="config-value" id="configGhosts">1</span>
+                    </div>
+                    <div class="config-row">
+                        <span class="config-label">Difficulté:</span>
+                        <span class="config-value" id="configDifficulty">Normal</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Leaderboard -->
+            <div class="panel">
+                <div class="panel-title">🏆 Classement</div>
+                <div id="leaderboard" style="font-size:10px;color:#ccc;">—</div>
+            </div>
+
+            <!-- Match history -->
+            <div class="panel">
+                <div class="panel-title">📜 Dernières manches</div>
+                <div id="matchHistory" style="font-size:9px;color:#aaa;line-height:1.7;">—</div>
+            </div>
+        </div>
+
+        <!-- Microphone Status (for players) -->
+        <div class="mic-status" id="micStatus" style="display: none;">
+            <div class="mic-indicator" id="micIndicator"></div>
+            <div class="mic-text">
+                <div id="micLabel">🎤 Microphone: Connecté</div>
+                <div id="micLevel" style="font-size: 9px; color: #ff9d00;">Niveau: --</div>
+            </div>
+            <button class="secondary" onclick="toggleMicrophone()">🔇 Mute</button>
+        </div>
+
+        <!-- Control Panel -->
+        <div class="panel full-width">
+            <div class="panel-title">🎮 Contrôles</div>
+            <div class="controls">
+                <button onclick="toggleReady()" id="startBtn" disabled>▶️ JE SUIS PRÊT</button>
+                <button class="danger" onclick="leaveLobby()" id="leaveBtn" disabled>❌ QUITTER</button>
+            </div>
+            <div class="status-box" style="margin-top: 15px; font-size: 9px;">
+                <div class="status-line">
+                    <span class="status-label">Statut Lobby:</span>
+                    <span class="status-value" id="lobbyStatus">En attente</span>
+                </div>
+                <div class="status-line">
+                    <span class="status-label">ID Lobby:</span>
+                    <span class="status-value" id="lobbyId">--</span>
+                </div>
+                <div class="status-line">
+                    <span class="status-label">Utilisateur Actuel:</span>
+                    <span class="status-value" id="currentUser">Non connecté</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import LobbyClient from './src/js/net/LobbyClient.js';
+        import { getCurrentUser, isLoggedIn, initAuth, logout } from './src/js/net/auth.js';
+
+        let lobby = null;
+        let selectedKind = 'spectator';      // 'spectator' | 'player'
+        let selectedCharacter = 'pacman';    // pacman | madame_pacman | blocker | ghost | builder
+        let lastRoster = [];
+
+        const $ = id => document.getElementById(id);
+        const ROLE_LABEL = {
+            pacman: '🟡 Pac-Man', madame_pacman: '💗 Ms Pac-Man', blocker: '🧱 Blocker',
+            ghost: '👻 Fantôme', builder: '👷 Builder', spectator: '👁️ Spectateur'
+        };
+        const myRole = () => (selectedKind === 'player' ? selectedCharacter : 'spectator');
+
+        const CHARACTERS = ['pacman', 'madame_pacman', 'blocker', 'ghost', 'builder'];
+        let lastRosterIds = new Set();   // pour repérer les arrivées / départs
+
+        /** role -> nom du joueur (AUTRE que soi) qui l'a déjà pris dans ce salon. */
+        function takenByOthers() {
+            const map = {};
+            for (const p of lastRoster) {
+                if (!p.self && p.role !== 'spectator') map[p.role] = p.name;
+            }
+            return map;
+        }
+
+        /** Grise en rouge (et désactive) les personnages déjà pris par un autre. */
+        function refreshCharAvailability() {
+            const taken = takenByOthers();
+            document.querySelectorAll('#playerOptions .role-btn[data-char]').forEach(b => {
+                // Ne jamais bloquer le personnage qu'on tient déjà (conflit
+                // transitoire : l'auto-résolution dans renderRoster tranche).
+                const who = b.dataset.char === selectedCharacter ? null : taken[b.dataset.char];
+                b.disabled = !!who;
+                b.classList.toggle('taken', !!who);
+                let tag = b.querySelector('.taken-by');
+                if (who) {
+                    if (!tag) {
+                        tag = document.createElement('span');
+                        tag.className = 'taken-by';
+                        b.appendChild(tag);
+                    }
+                    tag.textContent = `pris par ${who}`;
+                } else if (tag) {
+                    tag.remove();
+                }
+            });
+        }
+
+        // Compte 42 si connecté (résolu par initAuth), sinon nom d'invité auto.
+        let ME = getCurrentUser();
+
+        function renderMe() {
+            ME = getCurrentUser();
+            $('meName').textContent = ME.name + (ME.guest ? ' (invité)' : '');
+            const btn = $('authBtn');
+            if (isLoggedIn()) {
+                btn.textContent = '🚪 Déconnexion';
+                btn.onclick = async () => { await logout(); location.reload(); };
+            } else {
+                btn.textContent = '🔑 Se connecter (42)';
+                btn.onclick = () => { location.href = 'login.html?next=lobby.html'; };
+            }
+        }
+        renderMe();
+        initAuth().then(renderMe);
+
+        // pre-fill the room from ?room=
+        (function initRoom() {
+            const r = new URLSearchParams(location.search).get('room');
+            if (r) $('roomName').value = r;
+        })();
+
+        // ---- active rooms (from Django / Postgres) ----
+        let knownRooms = [];
+        async function refreshRooms() {
+            try {
+                const res = await fetch(`http://${location.hostname}:8000/api/rooms/`);
+                knownRooms = await res.json();
+            } catch (e) {
+                knownRooms = null;
+            }
+            const el = $('roomsList');
+            if (!knownRooms) { el.innerHTML = '<div style="color:#c66;font-size:9px;">backend injoignable (:8000)</div>'; return; }
+            if (!knownRooms.length) { el.innerHTML = '<div style="color:#666;font-size:9px;">aucun salon - crée le tien (rôle joueur)</div>'; return; }
+            el.innerHTML = knownRooms.map(r =>
+                `<div class="user-item" style="cursor:pointer;padding:8px" data-room="${esc(r.name)}">` +
+                `<span style="font-size:10px;color:#fff">${esc(r.name)}</span>` +
+                `<span class="user-status">${r.player_count} joueur(s)</span></div>`
+            ).join('');
+            el.querySelectorAll('[data-room]').forEach(d => {
+                d.onclick = () => {
+                    $('roomName').value = d.dataset.room;
+                    el.querySelectorAll('[data-room]').forEach(x => x.style.borderLeftColor = '#ffe14d');
+                    d.style.borderLeftColor = '#fff';
+                    $('pickedRoom').textContent = `Salon choisi : ${d.dataset.room}`;
+                };
+            });
+        }
+        function roomExists(name) {
+            return Array.isArray(knownRooms) && knownRooms.some(r => r.name === name);
+        }
+        refreshRooms();
+        setInterval(() => { if (!lobby) refreshRooms(); }, 4000);
+
+        // ---- classement + historique (persistés en base) ----
+        const API = `http://${location.hostname}:8000`;
+        const WINNER_LABEL = { pacman: '🟡 Pac-Man', ghosts: '👻 Fantômes' };
+
+        async function refreshStats() {
+            try {
+                const top = await (await fetch(`${API}/api/profiles/leaderboard/?limit=5`)).json();
+                $('leaderboard').innerHTML = top.length
+                    ? top.map((p, i) =>
+                        `<div class="status-line"><span>${i + 1}. ${esc(p.nickname)}</span>` +
+                        `<span class="status-value">${p.total_score} pts · ${p.games_won}/${p.games_played}</span></div>`
+                      ).join('')
+                    : '<span style="color:#666">aucune partie jouée</span>';
+            } catch (e) { $('leaderboard').textContent = 'backend injoignable'; }
+
+            try {
+                const matches = await (await fetch(`${API}/api/matches/?limit=6`)).json();
+                $('matchHistory').innerHTML = matches.length
+                    ? matches.map(m => {
+                        const when = new Date(m.played_at).toLocaleTimeString();
+                        const names = m.results.map(r => esc(r.name || 'anon')).join(', ');
+                        return `<div>${when} — ${WINNER_LABEL[m.winner] || m.winner} · ${m.duration_seconds}s · ${names}</div>`;
+                      }).join('')
+                    : '<span style="color:#666">aucune manche terminée</span>';
+            } catch (e) { $('matchHistory').textContent = 'backend injoignable'; }
+        }
+        refreshStats();
+        setInterval(refreshStats, 8000);
+
+        window.selectRole = function (kind) {
+            selectedKind = kind;
+            document.querySelectorAll('.role-btn[data-kind]').forEach(b => {
+                b.classList.toggle('active', b.dataset.kind === kind);
+            });
+            $('playerOptions').style.display = kind === 'player' ? 'block' : 'none';
+            // A spectator can't create a room, only pick one from the list.
+            $('roomName').parentElement.style.display = kind === 'player' ? 'flex' : 'none';
+            if (kind !== 'player') $('roomName').value = '';
+            if (kind === 'player') refreshCharAvailability();
+            if (lobby) lobby.setRole(myRole());
+        };
+
+        window.selectCharacter = function (character, el) {
+            const who = takenByOthers()[character];
+            if (who) {
+                addMessage(`${ROLE_LABEL[character] || character} est déjà pris par ${who}.`, 'error');
+                return;
+            }
+            selectedCharacter = character;
+            document.querySelectorAll('#playerOptions .role-btn').forEach(b => {
+                b.classList.toggle('active', b.dataset.char === character);
+            });
+            if (el && !el.dataset.char) el.classList.add('active');
+            refreshCharAvailability();
+            if (lobby) lobby.setRole(myRole());
+        };
+
+        window.joinLobby = function () {
+            const name = ME.name;
+            const room = $('roomName').value.trim().replace(/[^a-zA-Z0-9_-]/g, '');
+            if (!room) { addMessage('Entre un nom de salon !', 'error'); return; }
+
+            // A spectator can only watch an existing room, never create one.
+            if (selectedKind === 'spectator' && !roomExists(room)) {
+                addMessage('Un spectateur ne peut pas créer de salon - choisis-en un dans la liste.', 'error');
+                return;
+            }
+
+            lobby = new LobbyClient({ room: room });
+            lobby.me.name = name;
+            lobby.on('roster', renderRoster);
+            lobby.on('start', beginCountdown);
+            lobby.on('error', m => addMessage(m, 'error'));
+            lobby.connect();
+            lobby.setRole(myRole());
+
+            addMessage(`Salon « ${room} » rejoint`, 'success');
+            $('lobbyId').textContent = room;
+            $('lobbyStatus').textContent = 'CONNECTÉ';
+            $('currentUser').textContent = name;
+            $('joinBtn').disabled = true;
+            $('roomName').disabled = true;
+            $('leaveBtn').disabled = false;
+            $('startBtn').disabled = false;
+            if (selectedKind === 'player') $('micStatus').style.display = 'flex';
+        };
+
+        window.leaveLobby = function () {
+            if (lobby) { lobby.disconnect(); lobby = null; }
+            location.reload();
+        };
+
+        window.toggleReady = function () {
+            if (!lobby) return;
+            const players = lastRoster.filter(p => p.role !== 'spectator');
+            const allReady = players.length >= 2 && players.every(p => p.ready);
+
+            if (lobby.me.ready && allReady) {
+                addMessage('Démarrage...', 'info');
+                lobby.start(5);
+                return;
+            }
+            lobby.setReady(!lobby.me.ready);
+        };
+
+        window.resetForm = function () {
+            $('roomName').value = '';
+            $('pickedRoom').textContent = ' ';
+            selectedCharacter = 'pacman';
+            window.selectCharacter('pacman');
+            window.selectRole('spectator');
+            $('roomsList').querySelectorAll('[data-room]').forEach(x => x.style.borderLeftColor = '#ffe14d');
+            addMessage('Formulaire remis à zéro.', 'info');
+        };
+
+        window.toggleMicrophone = function () {
+            const ind = $('micIndicator');
+            ind.classList.toggle('active');
+            $('micLabel').textContent = ind.classList.contains('active')
+                ? '🎤 Microphone: Actif' : '🔇 Microphone: Muet';
+        };
+
+        function addMessage(text, type = 'info') {
+            const box = $('messages');
+            const m = document.createElement('div');
+            m.className = `message ${type}`;
+            m.textContent = `[${new Date().toLocaleTimeString()}] ${text}`;
+            box.appendChild(m);
+            // Ne garder que les 6 derniers, et laisser le temps de les lire.
+            while (box.children.length > 6) box.firstChild.remove();
+            box.scrollTop = box.scrollHeight;
+            if (type !== 'error') setTimeout(() => m.remove(), 9000);
+        }
+
+        function esc(s) {
+            return String(s).replace(/[<>&]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]));
+        }
+
+        function renderRoster(list) {
+            lastRoster = list;
+
+            // --- arrivées / départs : message + surbrillance du nouvel arrivant
+            const otherIds = new Set(list.filter(p => !p.self).map(p => p.id));
+            const newIds = new Set();
+            for (const p of list) {
+                if (!p.self && !lastRosterIds.has(p.id)) {
+                    newIds.add(p.id);
+                    addMessage(`${esc(p.name)} a rejoint — ${ROLE_LABEL[p.role] || p.role}`, 'success');
+                }
+            }
+            for (const id of lastRosterIds) {
+                if (!otherIds.has(id)) addMessage('Un joueur a quitté le salon.', 'info');
+            }
+            lastRosterIds = otherIds;
+
+            // --- conflit de personnage : le joueur dont l'id est le plus grand cède
+            if (lobby && lobby.selfId && selectedKind === 'player') {
+                const clash = list.find(p => !p.self && p.role === myRole());
+                if (clash && String(lobby.selfId) > String(clash.id)) {
+                    const taken = new Set(list.filter(p => !p.self).map(p => p.role));
+                    const free = CHARACTERS.find(c => !taken.has(c));
+                    if (free) {
+                        addMessage(`${ROLE_LABEL[myRole()]} déjà pris par ${clash.name} — tu passes ${ROLE_LABEL[free]}.`, 'info');
+                        window.selectCharacter(free);
+                    }
+                }
+            }
+
+            const players = list.filter(p => p.role !== 'spectator');
+            const spectators = list.filter(p => p.role === 'spectator');
+
+            $('playerCount').textContent = `${players.length}/2`;
+            $('spectatorCount').textContent = `${spectators.length}/50`;
+            $('readyCount').textContent =
+                `${players.filter(p => p.ready).length}/${players.length}`;
+
+            $('playersList').innerHTML = players.length
+                ? players.map(p => `
+                    <div class="user-item ${newIds.has(p.id) ? 'just-joined' : ''}">
+                        <div class="user-info">
+                            <div class="user-name">${esc(p.name)}${p.self ? ' (toi)' : ''}</div>
+                            <div class="user-role"><span class="char-chip">${ROLE_LABEL[p.role] || p.role}</span></div>
+                            <div class="user-status">${p.ready ? '✓ Prêt' : '⏳ Pas prêt'}</div>
+                        </div>
+                        <span class="status-badge ${p.ready ? 'ready' : 'waiting'}">${p.ready ? 'PRÊT' : 'ATTENTE'}</span>
+                    </div>`).join('')
+                : '<div style="color:#888;font-size:10px;text-align:center;padding:20px;">En attente de joueurs...</div>';
+
+            $('spectatorsList').innerHTML = spectators.length
+                ? spectators.map(s => `
+                    <div class="user-item">
+                        <div class="user-info">
+                            <div class="user-name">${esc(s.name)}${s.self ? ' (toi)' : ''}</div>
+                            <div class="user-role">👁️ Spectateur</div>
+                        </div>
+                        <span class="status-badge">REGARDE</span>
+                    </div>`).join('')
+                : '<div style="color:#888;font-size:10px;text-align:center;padding:20px;">Aucun spectateur</div>';
+
+            $('waitingList').innerHTML =
+                '<div style="color:#888;font-size:10px;text-align:center;padding:20px;">-</div>';
+
+            refreshCharAvailability();
+
+            // game config = derived from picked roles
+            $('configPacmen').textContent =
+                players.filter(p => p.role === 'pacman' || p.role === 'madame_pacman' || p.role === 'blocker').length || '-';
+            $('configGhosts').textContent =
+                players.filter(p => p.role === 'ghost' || p.role === 'builder').length || '-';
+
+            // start / ready button state (spectators don't gate the start)
+            const allReady = players.length >= 2 && players.every(p => p.ready);
+            const btn = $('startBtn');
+            if (!lobby) return;
+            if (!lobby.me.ready) {
+                btn.textContent = '▶️ JE SUIS PRÊT';
+                btn.disabled = selectedKind === 'spectator';
+            } else if (allReady) {
+                btn.textContent = '🚀 DÉMARRER';
+                btn.disabled = false;
+            } else {
+                btn.textContent = '⏳ EN ATTENTE DES AUTRES (clic = annuler)';
+                btn.disabled = false;
+            }
+        }
+
+        function beginCountdown(seconds) {
+            const me = lobby.me;
+            addMessage(me.role === 'spectator'
+                ? '👁 La partie démarre — tu vas la regarder.'
+                : '🎮 La partie démarre !', 'success');
+            let n = seconds;
+            $('lobbyStatus').textContent = `DÉMARRAGE ${n}`;
+            const t = setInterval(() => {
+                n--;
+                if (n <= 0) {
+                    clearInterval(t);
+                    const q = `room=${encodeURIComponent(lobby.room)}&role=${me.role}`
+                        + `&name=${encodeURIComponent(me.name)}&autostart=1`;
+                    location.href = `/game?${q}`;
+                } else {
+                    $('lobbyStatus').textContent = `DÉMARRAGE ${n}`;
+                }
+            }, 1000);
+        }
+
+        // --- init (module is deferred, so the DOM is already parsed here) ---
+        window.selectRole('spectator');   // default role -> hides the "create room" bar
+        window.selectCharacter('pacman');
+    </script>
+</body>
+</html>
