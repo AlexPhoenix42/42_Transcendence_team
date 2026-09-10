@@ -20,11 +20,11 @@ export default function Games() {
                     <p className="text-gray-400">Ask an AI coach about chess</p>
                 </Link>
 
-                <div className="bg-gray-800 p-8 rounded-lg border border-gray-700 text-center opacity-50">
+                <Link to="/pacman" className="bg-gray-800 p-8 rounded-lg border border-gray-700 hover:border-blue-500 transition text-center">
                     <span className="text-4xl block mb-3">👾</span>
                     <h2 className="text-xl font-semibold text-white mb-2">Pacman</h2>
-                    <p className="text-gray-400">Coming soon</p>
-                </div>
+                    <p className="text-gray-400">Multijoueur — labyrinthe, rôles, fantômes</p>
+                </Link>
             </div>
         </div>
     )

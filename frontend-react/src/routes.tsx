@@ -15,6 +15,8 @@ import PublicProfile from "./pages/PublicProfile.tsx"
 import Friends from "./pages/Friends.tsx"
 import ChessLobby from "./pages/ChessLobby.tsx"
 import ChessGame from "./pages/ChessGame.tsx"
+import PacmanLobby from "./pages/PacmanLobby.tsx"
+import PacmanGame from "./pages/PacmanGame.tsx"
 import Tournaments from "./pages/Tournaments.tsx"
 import TournamentDetail from "./pages/TournamentDetail.tsx"
 import Chat from "./pages/Chat.tsx"
@@ -49,6 +51,8 @@ export const router = createBrowserRouter([
                     { path: "/friends", element: <Friends /> },
                     { path: "/chess", element: <ChessLobby /> },
                     { path: "/chess/:id", element: <ChessGame /> },
+                    { path: "/pacman", element: <PacmanLobby /> },
+                    { path: "/pacman/:roomName", element: <PacmanGame /> },
                     { path: "/tournaments", element: <Tournaments /> },
                     { path: "/tournaments/:id", element: <TournamentDetail /> },
                     { path: "/chat", element: <Chat /> },

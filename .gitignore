@@ -38,3 +38,4 @@ vault/approle/
 vault/certs/
 vault/secrets/
 
+frontend-react/tsconfig.tsbuildinfo

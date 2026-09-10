@@ -23,6 +23,7 @@
     "@types/react-dom": "19.2.3",
     "@vitejs/plugin-react": "6.0.3",
     "oxlint": "1.71.0",
+    "rasti": "^4.0.0",
     "tailwindcss": "4.3.3",
     "typescript": "^7.0.2",
     "typescript-language-server": "^5.3.0",
