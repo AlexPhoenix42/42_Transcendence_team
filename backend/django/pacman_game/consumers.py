@@ -54,27 +54,47 @@ def _room_key(room_name: str) -> str:
 LOBBY_IDLE_TIMEOUT = 600  # 10 min
 
 
-def _purge_game_row_sync(room_name, keep_finished=True):
-    """Supprime la ligne Game du salon (les GamePlayer suivent en cascade).
+def _purge_game_row_sync(room_name):
+    """Supprime la ligne Game du salon (GamePlayer en cascade)."""
+    from .models import Game
+    Game.objects.filter(room_name=room_name).delete()
 
-    `keep_finished` : ne touche pas à une manche déjà terminée (historique).
-    """
+
+def _release_empty_room_sync(room_name):
+    """Salon devenu vide : on NE supprime PAS tout de suite. Une manche finie
+    part (rien à en faire) ; sinon on repasse le salon en WAITING pour qu'il
+    reste visible et rejoignable. Le vrai ménage = timeout d'inactivité."""
     from .models import Game, GameStatus
-    qs = Game.objects.filter(room_name=room_name)
-    if keep_finished:
-        qs = qs.exclude(status=GameStatus.FINISHED)
-    qs.delete()
+    game = Game.objects.filter(room_name=room_name).first()
+    if game is None:
+        return
+    if game.status == GameStatus.FINISHED:
+        game.delete()
+        return
+    game.status      = GameStatus.WAITING
+    game.started_at  = None
+    game.finished_at = None
+    game.winner      = None
+    game.last_active = timezone.now()
+    game.save(update_fields=[
+        "status", "started_at", "finished_at", "winner", "last_active",
+    ])
 
 
 def _lobby_idle_age_sync(room_name):
-    """Secondes depuis la création si le salon n'a jamais démarré, sinon None."""
+    """Secondes d'inactivité si le salon est en attente, sinon None."""
     from .models import Game, GameStatus
     game = Game.objects.filter(room_name=room_name).only(
-        "status", "created_at",
+        "status", "last_active",
     ).first()
     if game is None or game.status != GameStatus.WAITING:
         return None
-    return (timezone.now() - game.created_at).total_seconds()
+    return (timezone.now() - game.last_active).total_seconds()
+
+
+def _touch_room_active_sync(room_name):
+    from .models import Game
+    Game.objects.filter(room_name=room_name).update(last_active=timezone.now())
 
 
 def _valid_room(room_name) -> bool:
@@ -118,6 +138,7 @@ async def _sync_loop(channel_layer, room_name, group_name):
     Filet de sécurité : le gros de la synchro passe par les événements en direct
     (`dot_eaten`, ...). Se termine d'elle-même quand le salon est vide.
     """
+    _tick = 0
     try:
         while True:
             await asyncio.sleep(SYNC_INTERVAL_SECONDS)
@@ -128,8 +149,12 @@ async def _sync_loop(channel_layer, room_name, group_name):
             if room.empty():
                 await sync_to_async(cache.delete)(_room_key(room_name))
                 await sync_to_async(_drop_active_sync)(room_name)
-                await sync_to_async(_purge_game_row_sync)(room_name)
+                await sync_to_async(_release_empty_room_sync)(room_name)
                 break
+
+            _tick += 1
+            if _tick % 15 == 0:  # ~30 s
+                await sync_to_async(_touch_room_active_sync)(room_name)
 
             idle = await sync_to_async(_lobby_idle_age_sync)(room_name)
             if idle is not None and idle > LOBBY_IDLE_TIMEOUT:
@@ -230,7 +255,7 @@ class GameConsumer(AsyncWebsocketConsumer):
         if room.empty():
             await sync_to_async(cache.delete)(_room_key(self.room_name))
             await sync_to_async(_drop_active_sync)(self.room_name)
-            await sync_to_async(_purge_game_row_sync)(self.room_name)
+            await sync_to_async(_release_empty_room_sync)(self.room_name)
             task = _sync_tasks.pop(self.room_name, None)
             if task:
                 task.cancel()

@@ -8,6 +8,7 @@
 
 from django.conf  import settings
 from django.db     import models
+from django.utils  import timezone
 
 
 class GameStatus(models.TextChoices):
@@ -60,6 +61,7 @@ class Game(models.Model):
     )
 
     created_at  = models.DateTimeField(auto_now_add=True)
+    last_active = models.DateTimeField(default=timezone.now, db_index=True)
     started_at  = models.DateTimeField(null=True, blank=True)
     finished_at = models.DateTimeField(null=True, blank=True)
     duration_seconds = models.PositiveIntegerField(default=0)
