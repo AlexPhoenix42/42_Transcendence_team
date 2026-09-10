@@ -35,6 +35,34 @@ interface RoomData {
 // Même contrainte que _valid_room() / le SlugField du modèle.
 const ROOM_RE = /^[A-Za-z0-9_-]{1,100}$/
 
+// Défini au niveau module : si on le mettait dans PacmanLobby, ce serait une
+// nouvelle fonction à chaque rendu -> React re-monterait toutes les lignes à
+// chaque tick de polling (5 s) et l'affichage « clignoterait ».
+function Row({
+    room,
+    live,
+    actions,
+}: {
+    room: RoomData
+    live?: boolean
+    actions: React.ReactNode
+}) {
+    return (
+        <div className={live ? "pm-item pm-live" : "pm-item"}>
+            <div className="pm-item-main">
+                <span className="pm-item-name">{room.room_name}</span>
+                <br />
+                <span className="pm-item-meta">
+                    {room.created_by} · {room.player_count} JOUEUR
+                    {room.player_count > 1 ? "S" : ""}
+                    {live && ` · NIV ${room.level}`}
+                </span>
+            </div>
+            {actions}
+        </div>
+    )
+}
+
 export default function PacmanLobby() {
     const { user } = useAuth()
     const navigate = useNavigate()
@@ -125,31 +153,6 @@ export default function PacmanLobby() {
         } catch {
             setError("ERREUR RESEAU")
         }
-    }
-
-    function Row({
-        room,
-        live,
-        actions,
-    }: {
-        room: RoomData
-        live?: boolean
-        actions: React.ReactNode
-    }) {
-        return (
-            <div className={live ? "pm-item pm-live" : "pm-item"}>
-                <div className="pm-item-main">
-                    <span className="pm-item-name">{room.room_name}</span>
-                    <br />
-                    <span className="pm-item-meta">
-                        {room.created_by} · {room.player_count} JOUEUR
-                        {room.player_count > 1 ? "S" : ""}
-                        {live && ` · NIV ${room.level}`}
-                    </span>
-                </div>
-                {actions}
-            </div>
-        )
     }
 
     return (
@@ -245,7 +248,7 @@ export default function PacmanLobby() {
                                             className="pm-btn pm-danger"
                                             onClick={() => cancelRoom(room.id)}
                                         >
-                                            🗑 Supprimer
+                                            🗑
                                         </button>
                                     )}
                                 </>

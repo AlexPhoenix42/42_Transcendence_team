@@ -21,9 +21,53 @@ from rest_framework_simplejwt.authentication    import JWTAuthentication
 
 from django.db                                  import IntegrityError, transaction
 from django.db.models                           import Q
+from django.utils                               import timezone
+from datetime                                   import timedelta
 
 from .models                                    import Game, GameStatus
 from .serializers                               import GameSerializer
+
+
+# Un salon en attente que plus personne ne « touche » (le consumer rafraîchit
+# `last_active` toutes les ~30 s tant qu'au moins un joueur est connecté) est un
+# zombie au-delà de ça : personne dedans, on le supprime. cf. le sujet
+# « supprime les salons abandonnés ».
+EMPTY_ROOM_TIMEOUT = timedelta(minutes=5)
+
+
+def _reap_stale_waiting_rooms() -> None:
+    """Balaye les salons WAITING laissés vides trop longtemps et les supprime
+    (ligne Game + cache + éjection des éventuels sockets restants).
+
+    Appelé paresseusement depuis les vues de liste : le lobby les interroge
+    toutes les 5 s, donc le ménage se fait tout seul dès qu'une page est
+    ouverte, sans dépendre d'une tâche de fond. Un verrou cache limite le
+    balayage à ~1 fois / 30 s quel que soit le nombre de requêtes."""
+    from django.core.cache import cache
+
+    if not cache.add("pacman:reap_lock", "1", timeout=30):
+        return
+
+    cutoff = timezone.now() - EMPTY_ROOM_TIMEOUT
+    stale = list(
+        Game.objects
+        .filter(status=GameStatus.WAITING, last_active__lt=cutoff)
+        .values_list("room_name", flat=True)
+    )
+    if not stale:
+        return
+
+    Game.objects.filter(room_name__in=stale).delete()
+
+    from channels.layers import get_channel_layer
+    from asgiref.sync     import async_to_sync
+    layer = get_channel_layer()
+    for room_name in stale:
+        if layer is not None:
+            async_to_sync(layer.group_send)(
+                f"pacman_{room_name}", {"type": "broadcast_lobby_closed"},
+            )
+        cache.delete(f"pacman:{room_name}")
 
 
 # ===========================================================================
@@ -46,6 +90,8 @@ class GameListCreateView(generics.ListCreateAPIView):
     pagination_class        = GamePagination
 
     def get_queryset(self):
+        _reap_stale_waiting_rooms()
+
         user            = self.request.user
         status_filter   = (self.request.query_params.get("status") or "").upper()
 

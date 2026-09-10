@@ -1,8 +1,8 @@
 /* frontend-react/src/pages/pacman.css
  * Thème arcade repris de backend/pacman/lobby.html (Press Start 2P,
  * dégradé bleu nuit, jaune Pac-Man #ffe14d / orange #ff9d00, néons).
- * Partagé par PacmanLobby et PacmanGame. Tout est préfixé .pm- pour
- * ne pas fuiter sur le reste de l'app. */
+ * Même style sur PC et téléphone — seulement des ajustements de taille
+ * en dessous de 640px. Tout est préfixé .pm-. */
 
 .pm-root {
     font-family: 'Press Start 2P', 'Courier New', monospace;
@@ -29,13 +29,8 @@
     text-align: center;
     font-size: 26px;
     letter-spacing: 2px;
-    margin-bottom: 28px;
-    text-shadow: 0 0 10px #ffe14d;
-    animation: pm-pulse 2s infinite;
-}
-@keyframes pm-pulse {
-    0%, 100% { text-shadow: 0 0 10px #ffe14d; }
-    50%      { text-shadow: 0 0 22px #ff9d00; }
+    margin-bottom: 22px;
+    text-shadow: 0 0 12px #ffe14d;
 }
 
 .pm-panel {
@@ -70,13 +65,8 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    animation: pm-slide-in 0.3s ease;
 }
 .pm-item.pm-live { border-left-color: #ff9d00; }
-@keyframes pm-slide-in {
-    from { opacity: 0; transform: translateX(-20px); }
-    to   { opacity: 1; transform: translateX(0); }
-}
 
 .pm-item-main { flex: 1; font-size: 11px; line-height: 1.6; }
 .pm-item-name { color: #ffe14d; }
@@ -101,7 +91,7 @@
     box-shadow: 0 0 10px #ffe14d;
 }
 
-.pm-form { display: flex; gap: 10px; }
+.pm-form { display: flex; gap: 10px; flex-wrap: wrap; }
 
 .pm-btn {
     padding: 10px 14px;
@@ -139,27 +129,16 @@
 .pm-alert.pm-err { border-color: #ff4d4d; color: #ff8080; background: rgba(255, 60, 60, 0.12); }
 .pm-alert.pm-ok  { border-color: #4dff88; color: #8affb0; background: rgba(60, 255, 120, 0.12); }
 
-/* PacmanGame stub */
-.pm-stage {
-    background: rgba(0, 0, 0, 0.8);
-    border: 3px solid #ffe14d;
-    border-radius: 10px;
-    box-shadow: 0 0 20px rgba(255, 225, 77, 0.2);
-    padding: 60px 20px;
-    text-align: center;
-    margin-bottom: 20px;
-}
-.pm-stage-icon { font-size: 52px; display: block; margin-bottom: 18px; }
 .pm-center { text-align: center; }
 .pm-sub { color: #ff9d00; font-size: 11px; margin-bottom: 24px; }
 
 /* --- salle d'attente : sélecteur de rôle, roster, compte à rebours --- */
-.pm-roles { display: flex; gap: 10px; }
+.pm-roles { display: flex; gap: 10px; flex-wrap: wrap; }
 .pm-roles-wrap { flex-wrap: wrap; }
 
 .pm-role {
-    flex: 1;
-    min-width: 130px;
+    flex: 1 1 130px;
+    min-width: 0;
     padding: 12px 10px;
     background: rgba(255, 225, 77, 0.15);
     border: 2px solid #ffe14d;
@@ -205,160 +184,6 @@
     color: #ffe14d;
     text-shadow: 0 0 24px #ff9d00;
     margin: 18px 0;
-    animation: pm-pulse 1s infinite;
-}
-
-@media (max-width: 640px) {
-    .pm-roles { gap: 8px; }
-    .pm-role {
-        font-family: 'Oswald', sans-serif;
-        font-weight: 700;
-        letter-spacing: 0.5px;
-        text-transform: uppercase;
-        font-size: 11px;
-        min-width: 0;
-        flex: 1 1 calc(50% - 4px);
-        padding: 12px 6px;
-        background: #fff;
-        border: 2px solid #33322e;
-        color: #33322e;
-        border-radius: 0;
-    }
-    .pm-role:hover { background: #f2e7d3; transform: none; }
-    .pm-role.active { background: #be3b37; color: #f2e7d3; border-color: #33322e; }
-    .pm-role.taken,
-    .pm-role:disabled {
-        background: #efe0dc;
-        border-color: #8a1f1f;
-        color: #8a1f1f;
-    }
-    .pm-taken { color: #8a1f1f; }
-
-    .pm-dot { border-color: #33322e; }
-    .pm-dot-on { background: #3a7d44; border-color: #33322e; box-shadow: none; }
-
-    .pm-countdown {
-        font-family: 'Oswald', sans-serif;
-        color: #be3b37;
-        text-shadow: none;
-        animation: none;
-    }
-}
-
-/* ────────────────────────────────────────────────────────────────
- * MOBILE (≤ 640px) : bascule sur le style "affiche de propagande"
- * de secrethitler.com — papier crème, rouge brique, encre charbon,
- * Oswald condensé pour les titres, Mulish pour le corps, angles nets.
- * ──────────────────────────────────────────────────────────────── */
-@media (max-width: 640px) {
-    .pm-root {
-        font-family: 'Mulish', system-ui, sans-serif;
-        color: #33322e;
-        background:
-            repeating-linear-gradient(0deg, rgba(51,50,46,0.03) 0 2px, transparent 2px 4px),
-            #f2e7d3;
-        padding: 20px 14px 40px;
-    }
-
-    .pm-header {
-        font-family: 'Oswald', sans-serif;
-        font-weight: 700;
-        font-size: 30px;
-        line-height: 1.05;
-        letter-spacing: 1px;
-        color: #f2e7d3;
-        background: #be3b37;
-        border: 3px solid #33322e;
-        box-shadow: 6px 6px 0 #33322e;
-        padding: 14px 10px;
-        margin-bottom: 26px;
-        text-shadow: none;
-        animation: none;
-    }
-
-    .pm-panel {
-        background: #fbf5e6;
-        border: 3px solid #33322e;
-        border-radius: 0;
-        box-shadow: 5px 5px 0 rgba(51, 50, 46, 0.18);
-    }
-
-    .pm-panel-title {
-        font-family: 'Oswald', sans-serif;
-        font-weight: 700;
-        font-size: 16px;
-        letter-spacing: 1.5px;
-        color: #be3b37;
-        border-bottom: 3px solid #33322e;
-    }
-
-    .pm-item {
-        background: #fff;
-        border: 2px solid #33322e;
-        border-left: 6px solid #be3b37;
-        border-radius: 0;
-        animation: pm-slide-in 0.3s ease;
-    }
-    .pm-item.pm-live { border-left-color: #33322e; }
-    .pm-item-name { color: #33322e; font-weight: 700; }
-    .pm-item-meta { color: #6b5b3e; }
-    .pm-empty { color: #6b5b3e; }
-
-    .pm-input {
-        background: #fff;
-        border: 2px solid #33322e;
-        border-radius: 0;
-        color: #33322e;
-        font-family: 'Mulish', sans-serif;
-        font-size: 14px;
-    }
-    .pm-input::placeholder { color: #9a8a6a; }
-    .pm-input:focus {
-        background: #fff;
-        box-shadow: 4px 4px 0 #be3b37;
-    }
-
-    .pm-form { flex-wrap: wrap; }
-
-    .pm-btn {
-        font-family: 'Oswald', sans-serif;
-        font-weight: 700;
-        font-size: 13px;
-        letter-spacing: 1px;
-        text-transform: uppercase;
-        background: #be3b37;
-        color: #f2e7d3;
-        border: 2px solid #33322e;
-        border-radius: 0;
-        padding: 11px 16px;
-    }
-    .pm-btn:hover { background: #33322e; border-color: #33322e; transform: none; }
-    .pm-btn:active { transform: translate(1px, 1px); }
-
-    .pm-btn.pm-ghost { background: transparent; color: #33322e; }
-    .pm-btn.pm-ghost:hover { background: #33322e; color: #f2e7d3; }
-
-    .pm-btn.pm-danger { background: #8a1f1f; border-color: #33322e; color: #f2e7d3; }
-    .pm-btn.pm-danger:hover { background: #33322e; }
-
-    .pm-btn.pm-watch { background: #4a6d7c; border-color: #33322e; color: #f2e7d3; }
-    .pm-btn.pm-watch:hover { background: #33322e; }
-
-    .pm-alert {
-        border-radius: 0;
-        font-family: 'Mulish', sans-serif;
-        font-size: 13px;
-    }
-    .pm-alert.pm-err { border-color: #be3b37; color: #8a1f1f; background: #f6e2dd; }
-    .pm-alert.pm-ok  { border-color: #4a6d7c; color: #2f4a54; background: #e2ecef; }
-
-    .pm-stage {
-        background: #fbf5e6;
-        border: 3px solid #33322e;
-        border-radius: 0;
-        box-shadow: 5px 5px 0 rgba(51, 50, 46, 0.18);
-    }
-    .pm-sub { color: #be3b37; font-family: 'Oswald', sans-serif; letter-spacing: 1px; }
 }
 
 /* conteneur du moteur jsPacman (phase "playing") */
@@ -372,16 +197,13 @@
     max-width: 100%;
     overflow: hidden;
 }
-@media (max-width: 640px) {
-    .pm-game-stage { border-color: #33322e; border-radius: 0; }
-}
 
 /* vue jeu : compacte, le labyrinthe prend la place */
 .pm-root-game { padding-top: 14px; padding-bottom: 14px; }
 .pm-root-game .pm-wrap { display: flex; flex-direction: column; align-items: center; gap: 10px; }
 .pm-quit { margin: 0; font-size: 10px; }
 
-/* Voyant d'état du salon */
+/* Voyant d'état du salon (statique, pas de clignotement) */
 .pm-lamp-row {
     display: flex;
     align-items: center;
@@ -395,16 +217,18 @@
     height: 14px;
     border-radius: 50%;
     flex: 0 0 auto;
-    border: 2px solid rgba(255,255,255,0.15);
+    border: 2px solid rgba(255, 255, 255, 0.15);
 }
-.pm-lamp-green  { background: #4dff88; box-shadow: 0 0 10px #4dff88; animation: pm-lamp-pulse 1.4s infinite; }
-.pm-lamp-orange { background: #ff9d00; box-shadow: 0 0 10px #ff9d00; }
+.pm-lamp-green  { background: #4dff88; box-shadow: 0 0 8px #4dff88; }
+.pm-lamp-orange { background: #ff9d00; box-shadow: 0 0 8px #ff9d00; }
 .pm-lamp-red    { background: #ff3b3b; box-shadow: 0 0 8px #ff3b3b; }
-@keyframes pm-lamp-pulse { 0%,100% { opacity: 1 } 50% { opacity: .45 } }
 
+/* --- Téléphone : même thème, juste plus compact --- */
 @media (max-width: 640px) {
-    .pm-lamp-row { font-family: 'Mulish', sans-serif; color: #6b5b3e; }
-    .pm-lamp-green  { background: #3a7d44; box-shadow: none; }
-    .pm-lamp-orange { background: #be7b00; box-shadow: none; }
-    .pm-lamp-red    { background: #8a1f1f; box-shadow: none; }
+    .pm-root { padding: 18px 12px 36px; }
+    .pm-header { font-size: 18px; letter-spacing: 1px; margin-bottom: 16px; }
+    .pm-panel { padding: 14px; }
+    .pm-panel-title { font-size: 12px; }
+    .pm-role { flex: 1 1 calc(50% - 5px); padding: 12px 6px; }
+    .pm-countdown { font-size: 44px; }
 }
