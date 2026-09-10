@@ -380,3 +380,31 @@
 .pm-root-game { padding-top: 14px; padding-bottom: 14px; }
 .pm-root-game .pm-wrap { display: flex; flex-direction: column; align-items: center; gap: 10px; }
 .pm-quit { margin: 0; font-size: 10px; }
+
+/* Voyant d'état du salon */
+.pm-lamp-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 10px;
+    color: #8a8aa0;
+    margin-bottom: 18px;
+}
+.pm-lamp {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    flex: 0 0 auto;
+    border: 2px solid rgba(255,255,255,0.15);
+}
+.pm-lamp-green  { background: #4dff88; box-shadow: 0 0 10px #4dff88; animation: pm-lamp-pulse 1.4s infinite; }
+.pm-lamp-orange { background: #ff9d00; box-shadow: 0 0 10px #ff9d00; }
+.pm-lamp-red    { background: #ff3b3b; box-shadow: 0 0 8px #ff3b3b; }
+@keyframes pm-lamp-pulse { 0%,100% { opacity: 1 } 50% { opacity: .45 } }
+
+@media (max-width: 640px) {
+    .pm-lamp-row { font-family: 'Mulish', sans-serif; color: #6b5b3e; }
+    .pm-lamp-green  { background: #3a7d44; box-shadow: none; }
+    .pm-lamp-orange { background: #be7b00; box-shadow: none; }
+    .pm-lamp-red    { background: #8a1f1f; box-shadow: none; }
+}

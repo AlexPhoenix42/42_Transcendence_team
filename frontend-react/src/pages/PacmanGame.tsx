@@ -201,9 +201,29 @@ export default function PacmanGame() {
         c.connect()
     }
 
-    function leave() {
+    // Sortie complète -> navigateur de salons.
+    function leaveToLobby() {
         cleanup()
         navigate("/pacman")
+    }
+
+    // Quitter la partie -> revient au choix du rôle du MÊME salon (le salon
+    // repasse en WAITING côté serveur, on peut re-choisir et rejoindre).
+    function leaveGame() {
+        if (cdRef.current) clearInterval(cdRef.current)
+        try {
+            gameRef.current?.onDestroy()
+        } catch {
+            /* déjà démonté */
+        }
+        gameRef.current = null
+        clientRef.current?.disconnect()
+        clientRef.current = null
+        setError("")
+        setRoster([])
+        setCount(0)
+        setFull(false)
+        setPhase("join")
     }
 
     function pickRole(next: string) {
@@ -218,20 +238,61 @@ export default function PacmanGame() {
     const readyPlayers = players.filter((r) => r.ready)
     const allReady = players.length > 0 && readyPlayers.length === players.length
 
+    // Lancement AUTO : dès que tous les joueurs sont prêts, un seul client
+    // (le 1er du roster, pour éviter les décomptes en double) déclenche
+    // `lobby_start` ; le serveur diffuse, tout le monde décompte.
+    const autoFiredRef = useRef(false)
+    useEffect(() => {
+        if (phase !== "waiting") {
+            autoFiredRef.current = false
+            return
+        }
+        // 1 seul client déclenche : celui dont l'id de roster est le plus petit
+        // (déterministe et identique vu de tous). Le décompte de 3 s côté
+        // serveur sert de "délai" pour dé-cocher si besoin.
+        const ids = roster.map((r) => r.id).sort((a, b) => a.localeCompare(b))
+        const iAmStarter = !!me && ids[0] === me.id && me.id !== "me"
+        if (allReady && iAmStarter && !autoFiredRef.current) {
+            autoFiredRef.current = true
+            clientRef.current?.start(3)
+        }
+    }, [allReady, phase, roster, me])
+
+    // Voyant d'état du salon
+    const lamp =
+        phase === "playing" || phase === "countdown"
+            ? { cls: "pm-lamp-green", txt: "Partie en cours" }
+            : phase === "waiting"
+              ? allReady
+                  ? { cls: "pm-lamp-green", txt: "Tous prêts — lancement…" }
+                  : {
+                        cls: "pm-lamp-orange",
+                        txt: `En attente — ${readyPlayers.length}/${players.length} prêts`,
+                    }
+              : { cls: "pm-lamp-red", txt: "Pas connecté au salon" }
+
     // ---------- rendu ----------
 
     if (phase === "playing") {
         return (
             <div className="pm-root pm-root-game">
                 <div className="pm-wrap pm-center">
+                    <div className="pm-lamp-row" style={{ justifyContent: "center" }}>
+                        <span className={`pm-lamp ${lamp.cls}`} />
+                        <span>
+                            {roomName} — {lamp.txt}
+                        </span>
+                    </div>
                     {error && <div className="pm-alert pm-err">{error}</div>}
                     <div ref={stageRef} className="pm-game-stage js-pacman-playground" />
-                    <button
-                        className="pm-btn pm-ghost pm-quit"
-                        onClick={leave}
-                    >
-                        ❌ {roomName} — Quitter
-                    </button>
+                    <div className="pm-form pm-center" style={{ justifyContent: "center" }}>
+                        <button className="pm-btn pm-quit" onClick={leaveGame}>
+                            ⟲ Changer de rôle
+                        </button>
+                        <button className="pm-btn pm-ghost pm-quit" onClick={leaveToLobby}>
+                            ← Lobby
+                        </button>
+                    </div>
                 </div>
             </div>
         )
@@ -241,6 +302,11 @@ export default function PacmanGame() {
         <div className="pm-root">
             <div className="pm-wrap">
                 <div className="pm-header">🎮 SALON {roomName}</div>
+
+                <div className="pm-lamp-row">
+                    <span className={`pm-lamp ${lamp.cls}`} />
+                    <span>{lamp.txt}</span>
+                </div>
 
                 {error && <div className="pm-alert pm-err">{error}</div>}
 
@@ -437,7 +503,7 @@ export default function PacmanGame() {
                                 >
                                     🚀 Démarrer
                                 </button>
-                                <button className="pm-btn pm-danger" onClick={leave}>
+                                <button className="pm-btn pm-danger" onClick={leaveToLobby}>
                                     ❌ Quitter
                                 </button>
                             </div>

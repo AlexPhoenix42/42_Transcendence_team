@@ -1,6 +1,7 @@
 # Makefile — stack de dev (docker-compose-dev.yml)
 #
-#   make            adapte .env a ce PC (IP LAN) + build + up + seed Vault
+#   make            adapte .env a ce PC (IP LAN) + up + seed Vault (images existantes)
+#   make build      pareil mais rebuild les images (buildx docker-container)
 #   make ip         re-detecte l'IP et reecrit .env (a refaire si l'IP change)
 #   make down       arrête
 #   make re         rebuild complet
@@ -29,7 +30,12 @@ ip:
 	@bash scripts_dev/gen-dev-env.sh
 
 .PHONY: up
-up: ip builder
+up: ip
+	$(COMPOSE) up -d
+	@$(MAKE) --no-print-directory seed
+
+.PHONY: build
+build: ip builder
 	$(COMPOSE) up -d --build
 	@$(MAKE) --no-print-directory seed
 

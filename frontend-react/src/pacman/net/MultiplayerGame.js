@@ -1364,6 +1364,10 @@ class MultiplayerGame extends JsPacman {
         }
 
         remote.update();
+        // update() repositionne + (dé)pause l'anim mais n'avance pas la frame ;
+        // le main loop du jeu de base le fait pour ses sprites, pas pour les
+        // nôtres. Sans ça le chomp reste figé (Pac-Man = rond fermé).
+        if (typeof remote.refresh === 'function') remote.refresh();
     }
 
     /**
