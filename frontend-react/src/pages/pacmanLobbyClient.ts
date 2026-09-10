@@ -46,7 +46,10 @@ export class PacmanLobbyClient {
         this.room = room
     }
 
-    on(event: "roster" | "start" | "error" | "open" | "close", fn: Handler): this {
+    on(
+        event: "roster" | "start" | "error" | "open" | "close" | "closed",
+        fn: Handler,
+    ): this {
         ;(this.handlers[event] ||= []).push(fn)
         return this
     }
@@ -131,6 +134,9 @@ export class PacmanLobbyClient {
                 break
             case "lobby_start":
                 this.emit("start", typeof msg.countdown === "number" ? msg.countdown : 3)
+                break
+            case "lobby_closed":
+                this.emit("closed")
                 break
             default:
                 break

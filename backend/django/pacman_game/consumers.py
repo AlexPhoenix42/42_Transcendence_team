@@ -49,6 +49,34 @@ def _room_key(room_name: str) -> str:
     return f"pacman:{room_name}"
 
 
+# Un salon où personne ne lance la manche est fermé au bout de ça (le sujet
+# "supprime les salons zombies"). Un salon vide est supprimé tout de suite.
+LOBBY_IDLE_TIMEOUT = 600  # 10 min
+
+
+def _purge_game_row_sync(room_name, keep_finished=True):
+    """Supprime la ligne Game du salon (les GamePlayer suivent en cascade).
+
+    `keep_finished` : ne touche pas à une manche déjà terminée (historique).
+    """
+    from .models import Game, GameStatus
+    qs = Game.objects.filter(room_name=room_name)
+    if keep_finished:
+        qs = qs.exclude(status=GameStatus.FINISHED)
+    qs.delete()
+
+
+def _lobby_idle_age_sync(room_name):
+    """Secondes depuis la création si le salon n'a jamais démarré, sinon None."""
+    from .models import Game, GameStatus
+    game = Game.objects.filter(room_name=room_name).only(
+        "status", "created_at",
+    ).first()
+    if game is None or game.status != GameStatus.WAITING:
+        return None
+    return (timezone.now() - game.created_at).total_seconds()
+
+
 def _valid_room(room_name) -> bool:
     return (
         isinstance(room_name, str)
@@ -100,7 +128,19 @@ async def _sync_loop(channel_layer, room_name, group_name):
             if room.empty():
                 await sync_to_async(cache.delete)(_room_key(room_name))
                 await sync_to_async(_drop_active_sync)(room_name)
+                await sync_to_async(_purge_game_row_sync)(room_name)
                 break
+
+            idle = await sync_to_async(_lobby_idle_age_sync)(room_name)
+            if idle is not None and idle > LOBBY_IDLE_TIMEOUT:
+                await channel_layer.group_send(
+                    group_name, {'type': 'broadcast_lobby_closed'},
+                )
+                await sync_to_async(cache.delete)(_room_key(room_name))
+                await sync_to_async(_drop_active_sync)(room_name)
+                await sync_to_async(_purge_game_row_sync)(room_name)
+                break
+
             await sync_to_async(_save_state_sync)(room_name, room)
             await channel_layer.group_send(
                 group_name,
@@ -190,6 +230,7 @@ class GameConsumer(AsyncWebsocketConsumer):
         if room.empty():
             await sync_to_async(cache.delete)(_room_key(self.room_name))
             await sync_to_async(_drop_active_sync)(self.room_name)
+            await sync_to_async(_purge_game_row_sync)(self.room_name)
             task = _sync_tasks.pop(self.room_name, None)
             if task:
                 task.cancel()
@@ -813,6 +854,10 @@ class GameConsumer(AsyncWebsocketConsumer):
         await self.send(text_data=json.dumps({
             'type': 'lobby_start', 'countdown': event['countdown'],
         }))
+
+    async def broadcast_lobby_closed(self, event):
+        await self.send(text_data=json.dumps({'type': 'lobby_closed'}))
+        await self.close(code=4002)
 
     async def broadcast_player_ready(self, event):
         await self.send(text_data=json.dumps({

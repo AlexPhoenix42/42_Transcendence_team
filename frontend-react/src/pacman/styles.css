@@ -31,16 +31,12 @@
     --z-index-splash: 1;
 }
 
-body {
-    background-color: var(--color-bg-secondary);
-    margin: 0;
-    padding: 0;
-    overflow: hidden;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-}
+/* NOTE(react) : la règle `body` d'origine (overflow:hidden, display:flex,
+   height:100vh) cassait le layout de l'app entière. Le conteneur du jeu
+   (Game.js) gère déjà son propre overflow/dimensions. Neutralisée : le jeu
+   est centré par .pm-center dans PacmanGame.tsx.
+body { ... }
+*/
 
 .js-pacman-container:has(.with-border) {
     padding: 1em;

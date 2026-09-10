@@ -9,11 +9,15 @@
 import { useState, useEffect, useRef, useCallback } from "react"
 import { useParams, useNavigate } from "react-router-dom"
 import { useAuth } from "../context/AuthContext.tsx"
+import { api } from "../api/client.ts"
 import { PacmanLobbyClient, type RosterEntry } from "./pacmanLobbyClient.ts"
 import "./pacman.css"
 import "../pacman/styles.css"
 
-type Phase = "join" | "waiting" | "countdown" | "playing"
+type Phase = "loading" | "join" | "waiting" | "countdown" | "playing"
+
+// Places jouables (hors spectateur & bébé qui naît en jeu). Au-delà : spectateur only.
+const MAX_PLAYERS = 6
 
 const CHARACTERS: { role: string; label: string }[] = [
     { role: "pacman", label: "🟡 PAC-MAN" },
@@ -38,12 +42,13 @@ export default function PacmanGame() {
     const navigate = useNavigate()
     const { user } = useAuth()
 
-    const [phase, setPhase] = useState<Phase>("join")
+    const [phase, setPhase] = useState<Phase>("loading")
     const [kind, setKind] = useState<"spectator" | "player">("player")
     const [character, setCharacter] = useState("pacman")
     const [roster, setRoster] = useState<RosterEntry[]>([])
     const [error, setError] = useState("")
     const [count, setCount] = useState(0)
+    const [full, setFull] = useState(false) // toutes les places jouables prises
 
     const clientRef = useRef<PacmanLobbyClient | null>(null)
     const cdRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -71,11 +76,55 @@ export default function PacmanGame() {
 
     useEffect(() => cleanup, [cleanup])
 
+    // À l'arrivée : selon l'état du salon…
+    //  - jeu déjà lancé  -> spectateur direct, pas d'écran "rejoindre"
+    //  - salle pleine     -> on ne peut entrer qu'en spectateur
+    //  - sinon            -> écran "rejoindre" normal
+    useEffect(() => {
+        let dead = false
+        ;(async () => {
+            try {
+                const resp = await api(`/api/pacman/room/${encodeURIComponent(roomName)}/`)
+                if (dead) return
+                if (resp.status === 204) {
+                    setPhase("join")
+                    return
+                }
+                const g = await resp.json()
+                const playing = (g.players ?? []).filter(
+                    (p: { role: string }) => p.role !== "spectator",
+                ).length
+                if (g.status === "IN_PROGRESS") {
+                    setKind("spectator")
+                    setPhase("playing")
+                } else if (g.status === "WAITING" && playing >= MAX_PLAYERS) {
+                    setKind("spectator")
+                    setFull(true)
+                    setPhase("join")
+                } else {
+                    setPhase("join")
+                }
+            } catch {
+                if (!dead) setPhase("join")
+            }
+        })()
+        return () => {
+            dead = true
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [roomName])
+
     // Monte le moteur jsPacman quand on passe en jeu.
     useEffect(() => {
         if (phase !== "playing" || !stageRef.current || gameRef.current) return
         const el = stageRef.current
-        const vw = Math.min(window.innerWidth * 0.92, 640)
+
+        // Aspect natif jsPacman 448:576. On remplit l'espace dispo (largeur ET
+        // hauteur du viewport), le moteur (Scaling) garde le ratio.
+        const AR = 448 / 576
+        const availW = Math.min(window.innerWidth - 24, 820)
+        const availH = window.innerHeight - 170
+        const w = Math.max(280, Math.min(availW, availH * AR))
 
         let cancelled = false
         import("../pacman/net/MultiplayerGame.js")
@@ -83,14 +132,15 @@ export default function PacmanGame() {
                 if (cancelled || !el) return
                 gameRef.current = new MultiplayerGame({
                     el,
-                    width: vw,
-                    height: vw * (1152 / 896),
+                    width: w,
+                    height: w / AR,
                     position: "relative",
                     room: roomName,
                     role: myRole,
                     playerName: user?.username || "Joueur",
                     autoStart: true,
                 })
+                ;(window as unknown as { __pacman?: unknown }).__pacman = gameRef.current
             })
             .catch((e) => setError(`MOTEUR : ${String(e?.message || e).toUpperCase()}`))
 
@@ -134,6 +184,10 @@ export default function PacmanGame() {
         })
         c.on("roster", (list: RosterEntry[]) => setRoster(list))
         c.on("start", (s: number) => startCountdown(s))
+        c.on("closed", () => {
+            cleanup()
+            navigate("/pacman", { state: { notice: "Salon fermé (inactif 10 min)." } })
+        })
         c.on("error", (m: string) => setError((m || "erreur").toUpperCase()))
         c.on("close", (code: number) => {
             if (code === 4001) setError("SESSION EXPIREE — RECONNECTE-TOI")
@@ -168,7 +222,7 @@ export default function PacmanGame() {
                 <div className="pm-wrap pm-center">
                     <div className="pm-header">🎮 {roomName}</div>
                     {error && <div className="pm-alert pm-err">{error}</div>}
-                    <div ref={stageRef} className="pm-game-stage" />
+                    <div ref={stageRef} className="pm-game-stage js-pacman-playground" />
                     <button
                         className="pm-btn pm-ghost"
                         style={{ marginTop: 16 }}
@@ -188,6 +242,10 @@ export default function PacmanGame() {
 
                 {error && <div className="pm-alert pm-err">{error}</div>}
 
+                {phase === "loading" && (
+                    <p className="pm-empty">Chargement du salon…</p>
+                )}
+
                 {phase === "countdown" && (
                     <div className="pm-countdown">{count || "GO"}</div>
                 )}
@@ -200,6 +258,12 @@ export default function PacmanGame() {
                             <span className="pm-item-name">{user?.username || "?"}</span>
                         </p>
 
+                        {full && (
+                            <div className="pm-alert pm-err" style={{ fontSize: 10 }}>
+                                Toutes les places joueur sont prises — entrée en spectateur uniquement.
+                            </div>
+                        )}
+
                         <div className="pm-roles">
                             <button
                                 className={kind === "spectator" ? "pm-role active" : "pm-role"}
@@ -208,14 +272,21 @@ export default function PacmanGame() {
                                 👁️ Spectateur
                             </button>
                             <button
-                                className={kind === "player" ? "pm-role active" : "pm-role"}
-                                onClick={() => setKind("player")}
+                                disabled={full}
+                                className={
+                                    kind === "player"
+                                        ? "pm-role active"
+                                        : full
+                                          ? "pm-role taken"
+                                          : "pm-role"
+                                }
+                                onClick={() => !full && setKind("player")}
                             >
                                 🎮 Joueur
                             </button>
                         </div>
 
-                        {kind === "player" && (
+                        {kind === "player" && !full && (
                             <>
                                 <div className="pm-panel-title" style={{ marginTop: 18 }}>
                                     Personnage

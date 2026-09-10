@@ -50,7 +50,7 @@ export default function Navbar() {
     }, [menuOpen])
 
     return (
-        <nav className="bg-gray-800 p-4 flex gap-6 items-center">
+        <nav className="bg-gray-800 p-4 flex flex-wrap gap-x-5 gap-y-2 items-center min-w-0">
             <Link to="/" className="text-white font-bold text-xl">♟ Transcendence</Link>
             <Link to="/games" className="text-gray-300 hover:text-white">Games</Link>
             <Link to="/tournaments" className="text-gray-300 hover:text-white">Tournaments</Link>

@@ -101,6 +101,23 @@ class GameDetailView(APIView):
 
 
 # ===========================================================================
+class GameByRoomView(APIView):
+    """État d'un salon par son slug room_name. 204 si le salon n'existe pas
+    encore (le front en déduit : salle d'attente vierge)."""
+    permission_classes      = [IsAuthenticated]
+    authentication_classes  = [JWTAuthentication, SessionAuthentication]
+
+    def get(self, request: Request, room_name: str) -> Response:
+        game = Game.objects.select_related(*_SELECT_RELATED).prefetch_related(
+            *_PREFETCH,
+        ).filter(room_name=room_name).first()
+        if game is None:
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response(GameSerializer(game).data)
+# ===========================================================================
+
+
+# ===========================================================================
 class GameCancelView(APIView):
     permission_classes      = [IsAuthenticated]
     authentication_classes  = [JWTAuthentication, SessionAuthentication]

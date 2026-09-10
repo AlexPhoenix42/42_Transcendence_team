@@ -9,14 +9,20 @@
     color: #ffe14d;
     background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
     min-height: 100vh;
-    /* déborde le <main class="p-4"> de AppLayout pour un fond plein écran */
-    margin: -1rem;
+    /* full-bleed : déborde le <main class="p-4"> de AppLayout quel que soit
+       son padding, sans jamais dépasser le viewport. */
+    box-sizing: border-box;
+    width: 100vw;
+    margin-left: calc(50% - 50vw);
+    margin-top: -1rem;
     padding: 28px 20px 48px;
+    overflow-x: hidden;
 }
 
 .pm-wrap {
     max-width: 1100px;
     margin: 0 auto;
+    min-width: 0;
 }
 
 .pm-header {
@@ -48,6 +54,11 @@
     text-transform: uppercase;
     border-bottom: 2px solid #ffe14d;
     padding-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 10px;
+    flex-wrap: wrap;
 }
 
 .pm-item {
@@ -198,12 +209,16 @@
 }
 
 @media (max-width: 640px) {
+    .pm-roles { gap: 8px; }
     .pm-role {
         font-family: 'Oswald', sans-serif;
         font-weight: 700;
         letter-spacing: 0.5px;
         text-transform: uppercase;
-        font-size: 12px;
+        font-size: 11px;
+        min-width: 0;
+        flex: 1 1 calc(50% - 4px);
+        padding: 12px 6px;
         background: #fff;
         border: 2px solid #33322e;
         color: #33322e;
