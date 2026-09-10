@@ -61,13 +61,19 @@ class GameListCreateView(generics.ListCreateAPIView):
                 players__user=user
             ).order_by("-created_at")
 
-        # Par défaut : mes salons (créés par moi ou où j'ai un GamePlayer).
+        # Par défaut : MES salons ACTIFS (créés par moi ou où j'ai un
+        # GamePlayer). On exclut FINISHED / CANCELLED : une fois supprimé /
+        # terminé, un salon ne doit plus apparaître dans "Mes salons".
         qs = base.filter(
             Q(created_by=user) | Q(players__user=user)
         ).distinct()
 
         if  status_filter:
             qs = qs.filter(status=status_filter)
+        else:
+            qs = qs.exclude(
+                status__in=(GameStatus.FINISHED, GameStatus.CANCELLED),
+            )
 
         return qs.order_by("-created_at")
 
@@ -119,6 +125,8 @@ class GameByRoomView(APIView):
 
 # ===========================================================================
 class GameCancelView(APIView):
+    """Le créateur supprime son salon (à tout moment). Les joueurs connectés
+    sont éjectés (lobby_closed) et la ligne Game est supprimée."""
     permission_classes      = [IsAuthenticated]
     authentication_classes  = [JWTAuthentication, SessionAuthentication]
 
@@ -127,21 +135,24 @@ class GameCancelView(APIView):
             game = generics.get_object_or_404(
                 Game.objects.select_for_update(), pk=pk,
             )
-
-            if  game.created_by != request.user:
+            if  game.created_by_id != request.user.pk:
                 return Response(
-                    {"error": "Seul le créateur peut annuler le salon."},
+                    {"error": "Seul le créateur peut supprimer le salon."},
                     status=status.HTTP_403_FORBIDDEN,
                 )
+            room_name = game.room_name
+            game.delete()
 
-            if  game.status != GameStatus.WAITING:
-                return Response(
-                    {"error": "Seuls les salons en attente peuvent être annulés."},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
+        # éjecter les joueurs encore connectés au WebSocket du salon
+        from channels.layers  import get_channel_layer
+        from asgiref.sync      import async_to_sync
+        from django.core.cache import cache
+        layer = get_channel_layer()
+        if layer is not None:
+            async_to_sync(layer.group_send)(
+                f"pacman_{room_name}", {"type": "broadcast_lobby_closed"},
+            )
+        cache.delete(f"pacman:{room_name}")
 
-            game.status = GameStatus.CANCELLED
-            game.save(update_fields=["status"])
-
-            return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 # ===========================================================================

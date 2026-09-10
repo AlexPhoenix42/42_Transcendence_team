@@ -207,7 +207,10 @@ class GameConsumer(AsyncWebsocketConsumer):
             self.room_group_name    = f"pacman_{room_name}"
             self._last_seen_touch   = 0.0
 
-            self.game_id = await self._get_or_create_game()
+            self.game_id = await self._get_game_id()
+            if self.game_id is None:
+                await self.close(code=4004)
+                return
 
             await self.channel_layer.group_add(self.room_group_name, self.channel_name)
             await self.accept()
@@ -349,13 +352,14 @@ class GameConsumer(AsyncWebsocketConsumer):
     # --- accès base ------------------------------------------------------
 
     @database_sync_to_async
-    def _get_or_create_game(self) -> int:
-        from .models import Game, GameStatus
-        game, _ = Game.objects.get_or_create(
-            room_name=self.room_name,
-            defaults={'created_by': self.user, 'status': GameStatus.WAITING},
-        )
-        return game.pk
+    def _get_game_id(self):
+        """pk du salon, ou None s'il n'existe pas. On ne crée JAMAIS un salon
+        depuis le WebSocket : un salon = une ligne Game créée via
+        POST /api/pacman/ (bouton "Créer"). Sinon la liste du lobby se
+        remplirait de salons fantômes créés en tapant une URL au hasard."""
+        from .models import Game
+        game = Game.objects.filter(room_name=self.room_name).only("pk").first()
+        return game.pk if game else None
 
     @database_sync_to_async
     def _rehydrate_from_db(self) -> RoomState:

@@ -201,12 +201,22 @@ export default function PacmanLobby() {
                                 room={room}
                                 live={room.status === "IN_PROGRESS"}
                                 actions={
-                                    <button
-                                        className="pm-btn"
-                                        onClick={() => joinRoom(room.room_name)}
-                                    >
-                                        Rejoindre
-                                    </button>
+                                    <>
+                                        <button
+                                            className="pm-btn"
+                                            onClick={() => joinRoom(room.room_name)}
+                                        >
+                                            Rejoindre
+                                        </button>
+                                        {room.created_by === user?.username && (
+                                            <button
+                                                className="pm-btn pm-danger"
+                                                onClick={() => cancelRoom(room.id)}
+                                            >
+                                                🗑
+                                            </button>
+                                        )}
+                                    </>
                                 }
                             />
                         ))}
@@ -235,7 +245,7 @@ export default function PacmanLobby() {
                                             className="pm-btn pm-danger"
                                             onClick={() => cancelRoom(room.id)}
                                         >
-                                            Annuler
+                                            🗑 Supprimer
                                         </button>
                                     )}
                                 </>
@@ -255,12 +265,22 @@ export default function PacmanLobby() {
                             room={room}
                             live
                             actions={
-                                <button
-                                    className="pm-btn pm-watch"
-                                    onClick={() => joinRoom(room.room_name)}
-                                >
-                                    Regarder
-                                </button>
+                                <>
+                                    <button
+                                        className="pm-btn pm-watch"
+                                        onClick={() => joinRoom(room.room_name)}
+                                    >
+                                        Regarder
+                                    </button>
+                                    {room.created_by === user?.username && (
+                                        <button
+                                            className="pm-btn pm-danger"
+                                            onClick={() => cancelRoom(room.id)}
+                                        >
+                                            🗑
+                                        </button>
+                                    )}
+                                </>
                             }
                         />
                     ))}

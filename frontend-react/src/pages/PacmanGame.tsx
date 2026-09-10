@@ -49,6 +49,9 @@ export default function PacmanGame() {
     const [error, setError] = useState("")
     const [count, setCount] = useState(0)
     const [full, setFull] = useState(false) // toutes les places jouables prises
+    const [roomExists, setRoomExists] = useState(false) // ligne Game créée via REST
+    const [roomId, setRoomId] = useState<number | null>(null)
+    const [isCreator, setIsCreator] = useState(false)
 
     const clientRef = useRef<PacmanLobbyClient | null>(null)
     const cdRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -87,10 +90,15 @@ export default function PacmanGame() {
                 const resp = await api(`/api/pacman/room/${encodeURIComponent(roomName)}/`)
                 if (dead) return
                 if (resp.status === 204) {
+                    // salon inexistant : on ne l'invente pas, on propose de le créer
+                    setRoomExists(false)
                     setPhase("join")
                     return
                 }
+                setRoomExists(true)
                 const g = await resp.json()
+                setRoomId(g.id ?? null)
+                setIsCreator(g.created_by === user?.username)
                 const playing = (g.players ?? []).filter(
                     (p: { role: string }) => p.role !== "spectator",
                 ).length
@@ -176,8 +184,35 @@ export default function PacmanGame() {
         }, 1000)
     }
 
-    function join() {
+    async function join() {
         setError("")
+
+        // Salon jamais créé (URL tapée à la main) : on le crée d'abord via REST,
+        // sinon le WS refuse (close 4004) et rien n'apparaît dans le lobby.
+        if (!roomExists) {
+            try {
+                const r = await api("/api/pacman/", {
+                    method: "POST",
+                    body: JSON.stringify({ room_name: roomName }),
+                })
+                if (!r.ok && r.status !== 400) {
+                    setError("CREATION DU SALON IMPOSSIBLE")
+                    return
+                }
+                if (r.ok) {
+                    const created = await r.json().catch(() => null)
+                    if (created?.id) {
+                        setRoomId(created.id)
+                        setIsCreator(true)
+                    }
+                }
+                setRoomExists(true)
+            } catch {
+                setError("ERREUR RESEAU")
+                return
+            }
+        }
+
         const c = new PacmanLobbyClient(roomName)
         clientRef.current = c
 
@@ -195,7 +230,10 @@ export default function PacmanGame() {
         c.on("error", (m: string) => setError((m || "erreur").toUpperCase()))
         c.on("close", (code: number) => {
             if (code === 4001) setError("SESSION EXPIREE — RECONNECTE-TOI")
-            else if (phase !== "playing") setError("CONNEXION PERDUE")
+            else if (code === 4004) {
+                cleanup()
+                navigate("/pacman", { state: { notice: "Ce salon n'existe pas." } })
+            } else if (phase !== "playing") setError("CONNEXION PERDUE")
         })
 
         c.connect()
@@ -205,6 +243,18 @@ export default function PacmanGame() {
     function leaveToLobby() {
         cleanup()
         navigate("/pacman")
+    }
+
+    // Le créateur supprime son salon (éjecte tout le monde côté serveur).
+    async function deleteRoom() {
+        if (roomId == null) return
+        try {
+            await api(`/api/pacman/${roomId}/cancel/`, { method: "DELETE" })
+        } catch {
+            /* on part quand même */
+        }
+        cleanup()
+        navigate("/pacman", { state: { notice: "Salon supprimé." } })
     }
 
     // Quitter la partie -> revient au choix du rôle du MÊME salon (le salon
@@ -292,6 +342,11 @@ export default function PacmanGame() {
                         <button className="pm-btn pm-ghost pm-quit" onClick={leaveToLobby}>
                             ← Lobby
                         </button>
+                        {isCreator && (
+                            <button className="pm-btn pm-danger pm-quit" onClick={deleteRoom}>
+                                🗑 Supprimer le salon
+                            </button>
+                        )}
                     </div>
                 </div>
             </div>
@@ -320,7 +375,7 @@ export default function PacmanGame() {
 
                 {phase === "join" && (
                     <div className="pm-panel">
-                        <div className="pm-panel-title">Rejoindre</div>
+                        <div className="pm-panel-title">{roomExists ? "Rejoindre" : "Créer le salon"}</div>
                         <p className="pm-item-meta" style={{ marginBottom: 14 }}>
                             Tu joues en tant que{" "}
                             <span className="pm-item-name">{user?.username || "?"}</span>
@@ -380,7 +435,7 @@ export default function PacmanGame() {
 
                         <div className="pm-form" style={{ marginTop: 18 }}>
                             <button className="pm-btn" onClick={join}>
-                                ✓ Rejoindre
+                                {roomExists ? "✓ Rejoindre" : "✓ Créer & rejoindre"}
                             </button>
                             <button className="pm-btn pm-ghost" onClick={() => navigate("/pacman")}>
                                 Retour
@@ -506,6 +561,11 @@ export default function PacmanGame() {
                                 <button className="pm-btn pm-danger" onClick={leaveToLobby}>
                                     ❌ Quitter
                                 </button>
+                                {isCreator && (
+                                    <button className="pm-btn pm-danger" onClick={deleteRoom}>
+                                        🗑 Supprimer le salon
+                                    </button>
+                                )}
                             </div>
                         </div>
                     </>
