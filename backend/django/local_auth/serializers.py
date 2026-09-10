@@ -1,5 +1,6 @@
 # local_auth/serializers.py
 
+from django.conf                    import settings
 from django.contrib.auth            import get_user_model
 from django.contrib.auth.models     import UserManager
 
@@ -36,6 +37,14 @@ def domain_has_mx(domain: str) -> bool:
 
 
 # ==========================================================================
+_OPAQUE = "Invalid registration data."
+
+
+def _reg_err(detail: str):
+    """Message précis en dev (DEBUG), opaque en prod (anti-énumération)."""
+    return serializers.ValidationError(detail if settings.DEBUG else _OPAQUE)
+
+
 class RegisterSerializer(serializers.ModelSerializer):
     email       = serializers.CharField(write_only=True) 
     password    = serializers.CharField(write_only=True)
@@ -53,25 +62,23 @@ class RegisterSerializer(serializers.ModelSerializer):
         try:
             validate_email(value)
         except ValidationError:
-            raise serializers.ValidationError("Invalid registration data.")
-            #raise serializers.ValidationError("Invalid email format.")
+            raise _reg_err("Invalid email format.")
 
         # length check (RFC 5321: max 254 characters for a full email address)
         if  len(value) > 254:
-            raise serializers.ValidationError("Invalid registration data.")
+            raise _reg_err("Email too long.")
 
         # Step 2: check if mail already exists
         if User.objects.filter(email=value).exists():
-            raise serializers.ValidationError("Invalid registration data.")
-            #raise serializers.ValidationError("Email already registered.")
+            raise _reg_err("Email already registered.")
 
         # Step 2: Extract domain
         domain = value.split("@")[-1].lower()
 
-        # Step 3: MX record validation
-        if not domain_has_mx(domain):
-            raise serializers.ValidationError("Invalid registration data.")
-            #raise serializers.ValidationError("Email domain cannot receive mail.")
+        # Step 3: MX record validation (sautée en dev pour permettre les
+        # comptes de test avec un domaine bidon)
+        if not settings.DEBUG and not domain_has_mx(domain):
+            raise _reg_err("Email domain cannot receive mail.")
 
         return value
     # =================================================
@@ -86,20 +93,18 @@ class RegisterSerializer(serializers.ModelSerializer):
 
         # check if username field is present
         if  not value:
-            raise serializers.ValidationError("Invalid registration data.")
-            #raise serializers.ValidationError("Username is required.")
+            raise _reg_err("Username is required.")
 
         # Check limits (Django's AbstractUser defaults: 1-150)
         if  len(value) < 3 or len(value) > 30:
-            raise serializers.ValidationError("Invalid registration data.")
+            raise _reg_err("Username must be 3-30 characters.")
 
         # Allow characters: letters, digits, underscore, hyphen
         if  not re.fullmatch(r"[\w-]+", value):
-            raise serializers.ValidationError("Invalid registration data.")
+            raise _reg_err("Username: letters, digits, - and _ only.")
 
         if User.objects.filter(username=value).exists():
-            raise serializers.ValidationError("Invalid registration data.")
-            #raise serializers.ValidationError("Username already taken.")
+            raise _reg_err("Username already taken.")
 
         return value
     # =================================================
@@ -109,11 +114,11 @@ class RegisterSerializer(serializers.ModelSerializer):
     def validate_password(self, value):
         # Strip whitespace (passwords should not be trimmed, but leading/trailing spaces are usually accidental)
         if  value != value.strip():
-            raise serializers.ValidationError("Invalid registration data.")
+            raise _reg_err("Password has leading/trailing spaces.")
 
         # Length limits
         if  len(value) < 8 or len(value) > 128:
-            raise serializers.ValidationError("Invalid registration data.")
+            raise _reg_err("Password must be 8-128 characters.")
 
         # Django's build-in validators (minimum length, numeric, common passwords, etc.)
         django_validate_password(value)
@@ -134,7 +139,7 @@ class RegisterSerializer(serializers.ModelSerializer):
             )
             return user
         except IntegrityError:
-            raise serializers.ValidationError("Invalid registration data.")
+            raise _reg_err("Username or email already used.")
     # =================================================
 # ==========================================================================
 
