@@ -31,7 +31,7 @@ urlpatterns = [
     path('api/',                include('local_auth.urls')),
     path('api/',                include('users.urls')),
     path('api/chess/',          include('chess_game.urls')),
-    #path('api/pacman/',         include('pacman_game.urls')),
+    path('api/pacman/',          include('pacman_game.urls')),
     path('api/friends/',        include('friends.urls')),
     path('api/chat/',           include("chat.urls")),
     path('api/auth/',           include('open_auth.urls')),
