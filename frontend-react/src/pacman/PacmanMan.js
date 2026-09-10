@@ -25,8 +25,8 @@ const chomp = new Animation({
     type : ANIMATION_HORIZONTAL
 });
 
-/** Base sprite faces right; rotate clockwise for the other directions. */
-const ANGLE_BY_DIR = { r : 0, d : 90, l : 180, u : 270 };
+/** The top-row chomp frame faces LEFT; rotate clockwise for the rest. */
+const ANGLE_BY_DIR = { l : 0, u : 90, r : 180, d : 270 };
 
 const defaults = {
     animations : { chomp },

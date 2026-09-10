@@ -1,6 +1,5 @@
 import JsPacman from '../Game.js';
 import Character from '../Character.js';
-import Animation, { ANIMATION_HORIZONTAL } from '../engine/Animation.js';
 import { STATE_RUNNING } from '../engine/Game.js';
 import { STATUS_PLAY, STATUS_SPLASH } from '../GameModel.js';
 import { KEY_UP, KEY_RIGHT, KEY_DOWN, KEY_LEFT } from '../engine/Keyboard.js';
@@ -58,9 +57,6 @@ const ROLE_LOOK = {
 
 /** Halo blanc ajouté au perso local pour repérer « soi » d'un coup d'œil. */
 const SELF_GLOW = 'drop-shadow(0 0 5px #fff) brightness(1.12)';
-
-/** Pac-Man classique : le sprite de base regarde à droite, on tourne. */
-const CLASSIC_ANGLE_BY_DIR = { r : 0, d : 90, l : 180, u : 270 };
 
 /**
  * MultiplayerGame - the normal jsPacman game plus the other players in the same
@@ -183,7 +179,6 @@ class MultiplayerGame extends JsPacman {
         if (this._isSpectator) {
             this._setupSpectator();
         } else if (this._localIsPacman) {
-            this._applyLocalPacmanSprite();
             this._blockPacmanOnBuilderWalls();
             this._hookPacmanDots();
             this._disarmAiGhosts();
@@ -210,43 +205,6 @@ class MultiplayerGame extends JsPacman {
     _styleLocalBody() {
         const body = this._localIsPacman ? this.pacman : this.avatar;
         if (body && body.el) body.el.style.filter = this._localLook();
-    }
-
-    /**
-     * Le moteur de base dessine TOUJOURS notre Pac-Man local avec le sprite
-     * « Ms Pac-Man » (rangée à nœud de `characters.png`). Pour les rôles
-     * `pacman` / `blocker` on rebascule sur le Pac-Man classique (rangée du
-     * haut : un seul « chomp » qu'on fait pivoter selon la direction), pour que
-     * notre perso ait la même tête que ce que les autres voient de nous
-     * (`_makeRemoteSprite` leur donne `makePacmanMan`). `madame_pacman` garde le
-     * nœud, `baby` garde son sprite.
-     * @private
-     */
-    _applyLocalPacmanSprite() {
-        const pac = this.pacman;
-        if (!pac || pac._classicLook) return;
-        if (this.role !== 'pacman' && this.role !== 'blocker') return;
-        pac._classicLook = true;
-
-        const chomp = new Animation({
-            imageURL : 'img/characters.png',
-            numberOfFrame : 3,
-            delta : 64,
-            refreshRate : 60,
-            offsetX : 0,
-            offsetY : 0,
-            type : ANIMATION_HORIZONTAL
-        });
-        pac.animations = { chomp : chomp };
-        pac.defaultAnimation = 'chomp';
-        pac.setNextAnimation = function() {
-            this._nextAnimation = this.animations.chomp;
-            const angle = CLASSIC_ANGLE_BY_DIR[this.dir];
-            if (angle != null && angle !== this.angle) this.rotate(angle);
-        };
-        pac.load();
-        pac.setNextAnimation();
-        if (typeof pac.refresh === 'function') pac.refresh();
     }
 
     /**
@@ -904,7 +862,6 @@ class MultiplayerGame extends JsPacman {
         }
         super.reset();
         if (this._localIsPacman) {
-            this._applyLocalPacmanSprite();
             this._blockPacmanOnBuilderWalls();
             this._hookPacmanDots();
             this._disarmAiGhosts();
