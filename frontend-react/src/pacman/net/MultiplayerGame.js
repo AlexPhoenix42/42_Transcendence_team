@@ -1,5 +1,6 @@
 import JsPacman from '../Game.js';
 import Character from '../Character.js';
+import Animation, { ANIMATION_HORIZONTAL } from '../engine/Animation.js';
 import { STATE_RUNNING } from '../engine/Game.js';
 import { STATUS_PLAY, STATUS_SPLASH } from '../GameModel.js';
 import { KEY_UP, KEY_RIGHT, KEY_DOWN, KEY_LEFT } from '../engine/Keyboard.js';
@@ -37,6 +38,29 @@ const PACMAN_ROLES = ['pacman', 'madame_pacman', 'baby', 'blocker'];
 
 /** Ghost sprite labels, picked by id hash so remote ghosts look varied. */
 const GHOST_LABELS = ['pinky', 'blinky', 'inky', 'sue'];
+
+/**
+ * Accent visuel par rôle, IDENTIQUE sur tous les clients. Le sprite porte déjà
+ * l'essentiel (Ms Pac-Man a son nœud, un fantôme est un fantôme…) ; on ne fait
+ * que renforcer, et surtout on ne teinte PLUS par joueur - sinon le Pac-Man
+ * adverse vire au vert/bleu chez l'autre et on « n'a pas la même vision ».
+ * `blocker` = un Pac-Man constructeur : casque orange lumineux pour le
+ * distinguer du Pac-Man classique (même sprite de base).
+ */
+const ROLE_LOOK = {
+    pacman        : '',
+    madame_pacman : 'drop-shadow(0 0 3px #ff6ec7)',
+    baby          : 'brightness(1.2) saturate(1.5)',
+    blocker       : 'hue-rotate(28deg) saturate(1.8) drop-shadow(0 0 4px #ff9a00)',
+    ghost         : '',
+    builder       : 'drop-shadow(0 0 4px #38d430)'
+};
+
+/** Halo blanc ajouté au perso local pour repérer « soi » d'un coup d'œil. */
+const SELF_GLOW = 'drop-shadow(0 0 5px #fff) brightness(1.12)';
+
+/** Pac-Man classique : le sprite de base regarde à droite, on tourne. */
+const CLASSIC_ANGLE_BY_DIR = { r : 0, d : 90, l : 180, u : 270 };
 
 /**
  * MultiplayerGame - the normal jsPacman game plus the other players in the same
@@ -159,12 +183,70 @@ class MultiplayerGame extends JsPacman {
         if (this._isSpectator) {
             this._setupSpectator();
         } else if (this._localIsPacman) {
+            this._applyLocalPacmanSprite();
             this._blockPacmanOnBuilderWalls();
             this._hookPacmanDots();
             this._disarmAiGhosts();
         } else {
             this._setupLocalAvatar();
         }
+
+        if (!this._isSpectator) this._styleLocalBody();
+    }
+
+    /**
+     * Filtre CSS « au repos » du perso local = accent de rôle + halo « toi ».
+     * Les effets (gel, prison, effrayé) reviennent à ça, pas à ''.
+     * @private
+     */
+    _localLook() {
+        return ((ROLE_LOOK[this.role] || '') + ' ' + SELF_GLOW).trim();
+    }
+
+    /**
+     * Applique {@link _localLook} au corps qu'on pilote (Pac-Man ou avatar).
+     * @private
+     */
+    _styleLocalBody() {
+        const body = this._localIsPacman ? this.pacman : this.avatar;
+        if (body && body.el) body.el.style.filter = this._localLook();
+    }
+
+    /**
+     * Le moteur de base dessine TOUJOURS notre Pac-Man local avec le sprite
+     * « Ms Pac-Man » (rangée à nœud de `characters.png`). Pour les rôles
+     * `pacman` / `blocker` on rebascule sur le Pac-Man classique (rangée du
+     * haut : un seul « chomp » qu'on fait pivoter selon la direction), pour que
+     * notre perso ait la même tête que ce que les autres voient de nous
+     * (`_makeRemoteSprite` leur donne `makePacmanMan`). `madame_pacman` garde le
+     * nœud, `baby` garde son sprite.
+     * @private
+     */
+    _applyLocalPacmanSprite() {
+        const pac = this.pacman;
+        if (!pac || pac._classicLook) return;
+        if (this.role !== 'pacman' && this.role !== 'blocker') return;
+        pac._classicLook = true;
+
+        const chomp = new Animation({
+            imageURL : 'img/characters.png',
+            numberOfFrame : 3,
+            delta : 64,
+            refreshRate : 60,
+            offsetX : 0,
+            offsetY : 0,
+            type : ANIMATION_HORIZONTAL
+        });
+        pac.animations = { chomp : chomp };
+        pac.defaultAnimation = 'chomp';
+        pac.setNextAnimation = function() {
+            this._nextAnimation = this.animations.chomp;
+            const angle = CLASSIC_ANGLE_BY_DIR[this.dir];
+            if (angle != null && angle !== this.angle) this.rotate(angle);
+        };
+        pac.load();
+        pac.setNextAnimation();
+        if (typeof pac.refresh === 'function') pac.refresh();
     }
 
     /**
@@ -389,6 +471,12 @@ class MultiplayerGame extends JsPacman {
             this.hideGhosts();
             return;
         }
+
+        // Les fantômes IA ne sont pas des joueurs : on les masque en multi pour
+        // qu'on ne les confonde pas avec les vrais fantômes pilotés (le moteur
+        // de base les ré-affiche à certaines transitions, d'où le hide chaque
+        // frame). `_disarmAiGhosts` les a déjà rendus inoffensifs.
+        this.hideGhosts();
 
         if (this._localIsPacman || !this.avatar) return;
 
@@ -816,12 +904,14 @@ class MultiplayerGame extends JsPacman {
         }
         super.reset();
         if (this._localIsPacman) {
+            this._applyLocalPacmanSprite();
             this._blockPacmanOnBuilderWalls();
             this._hookPacmanDots();
             this._disarmAiGhosts();
         } else {
             this._setupLocalAvatar();
         }
+        if (!this._isSpectator) this._styleLocalBody();
         // The level was rebuilt: re-announce our round so the server (re)seeds
         // and switches to `playing`.
         this._roundAnnounced = false;
@@ -902,7 +992,7 @@ class MultiplayerGame extends JsPacman {
         } else {
             this.pacman.speed = this._speedBeforeFreeze || this.pacman.speed;
             this.pacman._speed = this.pacman.speed;
-            this.pacman.el.style.filter = '';
+            this.pacman.el.style.filter = this._localLook();
         }
     }
 
@@ -937,7 +1027,7 @@ class MultiplayerGame extends JsPacman {
         } else {
             this.pacman.speed = this._speedBeforeImprison || this.pacman.speed;
             this.pacman._speed = this.pacman.speed;
-            this.pacman.el.style.filter = '';
+            this.pacman.el.style.filter = this._localLook();
         }
     }
 
@@ -1034,7 +1124,7 @@ class MultiplayerGame extends JsPacman {
         this._wasScared = scared;
         this.avatar.el.style.filter = scared
             ? 'brightness(0.7) sepia(1) hue-rotate(200deg) saturate(4)'
-            : 'drop-shadow(0 0 4px #fff) brightness(1.15)';
+            : this._localLook();
     }
 
     /**
@@ -1138,8 +1228,7 @@ class MultiplayerGame extends JsPacman {
         this.avatar._nextDir = null;
         this._avatarInHouse = true;
 
-        const base = this.avatar.el.style.filter ? this.avatar.el.style.filter + ' ' : '';
-        this.avatar.el.style.filter = base + 'drop-shadow(0 0 4px #fff) brightness(1.15)';
+        this.avatar.el.style.filter = this._localLook();
 
         this.avatar.load();
         this.addSprite(this.avatar);
@@ -1270,10 +1359,10 @@ class MultiplayerGame extends JsPacman {
         remote._netDir = null;
         remote._lastSeen = Date.now();
 
-        if (PACMAN_ROLES.indexOf(role) !== -1) {
-            remote.el.style.filter = `hue-rotate(${this._hue(id)}deg) saturate(1.4)`;
-        }
-        remote.el.style.opacity = '0.9';
+        // Apparence par rôle, la même pour tout le monde (pas de teinte par
+        // joueur : un Pac-Man doit rester jaune sur tous les écrans).
+        remote.el.style.filter = ROLE_LOOK[role] || '';
+        remote.el.style.opacity = '1';
 
         // Load images up front so the engine's preload loop never sees an
         // unloaded animation, then put it on screen.
