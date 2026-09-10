@@ -132,7 +132,9 @@ export default function PacmanGame() {
         // (Scaling) garde le ratio de toute façon.
         const AR = 448 / 576
         const pad = 2 * 16 // padding .pm-root
-        const chrome = 150 // navbar + bouton quitter + marges (vue jeu compacte)
+        // navbar + voyant + rangée de boutons + marges : le scroll étant coupé
+        // pendant la partie, tout doit tenir dans la fenêtre (boutons compris).
+        const chrome = 210
         const availW = window.innerWidth - pad
         const availH = window.innerHeight - chrome
         const w = Math.round(Math.max(260, Math.min(availW, availH * AR, 900)))
@@ -160,6 +162,35 @@ export default function PacmanGame() {
             cancelled = true
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [phase])
+
+    // Pendant la partie : on coupe le scroll de la page. Les flèches et la barre
+    // d'espace pilotent le jeu — sinon elles font défiler la fenêtre sous le
+    // labyrinthe. Rétabli dès qu'on sort du jeu.
+    useEffect(() => {
+        if (phase !== "playing" && phase !== "countdown") return
+
+        const SCROLL_KEYS = new Set([
+            "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight",
+            " ", "Spacebar", "PageUp", "PageDown", "Home", "End",
+        ])
+        const blockKeys = (e: KeyboardEvent) => {
+            const t = e.target as HTMLElement | null
+            if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return
+            if (SCROLL_KEYS.has(e.key)) e.preventDefault()
+        }
+
+        const prevBody = document.body.style.overflow
+        const prevHtml = document.documentElement.style.overflow
+        document.body.style.overflow = "hidden"
+        document.documentElement.style.overflow = "hidden"
+        window.addEventListener("keydown", blockKeys, { passive: false })
+
+        return () => {
+            document.body.style.overflow = prevBody
+            document.documentElement.style.overflow = prevHtml
+            window.removeEventListener("keydown", blockKeys)
+        }
     }, [phase])
 
     function startCountdown(seconds: number) {
