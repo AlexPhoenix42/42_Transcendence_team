@@ -1,6 +1,7 @@
 # Makefile — stack de dev (docker-compose-dev.yml)
 #
-#   make            lance tout (build + up + seed Vault + backend)
+#   make            adapte .env a ce PC (IP LAN) + build + up + seed Vault
+#   make ip         re-detecte l'IP et reecrit .env (a refaire si l'IP change)
 #   make down       arrête
 #   make re         rebuild complet
 #   make seed       re-seed Vault + relance le backend (Vault dev = mémoire :
@@ -23,8 +24,12 @@ builder:
 		docker buildx create --name trans-builder --driver docker-container --use >/dev/null
 	@docker buildx use trans-builder >/dev/null 2>&1 || true
 
+.PHONY: ip
+ip:
+	@bash scripts_dev/gen-dev-env.sh
+
 .PHONY: up
-up: builder
+up: ip builder
 	$(COMPOSE) up -d --build
 	@$(MAKE) --no-print-directory seed
 
@@ -36,7 +41,8 @@ seed:
 	$(COMPOSE) restart backend_django
 	@sleep 6
 	$(COMPOSE) up -d
-	@echo "→ http://localhost:3000   (login local : cf. équipe)"
+	@echo "→ serveur : $$(grep ^FRONTEND_URL= .env | cut -d= -f2)"
+	@echo "  les autres postes du LAN se connectent sur cette URL, login local test/test1234"
 
 .PHONY: down
 down:

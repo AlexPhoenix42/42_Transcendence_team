@@ -157,13 +157,13 @@ services:
     read_only: true
     tmpfs:
       - /tmp
-    deploy:
-      resources:
-        limits:
-          cpus:           "1.0"
-          memory: 512M
-          #mem_limit:      512M
-          #memswap_limit:  -1
+    # NOTE(local): desactive - kernel sans CFS scheduler/cgroup cpu
+    # ("NanoCPUs can not be set"). Ne pas committer (machine-local).
+    #deploy:
+    #  resources:
+    #    limits:
+    #      cpus: "1.0"
+    #      memory: 512M
     networks:
       - trans_net
 
@@ -249,9 +249,10 @@ services:
     ports:
       - "3000:80"
     volumes:
-      - ./frontend/dist:/usr/share/nginx/html:ro
-      - ./frontend/docker_conf/nginx.conf:/etc/nginx/nginx.conf:ro
-      #- ./frontend/docker_conf/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      # NOTE(local): pointe sur frontend-react + conf proxy locale. Ne pas committer.
+      - ./frontend-react/dist:/usr/share/nginx/html:ro
+      - ./frontend/docker_conf/nginx.local.conf:/etc/nginx/nginx.conf:ro
+      - /dev/null:/docker-entrypoint.d/91-update-resolver.sh:ro
     depends_on:
       backend_django:
         condition:  service_healthy
@@ -260,7 +261,7 @@ services:
     networks:
       - trans_net
     healthcheck:
-      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider $${FRONTEND_URL}/health || exit 1"]
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://127.0.0.1/health || exit 1"]
       interval:     30s
       timeout:      10s
       retries:      3

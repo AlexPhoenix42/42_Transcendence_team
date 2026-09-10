@@ -375,3 +375,8 @@
 @media (max-width: 640px) {
     .pm-game-stage { border-color: #33322e; border-radius: 0; }
 }
+
+/* vue jeu : compacte, le labyrinthe prend la place */
+.pm-root-game { padding-top: 14px; padding-bottom: 14px; }
+.pm-root-game .pm-wrap { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.pm-quit { margin: 0; font-size: 10px; }

@@ -39,3 +39,5 @@ vault/certs/
 vault/secrets/
 
 frontend-react/tsconfig.tsbuildinfo
+.env
+.gitignore

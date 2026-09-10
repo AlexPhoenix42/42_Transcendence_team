@@ -119,12 +119,16 @@ export default function PacmanGame() {
         if (phase !== "playing" || !stageRef.current || gameRef.current) return
         const el = stageRef.current
 
-        // Aspect natif jsPacman 448:576. On remplit l'espace dispo (largeur ET
-        // hauteur du viewport), le moteur (Scaling) garde le ratio.
+        // Aspect natif jsPacman = 448:576 (portrait). On prend la plus grande
+        // taille qui tient dans la fenêtre (largeur ET hauteur), le moteur
+        // (Scaling) garde le ratio de toute façon.
         const AR = 448 / 576
-        const availW = Math.min(window.innerWidth - 24, 820)
-        const availH = window.innerHeight - 170
-        const w = Math.max(280, Math.min(availW, availH * AR))
+        const pad = 2 * 16 // padding .pm-root
+        const chrome = 150 // navbar + bouton quitter + marges (vue jeu compacte)
+        const availW = window.innerWidth - pad
+        const availH = window.innerHeight - chrome
+        const w = Math.round(Math.max(260, Math.min(availW, availH * AR, 900)))
+        const h = Math.round(w / AR)
 
         let cancelled = false
         import("../pacman/net/MultiplayerGame.js")
@@ -133,7 +137,7 @@ export default function PacmanGame() {
                 gameRef.current = new MultiplayerGame({
                     el,
                     width: w,
-                    height: w / AR,
+                    height: h,
                     position: "relative",
                     room: roomName,
                     role: myRole,
@@ -218,17 +222,15 @@ export default function PacmanGame() {
 
     if (phase === "playing") {
         return (
-            <div className="pm-root">
+            <div className="pm-root pm-root-game">
                 <div className="pm-wrap pm-center">
-                    <div className="pm-header">🎮 {roomName}</div>
                     {error && <div className="pm-alert pm-err">{error}</div>}
                     <div ref={stageRef} className="pm-game-stage js-pacman-playground" />
                     <button
-                        className="pm-btn pm-ghost"
-                        style={{ marginTop: 16 }}
+                        className="pm-btn pm-ghost pm-quit"
                         onClick={leave}
                     >
-                        ❌ Quitter la partie
+                        ❌ {roomName} — Quitter
                     </button>
                 </div>
             </div>
