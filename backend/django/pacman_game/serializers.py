@@ -9,6 +9,7 @@ from typing import Any
 from rest_framework         import serializers
 
 from .models                import Game, GamePlayer
+from .consumers              import _load_state_sync
 
 
 class GamePlayerSerializer(serializers.ModelSerializer):
@@ -30,7 +31,19 @@ class GamePlayerSerializer(serializers.ModelSerializer):
 class GameSerializer(serializers.ModelSerializer):
     created_by:     Any = serializers.StringRelatedField()
     players             = GamePlayerSerializer(many=True, read_only=True)
-    player_count       = serializers.IntegerField(source="players.count", read_only=True)
+    # `GamePlayer` DB rows only get written when a round ENDS (see
+    # consumers.py's _persist_result) - counting them here would show 0 for
+    # every WAITING/IN_PROGRESS room no matter how many people are actually
+    # connected. The real-time roster lives in Redis (RoomState, same cache
+    # the WS consumer reads/writes) - read it first, and fall back to the
+    # DB count only once the room is over and its Redis entry has expired.
+    player_count       = serializers.SerializerMethodField()
+
+    def get_player_count(self, obj: Game) -> int:
+        room = _load_state_sync(obj.room_name)
+        if room is not None:
+            return len(room.players)
+        return obj.players.count()
 
     class Meta:             # type: ignore[reportIncompatibleVariableOverride]
         model   = Game
