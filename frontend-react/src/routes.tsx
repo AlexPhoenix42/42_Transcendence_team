@@ -29,6 +29,9 @@ import Analytics from "./pages/Analytics.tsx"
 import GooseLobby from "./pages/GooseLobby.tsx"
 import GooseGame from "./pages/GooseGame.tsx"
 
+import PrivacyPolicy from "./pages/PrivacyPolicy"
+import TermsOfService from "./pages/TermsOfService"
+
 import ForgotPassword from "./pages/ForgotPassword.tsx"
 import ResetPassword from "./pages/ResetPassword.tsx"
 
@@ -74,6 +77,9 @@ export const router = createBrowserRouter([
 
 					{ path: "/goose", element: <GooseLobby /> },
                     { path: "/goose/:id", element: <GooseGame /> },
+
+					{ path: "/privacy-policy", element: <PrivacyPolicy /> },
+					{ path: "/terms-of-service", element: <TermsOfService /> },
                 ],
             },
         ],
