@@ -323,7 +323,7 @@ services:
     volumes:
       - ./frontend/logs/modsecurity:/var/log/modsecurity
       #- ./frontend/dist:/usr/share/nginx/html:ro   # this for dep
-      - ./frontend-Alex/public:/usr/share/nginx/html:ro  # this for dev
+      #- ./frontend-Alex/public:/usr/share/nginx/html:ro  # this for dev
       - ./vault/certs:/vault/certs:ro
       #- ./frontend/docker_conf/nginx.conf:/etc/nginx/nginx.conf:ro
       #- ./frontend/docker_conf/nginx.conf:/etc/nginx/conf.d/default.conf:ro
