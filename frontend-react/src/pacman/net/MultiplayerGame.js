@@ -17,6 +17,12 @@ import WallLayer, { BUILDER_WALL_CODE, BLOCKER_WALL_CODE } from './WallLayer.js'
 /** No-op for the character constructor hooks a remote player never needs. */
 const noop = () => {};
 
+/** Boîte de rendu (px) de chaque perso en multi - le défaut du moteur (60,
+ * 64 pour un fantôme) déborde dans les coins serrés du labyrinthe. Réduit
+ * uniformément ici, jamais dans Game.js/Character.js : la position logique
+ * (x,y, collisions) ne dépend pas de cette taille, seul le rendu rétrécit. */
+const SPRITE_SIZE = 48;
+
 /** Space bar: Builder drops a wall, Ghost uses freeze. */
 const KEY_ACTION = 32;
 
@@ -181,6 +187,7 @@ class MultiplayerGame extends JsPacman {
             this._setupSpectator();
         } else if (this._localIsPacman) {
             this._applyLocalPacmanSprite();
+            this._resizeLocalPacman();
             this._blockPacmanOnBuilderWalls();
             this._hookPacmanDots();
             this._disarmAiGhosts();
@@ -218,6 +225,27 @@ class MultiplayerGame extends JsPacman {
         pac.animations = PLAIN_PACMAN_ANIMATIONS;
         pac.load();
         pac.setNextAnimation();
+    }
+
+    /**
+     * Le Pac-Man local vient du moteur de base à sa taille par défaut (60px) -
+     * trop grand pour les coins serrés du labyrinthe (voir {@link SPRITE_SIZE}).
+     * `offsetX`/`offsetY` (Item.js) = moitié de la largeur/hauteur et servent à
+     * centrer le rendu sur (x,y) : on les recalcule après coup, sinon le
+     * sprite resterait décentré avec l'ancien offset.
+     * @private
+     */
+    _resizeLocalPacman() {
+        const pac = this.pacman;
+        if (!pac) return;
+        pac.width = SPRITE_SIZE;
+        pac.height = SPRITE_SIZE;
+        pac.offsetX = SPRITE_SIZE / 2;
+        pac.offsetY = SPRITE_SIZE / 2;
+        if (pac.el) {
+            pac.el.style.width = `${SPRITE_SIZE}px`;
+            pac.el.style.height = `${SPRITE_SIZE}px`;
+        }
     }
 
     /**
@@ -885,6 +913,7 @@ class MultiplayerGame extends JsPacman {
         super.reset();
         if (this._localIsPacman) {
             this._applyLocalPacmanSprite();
+            this._resizeLocalPacman();
             this._blockPacmanOnBuilderWalls();
             this._hookPacmanDots();
             this._disarmAiGhosts();
@@ -1362,6 +1391,8 @@ class MultiplayerGame extends JsPacman {
         return {
             map : this.map,
             factor : this.scaling.getFactor(),
+            width : SPRITE_SIZE,
+            height : SPRITE_SIZE,
             normalizeRefreshRate : this.normalizeRefreshRate.bind(this),
             addGameGhostEatEventListener : noop,
             addGameGhostModeFrightenedEnter : noop,
@@ -1377,6 +1408,8 @@ class MultiplayerGame extends JsPacman {
         return {
             map : this.map,
             factor : this.scaling.getFactor(),
+            width : SPRITE_SIZE,
+            height : SPRITE_SIZE,
             normalizeRefreshRate : this.normalizeRefreshRate.bind(this),
             addGameGlobalModeEventListener : noop,
             addGameGhostEatenEventListener : noop,
