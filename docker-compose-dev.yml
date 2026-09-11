@@ -1,0 +1,331 @@
+services:
+  postgres:
+    build:
+      context:      db_server/docker_conf
+      dockerfile:   Dockerfile
+      target:       dev
+      pull:         false
+      cache_from:
+        - type=local,src=${HOME}/goinfre/trans_cache/postgres
+      cache_to:
+        - type=local,dest=${HOME}/goinfre/trans_cache/postgres,mode=max
+    container_name: trans_db_server
+    restart:        unless-stopped
+    environment:
+      POSTGRES_USER:      ${DB_SERVER_USER}
+      POSTGRES_PASSWORD:  ${DB_SERVER_PASS}
+      POSTGRES_DB:        ${DB_SERVER_DB}
+      FRONTEND_URL:       ${FRONTEND_URL}
+    ports:
+      - "${DB_PORT}:5432"   # The internal port stays hard-coded (internal confs deps)
+    volumes:
+      - ${HOME}/goinfre/trans_data/trans_db_server_data:/var/lib/postgresql
+    networks:
+      - trans_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_SERVER_USER} -d ${DB_SERVER_DB}"]
+      interval:     5s
+      timeout:      5s
+      retries:      5
+      start_period: 120s
+
+  redis:
+    image:            redis:8-alpine
+    container_name:   trans_redis
+    restart:          unless-stopped
+    networks:
+      - trans_net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout:  5s
+      retries:  5
+
+  vault-init:
+    image:          hashicorp/vault:latest
+    depends_on:
+      vault:
+        condition:  service_healthy
+    environment:
+      VAULT_ADDR:   http://vault:8200
+      VAULT_TOKEN:  root
+    volumes:
+      - ./.env:/app/.env:ro
+      - ./scripts_dev/seed_vault.sh:/app/seed_vault.sh:ro
+    entrypoint:     ["/bin/sh", "-c"]
+    command:
+      - |
+        /app/seed_vault.sh
+    restart:        "no"
+    networks:
+      - trans_net
+
+  vault:
+    build:
+      context:      vault
+      dockerfile:   docker_conf/Dockerfile
+      target:       dev
+      pull:         false
+      cache_from:
+        - type=local,src=${HOME}/goinfre/trans_cache/vault
+      cache_to:
+        - type=local,dest=${HOME}/goinfre/trans_cache/vault,mode=max
+    container_name:             trans_vault
+    restart:                    unless-stopped
+    environment:
+      VAULT_MODE:               dev
+      VAULT_DEV_ROOT_TOKEN_ID:  root
+      VAULT_ADDR:                ${VAULT_URL}
+    ports:
+      - "8200:8200"
+    volumes:
+      #- ./vault/docker_conf/config-dev.hcl:/vault/config/config.hcl:ro
+      #- ./vault/data:/vault/data
+      - ${HOME}/goinfre/trans_data/trans_vault_data:/vault/data
+    networks:
+      - trans_net
+    healthcheck:
+      test: ["CMD", "vault", "status"]
+      interval:     10s
+      timeout:      5s
+      retries:      5
+      start_period: 15s
+
+  mailpit:
+    image:            axllent/mailpit
+    container_name:   mailpit
+    restart:          unless-stopped
+    ports:
+      - "8025:8025" # web UI
+      - "1025:1025" # SMTP server
+    networks:
+      - trans_net
+
+  engine-builder:
+    build:
+      context:      backend/chess_engine
+      dockerfile:   docker_conf/Dockerfile
+      target:       build
+      pull:         false
+    container_name: engine-builder
+    volumes:
+      - ./backend/chess_engine/srcs:/app/srcs:ro
+      - ./backend/chess_engine/incs:/app/incs:ro
+      - ./backend/chess_engine/Makefile:/app/Makefile:ro
+      - ./backend/chess_engine/bin:/app/bin
+    command: sh -c "make clean && make"
+    networks:
+      - trans_net
+
+  chess_engine:
+    build:
+      context:      backend/chess_engine
+      dockerfile:   docker_conf/Dockerfile
+      pull:         false
+      cache_from:
+        - type=local,src=${HOME}/goinfre/trans_cache/chess_engine
+      cache_to:
+        - type=local,dest=${HOME}/goinfre/trans_cache/chess_engine,mode=max
+    container_name: chess_engine
+    restart:        unless-stopped
+    environment:
+      ENGINE_PORT: 4190
+    expose:
+      - "4190"
+    networks:
+      - trans_net
+
+  stockfish_ai:
+    build:
+      context:      backend/stockfish_ai
+      dockerfile:   docker_conf/Dockerfile
+      pull:         false
+      cache_from:
+        - type=local,src=${HOME}/goinfre/trans_cache/stockfish_ai
+      cache_to:
+        - type=local,dest=${HOME}/goinfre/trans_cache/stockfish_ai,mode=max
+    container_name: stockfish_ai
+    restart:        unless-stopped
+    environment:
+      ENGINE_PORT: 4191
+    expose:
+      - "4191"
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+    deploy:
+      resources:
+        limits:
+          cpus:           "1.0"
+          memory: 512M
+          #mem_limit:      512M
+          #memswap_limit:  -1
+    networks:
+      - trans_net
+
+  backend_django:
+    build:
+      context:      backend/django
+      dockerfile:   docker_conf/Dockerfile
+      target:       dev
+      pull:         false
+      cache_from:
+        - type=local,src=${HOME}/goinfre/trans_cache/backend_django
+      cache_to:
+        - type=local,dest=${HOME}/goinfre/trans_cache/backend_django,mode=max
+    container_name: trans_backend_django
+    restart:        unless-stopped
+    env_file:
+      - .env
+    environment:
+      DB_HOST:      trans_db_server
+      DB_PORT:      "5432"
+      REDIS_HOST:   trans_redis
+      REDIS_PORT:   "6379"
+    ports:
+      - "9000:9000"
+    volumes:
+      - ./backend/django:/django
+    depends_on:
+      postgres:
+        condition:  service_healthy
+      redis:
+        condition:  service_healthy
+      vault:
+        condition:  service_healthy
+      vault-init:
+        condition:  service_completed_successfully
+    networks:
+      - trans_net
+    healthcheck:
+      test: ["CMD", "python", "manage.py", "healthcheck"]
+      interval:     10s
+      timeout:      5s
+      retries:      5
+      start_period: 15s
+
+  timeout_checker:
+    build:
+      context:      backend
+      dockerfile:   timeout_checker/docker_conf/Dockerfile
+      pull:         false
+      cache_from:
+        - type=local,src=${HOME}/goinfre/trans_cache/timeout_checker
+      cache_to:
+        - type=local,dest=${HOME}/goinfre/trans_cache/timeout_checker,mode=max
+    container_name: trans_timeout_checker
+    restart:        unless-stopped
+    env_file:
+      - .env
+    environment:
+      DB_HOST:      trans_db_server
+      #DB_PORT:      ${DB_PORT}
+      DB_PORT:      "5432"
+      REDIS_HOST:   trans_redis
+      REDIS_PORT:   ${REDIS_PORT}
+    depends_on:
+      postgres:
+        condition:  service_healthy
+      redis:
+        condition:  service_healthy
+    networks:
+      - trans_net
+     
+  frontend_nginx:
+    build:
+      context:      frontend
+      dockerfile:   docker_conf/Dockerfile
+      pull:         false
+      cache_from:
+        - type=local,src=${HOME}/goinfre/trans_cache/frontend_nginx
+      cache_to:
+        - type=local,dest=${HOME}/goinfre/trans_cache/frontend_nginx,mode=max
+    container_name: trans_frontend_nginx
+    restart:        unless-stopped
+    ports:
+      - "3000:80"
+    volumes:
+      - ./frontend/dist:/usr/share/nginx/html:ro
+      - ./frontend/docker_conf/nginx.conf:/etc/nginx/nginx.conf:ro
+      #- ./frontend/docker_conf/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      backend_django:
+        condition:  service_healthy
+    environment:
+      FRONTEND_URL: ${FRONTEND_URL}
+    networks:
+      - trans_net
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider $${FRONTEND_URL}/health || exit 1"]
+      interval:     30s
+      timeout:      10s
+      retries:      3
+      start_period: 5s
+
+networks:
+  trans_net:
+    driver: bridge
+
+
+
+
+
+
+
+
+
+
+
+#version: '3.9'
+#
+#services:
+#
+#  frontend:
+#    build: ./frontend
+#    volumes:
+#      - ./frontend:/app
+#      - /app/node_modules        # keep node_modules inside container
+#    depends_on:
+#      - backend
+#
+#  backend:
+#    build: ./backend
+#    env_file: .env
+#    volumes:
+#      - ./backend:/app
+#    depends_on:
+#      - db
+#      - redis
+#
+#  engine:
+#    build: ./engine
+#    volumes:
+#      - ./engine:/app
+#
+#  db:
+#    image: postgres:16-alpine
+#    env_file: .env
+#    volumes:
+#      - postgres_data:/var/lib/postgresql/data
+#
+#  redis:
+#    image: redis:7-alpine
+#
+#  nginx:
+#    build: ./nginx
+#    ports:
+#      - "443:443"
+#      - "80:80"
+#    volumes:
+#      - ./nginx/certs:/etc/nginx/certs
+#    depends_on:
+#      - frontend
+#      - backend
+#
+#volumes:
+#  postgres_data:
+#

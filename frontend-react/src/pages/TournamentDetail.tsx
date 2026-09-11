@@ -571,7 +571,7 @@ export default function TournamentDetail() {
 
                 {chatOpen && (
                     <>
-						<div className="border-t border-gray-700 p-3 h-64 overflow-y-auto space-y-2">
+						<div className="border-t border-gray-700 p-3 h-48 md:h-64 overflow-y-auto space-y-2">
                             {chatMessages.length === 0 && (
                                 <p className="text-gray-500 text-xs text-center">No messages yet</p>
                             )}

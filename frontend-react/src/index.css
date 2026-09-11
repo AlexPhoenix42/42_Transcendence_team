@@ -1,2 +1,21 @@
 @import "tailwindcss";
 
+/* Tell browsers this is a dark site — don't apply forced dark mode */
+:root {
+    color-scheme: dark only;
+}
+
+/* Protect chess pieces from any forced color inversion */
+img[src*="/pieces/"] {
+    filter: none !important;
+    -webkit-filter: none !important;
+    mix-blend-mode: normal !important;
+    forced-color-adjust: none !important;
+}
+
+/* Protect the chessboard */
+.chess-board-wrapper,
+.chess-board-wrapper * {
+    forced-color-adjust: none !important;
+}
+

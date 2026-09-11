@@ -161,6 +161,7 @@ INSTALLED_APPS = [
     'config',
 
     'chess_game',
+    'goose_game',
 
     'users',
     'friends',

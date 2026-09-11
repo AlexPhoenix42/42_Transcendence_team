@@ -96,7 +96,7 @@ export default function TournamentBracket({ matches, currentUser, isStaff, onSta
                         ? "border-gray-600"
                         : "border-gray-700"
                 } bg-gray-800`}
-                style={{ height: `${MATCH_H}px` }}
+				style={{ minHeight: `${MATCH_H}px` }}
             >
                 <div className={`px-3 py-2 flex items-center ${match.winner === match.player1 ? "bg-green-900/20" : ""}`}>
                     <div className="flex items-center gap-2 min-w-0">

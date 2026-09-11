@@ -376,7 +376,7 @@ export default function AdminDashboard() {
                         {users.map((u) => (
                             <div
                                 key={u.id}
-                                className={`flex items-center gap-3 p-3 rounded-lg border ${
+								className={`flex flex-col md:flex-row items-start md:items-center gap-3 p-3 rounded-lg border ${
                                     !u.is_active ? "border-red-800 bg-red-900/10" : "border-gray-700 bg-gray-900/50"
                                 }`}
                             >
@@ -413,7 +413,7 @@ export default function AdminDashboard() {
 
                                 {/* Actions */}
                                 {u.username !== user?.username && u.role !== "admin" && (
-                                    <div className="flex items-center gap-2">
+									<div className="flex flex-wrap items-center gap-2">
                                         <select
                                             value={u.role}
                                             onChange={(e) => updateUserRole(u.id, e.target.value)}

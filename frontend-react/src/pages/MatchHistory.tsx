@@ -131,7 +131,7 @@ export default function MatchHistory() {
             </div>
 
             {/* Match list */}
-            <div className="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden">
+			<div className="bg-gray-800 rounded-lg border border-gray-700 overflow-x-auto">
                 {matches.length === 0 && (
                     <p className="text-gray-400 text-center py-6">No matches played yet</p>
                 )}
@@ -140,15 +140,15 @@ export default function MatchHistory() {
                     <div
                         key={match.id}
                         onClick={() => navigate(`/chess/${match.id}`)}
-                        className="flex items-center gap-4 px-4 py-3 border-b border-gray-700/50 cursor-pointer hover:bg-gray-700/50"
+						className="grid grid-cols-[4rem_1fr_2rem_6rem_4rem_8rem] items-center gap-2 px-4 py-3 border-b border-gray-700/50 cursor-pointer hover:bg-gray-700/50 min-w-[600px]"
                     >
-                        {/* Result badge */}
-                        <div className="w-16">
+					    {/* Result badge */}
+                        <div>
                             {resultBadge(match.result)}
                         </div>
 
                         {/* Opponent */}
-                        <div className="flex items-center gap-3 flex-1">
+                        <div className="flex items-center gap-3 min-w-0">
                             {match.opponent_avatar ? (
                                 <img
                                     src={match.opponent_avatar}
@@ -156,20 +156,20 @@ export default function MatchHistory() {
                                     className="w-8 h-8 rounded-full object-cover"
                                 />
                             ) : (
-                                <div className="w-8 h-8 rounded-full bg-gray-600 flex items-center justify-center text-white text-sm font-bold">
+                                <div className="w-8 h-8 rounded-full bg-gray-600 flex items-center justify-center text-white text-sm font-bold shrink-0">
                                     {match.opponent[0].toUpperCase()}
                                 </div>
                             )}
-                            <div>
-                                <span className="text-white text-sm font-semibold">{match.opponent}</span>
+                            <div className="min-w-0">
+                                <span className="text-white text-sm font-semibold truncate block">{match.opponent}</span>
                                 {match.player2_is_ai && (
-                                    <span className="text-yellow-400 text-xs ml-1">(AI)</span>
+                                    <span className="text-yellow-400 text-xs">(AI)</span>
                                 )}
                             </div>
                         </div>
 
                         {/* Color played */}
-                        <div className="w-8 flex justify-center">
+                        <div className="flex justify-center">
                             <div className={`w-5 h-5 rounded-full border-2 ${
                                 match.player_color === "white"
                                     ? "bg-white border-gray-400"
@@ -178,17 +178,17 @@ export default function MatchHistory() {
                         </div>
 
                         {/* Reason */}
-                        <div className="w-32 text-right">
+                        <div className="text-right">
                             <span className="text-gray-400 text-xs">{reasonLabel(match.result_reason)}</span>
                         </div>
 
                         {/* Moves */}
-                        <div className="w-16 text-right">
+                        <div className="text-right">
                             <span className="text-gray-500 text-xs">{match.moves_count} moves</span>
                         </div>
 
                         {/* Date */}
-                        <div className="w-36 text-right">
+                        <div className="text-right">
                             <span className="text-gray-500 text-xs">{formatDate(match.date)}</span>
                         </div>
                     </div>

@@ -48,6 +48,7 @@ export default defineConfig({
 			"10.3.1.4.nip.io",
 			".nip.io",  // This allows all subdomains of nip.io
 			"mi-r1-p4",
+			"100.103.253.101",
 			"localhost",
 			"127.0.0.1"
 		],

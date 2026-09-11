@@ -369,9 +369,9 @@ export default function Chat() {
     }
 
     return (
-        <div className="max-w-4xl mx-auto flex gap-4 h-[calc(100vh-120px)]">
+		<div className="max-w-4xl mx-auto flex flex-col md:flex-row gap-4 h-[calc(100vh-120px)]">
             {/* Sidebar */}
-            <div className="w-48 bg-gray-800 rounded-lg border border-gray-700 p-3 flex flex-col gap-2 overflow-y-auto">
+			<div className="w-full md:w-48 bg-gray-800 rounded-lg border border-gray-700 p-3 flex flex-row md:flex-col gap-2 overflow-x-auto md:overflow-y-auto shrink-0">
                 <button
                     onClick={connectToGlobal}
                     className={`text-left px-3 py-2 rounded ${tab === "global" && !dmTarget ? "bg-blue-600 text-white" : "text-gray-300 hover:bg-gray-700"}`}
@@ -403,7 +403,7 @@ export default function Chat() {
             </div>
 
             {/* Chat area */}
-            <div className="flex-1 bg-gray-800 rounded-lg border border-gray-700 flex flex-col">
+			<div className="flex-1 min-h-0 bg-gray-800 rounded-lg border border-gray-700 flex flex-col">
                 {/* Header */}
 				<div className="p-4 border-b border-gray-700 flex items-center gap-2">
                     <h2 className="text-white font-semibold">
@@ -420,7 +420,7 @@ export default function Chat() {
                 )}
 
                 {/* Messages */}
-                <div className="flex-1 overflow-y-auto p-4 space-y-3">
+				<div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-3">
                     {messages.length === 0 && (
                         <p className="text-gray-500 text-center mt-10">No messages yet</p>
                     )}
@@ -512,7 +512,8 @@ export default function Chat() {
                                 key={msg.id}
                                 className={`flex flex-col ${msg.sender === user?.username ? "items-end" : "items-start"}`}
                             >
-                                <div className={`max-w-xs px-4 py-2 rounded-lg ${msg.sender === user?.username ? "bg-blue-600 text-white" : "bg-gray-700 text-white"}`}>
+								{/*<div className={`max-w-xs px-4 py-2 rounded-lg ${msg.sender === user?.username ? "bg-blue-600 text-white" : "bg-gray-700 text-white"}`}>*/}
+								<div className={`max-w-[70%] md:max-w-xs px-3 py-1.5 md:px-4 md:py-2 rounded-lg ${msg.sender === user?.username ? "bg-blue-600 text-white" : "bg-gray-700 text-white"}`}>
                                     {msg.sender !== user?.username && (
                                         <p className="text-xs mb-1">
                                             <span
@@ -625,7 +626,8 @@ export default function Chat() {
                 )}
 
                 {/* Input */}
-                <form onSubmit={handleSend} className="p-4 border-t border-gray-700 flex gap-2">
+				{/*<form onSubmit={handleSend} className="p-4 border-t border-gray-700 flex gap-2">*/}
+				<form onSubmit={handleSend} className="p-2 md:p-4 border-t border-gray-700 flex gap-2">
                     <input
                         type="text"
                         value={input}
@@ -647,11 +649,17 @@ export default function Chat() {
                             ⚔️
                         </button>
                     )}
-                    <button
+					{/*<button
                         type="submit"
                         className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
                     >
                         Send
+                    </button>*/}
+					<button
+                        type="submit"
+                        className="px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm shrink-0"
+                    >
+                        ➤
                     </button>
                 </form>
             </div>

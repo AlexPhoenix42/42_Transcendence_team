@@ -75,7 +75,7 @@ export default function Leaderboard() {
                 </div>
             )}
 
-            <div className="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden">
+			<div className="grid grid-cols-12 gap-2 px-4 py-3 bg-gray-900 text-gray-400 text-sm font-semibold min-w-[600px]">
                 {/* Header */}
                 <div className="grid grid-cols-12 gap-2 px-4 py-3 bg-gray-900 text-gray-400 text-sm font-semibold">
                     <div className="col-span-1">Rank</div>
@@ -95,7 +95,7 @@ export default function Leaderboard() {
                     <div
                         key={entry.username}
                         onClick={() => navigate(`/profile/${entry.username}`)}
-                        className={`grid grid-cols-12 gap-2 px-4 py-3 items-center cursor-pointer hover:bg-gray-700/50 border-t border-gray-700/50 ${
+						className={`grid grid-cols-12 gap-2 px-4 py-3 items-center cursor-pointer hover:bg-gray-700/50 border-t border-gray-700/50 min-w-[600px] ${
                             entry.username === user?.username ? "bg-blue-900/20" : ""
                         }`}
                     >

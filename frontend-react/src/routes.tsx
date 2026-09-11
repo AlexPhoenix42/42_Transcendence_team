@@ -26,6 +26,9 @@ import Leaderboard from "./pages/Leaderboard.tsx"
 import MatchHistory from "./pages/MatchHistory.tsx"
 import Analytics from "./pages/Analytics.tsx"
 
+import GooseLobby from "./pages/GooseLobby.tsx"
+import GooseGame from "./pages/GooseGame.tsx"
+
 import ForgotPassword from "./pages/ForgotPassword.tsx"
 import ResetPassword from "./pages/ResetPassword.tsx"
 
@@ -40,6 +43,7 @@ export const router = createBrowserRouter([
 			{ path: "/forgot-password", element: <ForgotPassword /> },
 			{ path: "/reset", element: <ResetPassword /> },
 			{ path: "/2fa", element: <Verify2FA /> },
+
         ],
     },
 
@@ -67,6 +71,9 @@ export const router = createBrowserRouter([
 					{ path: "/history", element: <MatchHistory /> },
 					{ path: "/history/:username", element: <MatchHistory /> },
 					{ path: "/analytics", element: <Analytics /> },
+
+					{ path: "/goose", element: <GooseLobby /> },
+                    { path: "/goose/:id", element: <GooseGame /> },
                 ],
             },
         ],
