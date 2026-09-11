@@ -4,7 +4,8 @@ import { STATE_RUNNING } from '../engine/Game.js';
 import { STATUS_PLAY, STATUS_SPLASH } from '../GameModel.js';
 import { KEY_UP, KEY_RIGHT, KEY_DOWN, KEY_LEFT } from '../engine/Keyboard.js';
 import makeMsPacman from '../factory/makeMsPacman.js';
-import makePacmanMan from '../factory/makePacmanMan.js';
+import makePacmanPlain from '../factory/makePacmanPlain.js';
+import { animations as PLAIN_PACMAN_ANIMATIONS } from '../PacmanPlain.js';
 import makePacmanBaby from '../factory/makePacmanBaby.js';
 import makeGhost from '../factory/makeGhost.js';
 import makeBuilder from '../factory/makeBuilder.js';
@@ -179,6 +180,7 @@ class MultiplayerGame extends JsPacman {
         if (this._isSpectator) {
             this._setupSpectator();
         } else if (this._localIsPacman) {
+            this._applyLocalPacmanSprite();
             this._blockPacmanOnBuilderWalls();
             this._hookPacmanDots();
             this._disarmAiGhosts();
@@ -196,6 +198,26 @@ class MultiplayerGame extends JsPacman {
      */
     _localLook() {
         return ((ROLE_LOOK[this.role] || '') + ' ' + SELF_GLOW).trim();
+    }
+
+    /**
+     * Le moteur de base dessine TOUJOURS notre Pac-Man local avec le sprite
+     * Ms Pac-Man (nœud + rouge à lèvres). Pour les rôles `pacman` / `blocker`
+     * on bascule sur le même rig SANS rotation (4 vraies directions, comme
+     * `_makeRemoteSprite` le fait déjà pour les autres joueurs) mais sans le
+     * nœud/rouge à lèvres - juste un échange d'image, aucune géométrie ne
+     * change, donc aucun risque de désalignement en tournant.
+     * `madame_pacman` garde le sprite d'origine (nœud).
+     * @private
+     */
+    _applyLocalPacmanSprite() {
+        const pac = this.pacman;
+        if (!pac || pac._plainLook) return;
+        if (this.role !== 'pacman' && this.role !== 'blocker') return;
+        pac._plainLook = true;
+        pac.animations = PLAIN_PACMAN_ANIMATIONS;
+        pac.load();
+        pac.setNextAnimation();
     }
 
     /**
@@ -862,6 +884,7 @@ class MultiplayerGame extends JsPacman {
         }
         super.reset();
         if (this._localIsPacman) {
+            this._applyLocalPacmanSprite();
             this._blockPacmanOnBuilderWalls();
             this._hookPacmanDots();
             this._disarmAiGhosts();
@@ -1379,7 +1402,9 @@ class MultiplayerGame extends JsPacman {
             case 'madame_pacman':
                 return makeMsPacman({ ...this._pacmanAttrs(), ...at });
             default:
-                return makePacmanMan({ ...this._pacmanAttrs(), ...at });
+                // 'pacman' / 'blocker' : même rig que Ms Pac-Man (4 directions,
+                // jamais de rotation) mais sans le nœud/rouge à lèvres.
+                return makePacmanPlain({ ...this._pacmanAttrs(), ...at });
         }
     }
 
