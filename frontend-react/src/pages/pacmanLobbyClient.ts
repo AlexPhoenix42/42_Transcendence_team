@@ -47,7 +47,14 @@ export class PacmanLobbyClient {
     }
 
     on(
-        event: "roster" | "start" | "error" | "open" | "close" | "closed",
+        event:
+            | "roster"
+            | "start"
+            | "error"
+            | "open"
+            | "close"
+            | "closed"
+            | "roleRejected",
         fn: Handler,
     ): this {
         ;(this.handlers[event] ||= []).push(fn)
@@ -131,6 +138,15 @@ export class PacmanLobbyClient {
                     this.roster.set(msg.player_id, cur)
                     this.emitRoster()
                 }
+                break
+            case "role_rejected":
+                // Quelqu'un d'autre a déjà ce personnage : le serveur a refusé,
+                // on revient au rôle qu'il nous reconnaît vraiment (souvent
+                // "spectator" si on n'en avait pas encore d'autre).
+                this.me.role = msg.current_role || "spectator"
+                this.emit("roleRejected", this.me.role)
+                this.hello()
+                this.emitRoster()
                 break
             case "lobby_start":
                 this.emit("start", typeof msg.countdown === "number" ? msg.countdown : 3)

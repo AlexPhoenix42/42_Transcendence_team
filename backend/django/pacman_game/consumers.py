@@ -81,6 +81,22 @@ def _release_empty_room_sync(room_name):
     ])
 
 
+def _reset_game_to_waiting_sync(room_name):
+    """Manche terminée, les joueurs veulent une revanche : la ligne Game
+    redevient WAITING (visible/rejoignable comme un salon tout neuf) quel
+    que soit son statut actuel (typiquement FINISHED - contrairement à
+    `_release_empty_room_sync`, qui la supprimerait dans ce cas, on la garde :
+    ce salon a des joueurs qui reviennent, pas personne)."""
+    from .models import Game, GameStatus
+    Game.objects.filter(room_name=room_name).update(
+        status=GameStatus.WAITING,
+        started_at=None,
+        finished_at=None,
+        winner=None,
+        last_active=timezone.now(),
+    )
+
+
 def _lobby_idle_age_sync(room_name):
     """Secondes d'inactivité si le salon est en attente, sinon None."""
     from .models import Game, GameStatus
@@ -186,6 +202,27 @@ def _ensure_sync_task(channel_layer, room_name, group_name):
     )
 
 
+# Un verrou asyncio par salon pour sérialiser les séquences lecture-modif-
+# écriture sur l'état Redis (`add_player` à la connexion, `role_assignment`,
+# `eat_dot`, ...). Sans lui, deux connexions concurrentes (typiquement
+# plusieurs joueurs qui se (re)connectent au même instant, cf. le retour au
+# salon d'attente après une manche) peuvent chacune charger l'état AVANT que
+# l'autre ait sauvegardé le sien : la deuxième écriture écrase la première en
+# silence et le joueur qu'elle contenait disparaît du salon - symptôme observé
+# côté joueurs : "tout le monde ne se retrouve pas dans la même partie".
+# Suppose un seul worker daphne (même hypothèse que `_sync_tasks` ci-dessus) ;
+# plusieurs workers demanderaient un verrou distribué (`cache.lock`, dispo via
+# django-redis) plutôt qu'un `asyncio.Lock` en mémoire du process.
+_room_locks: dict = {}
+
+
+def _room_lock(room_name: str) -> asyncio.Lock:
+    lock = _room_locks.get(room_name)
+    if lock is None:
+        lock = _room_locks[room_name] = asyncio.Lock()
+    return lock
+
+
 class GameConsumer(AsyncWebsocketConsumer):
     """WebSocket du jeu Pac-Man multijoueur (temps réel, autoritaire serveur)."""
 
@@ -215,17 +252,47 @@ class GameConsumer(AsyncWebsocketConsumer):
             await self.channel_layer.group_add(self.room_group_name, self.channel_name)
             await self.accept()
 
-            room = await self._load_room()
-            room.add_player(
-                self.channel_name,
-                name=self._display_name(),
-                user_id=self.user.pk,
-            )
-            await self._save_room(room)
+            # Sent directly (not a group broadcast) and first, so it always
+            # reaches this connection before its own `player_joined` echo -
+            # the client used to guess "the first `join` I receive is me",
+            # which races another player's `player_joined` arriving first
+            # when several sockets open together (every round start): both
+            # ended up believing they were the SAME id, so each one either
+            # never drew the other or drew itself as the opponent.
+            await self.send(text_data=json.dumps({
+                'type': 'self_id',
+                'player_id': self.channel_name,
+            }))
+
+            stale_pid = None
+            async with _room_lock(self.room_name):
+                room = await self._load_room()
+                # Reconnexion réseau en pleine manche (pas un `disconnect`
+                # propre) : le pid précédent de CE compte traîne encore dans
+                # `room.players` le temps que le serveur remarque que son
+                # ancienne socket est morte (ça peut prendre plusieurs
+                # secondes). Sans ça, deux pids != pour le même joueur = deux
+                # sprites affichés chez tout le monde jusqu'à expiration -
+                # symptôme observé : "des personnages dupliqués, on voit
+                # double". On le vire tout de suite.
+                stale_pid = room.find_pid_by_user(self.user.pk, exclude_pid=self.channel_name)
+                if stale_pid:
+                    room.remove_player(stale_pid)
+                room.add_player(
+                    self.channel_name,
+                    name=self._display_name(),
+                    user_id=self.user.pk,
+                )
+                await self._save_room(room)
             await sync_to_async(_mark_active_sync)(self.room_name)
 
             _ensure_sync_task(self.channel_layer, self.room_name, self.room_group_name)
 
+            if stale_pid:
+                await self.channel_layer.group_send(
+                    self.room_group_name,
+                    {'type': 'player_left', 'player_id': stale_pid},
+                )
             await self.channel_layer.group_send(
                 self.room_group_name,
                 {'type': 'player_joined', 'player_id': self.channel_name},
@@ -250,20 +317,21 @@ class GameConsumer(AsyncWebsocketConsumer):
         )
         await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
 
-        data = await sync_to_async(cache.get)(_room_key(self.room_name))
-        if data is None:
-            return
-        room = RoomState.from_dict(data)
-        room.remove_player(self.channel_name)
-        if room.empty():
-            await sync_to_async(cache.delete)(_room_key(self.room_name))
-            await sync_to_async(_drop_active_sync)(self.room_name)
-            await sync_to_async(_release_empty_room_sync)(self.room_name)
-            task = _sync_tasks.pop(self.room_name, None)
-            if task:
-                task.cancel()
-        else:
-            await self._save_room(room)
+        async with _room_lock(self.room_name):
+            data = await sync_to_async(cache.get)(_room_key(self.room_name))
+            if data is None:
+                return
+            room = RoomState.from_dict(data)
+            room.remove_player(self.channel_name)
+            if room.empty():
+                await sync_to_async(cache.delete)(_room_key(self.room_name))
+                await sync_to_async(_drop_active_sync)(self.room_name)
+                await sync_to_async(_release_empty_room_sync)(self.room_name)
+                task = _sync_tasks.pop(self.room_name, None)
+                if task:
+                    task.cancel()
+            else:
+                await self._save_room(room)
 
     async def receive(self, text_data=None, bytes_data=None):
         if text_data is None or len(text_data) > 10000:
@@ -432,12 +500,26 @@ class GameConsumer(AsyncWebsocketConsumer):
             return
         # Le pseudo vient du compte authentifié, pas du client (reco B).
         name = self._display_name()
-        room = await self._load_room()
-        room.set_role(self.channel_name, role, name=name)
-        player = room.players.get(self.channel_name)
-        if player is not None:
-            player['user_id'] = self.user.pk
-        await self._save_room(room)
+        async with _room_lock(self.room_name):
+            room = await self._load_room()
+            if room.role_taken(role, exclude_pid=self.channel_name):
+                # Un autre joueur a déjà ce personnage (choix simultané, ou
+                # rôle par défaut à la connexion) : on refuse et on renvoie au
+                # SEUL demandeur son rôle réellement en vigueur, pour qu'il
+                # corrige son affichage (il l'avait mis à jour de façon
+                # optimiste).
+                current = room.players.get(self.channel_name, {}).get('role', 'spectator')
+                await self.send(text_data=json.dumps({
+                    'type': 'role_rejected',
+                    'role': role,
+                    'current_role': current,
+                }))
+                return
+            room.set_role(self.channel_name, role, name=name)
+            player = room.players.get(self.channel_name)
+            if player is not None:
+                player['user_id'] = self.user.pk
+            await self._save_room(room)
         await self.channel_layer.group_send(
             self.room_group_name,
             {
@@ -449,9 +531,10 @@ class GameConsumer(AsyncWebsocketConsumer):
         )
 
     async def handle_round_start(self, data):
-        room = await self._load_room()
-        room.start()
-        await self._save_room(room)
+        async with _room_lock(self.room_name):
+            room = await self._load_room()
+            room.start()
+            await self._save_room(room)
         await self._mark_in_progress()
         _ensure_sync_task(self.channel_layer, self.room_name, self.room_group_name)
         await self.channel_layer.group_send(
@@ -468,18 +551,19 @@ class GameConsumer(AsyncWebsocketConsumer):
         if not (0 <= col < 64 and 0 <= row < 64):
             return
 
-        room = await self._load_room()
-        kind = room.eat_dot(self.channel_name, col, row)
-        if kind is None:
-            # Grain déjà mangé / mauvais rôle / manche finie : le prochain
-            # `state_sync` remettra le client d'aplomb.
-            return
+        async with _room_lock(self.room_name):
+            room = await self._load_room()
+            kind = room.eat_dot(self.channel_name, col, row)
+            if kind is None:
+                # Grain déjà mangé / mauvais rôle / manche finie : le prochain
+                # `state_sync` remettra le client d'aplomb.
+                return
 
-        cleared = room.is_cleared() and room.status != 'over'
-        if cleared:
-            room.status = 'over'
-            room.winner = 'pacman'
-        await self._save_room(room)
+            cleared = room.is_cleared() and room.status != 'over'
+            if cleared:
+                room.status = 'over'
+                room.winner = 'pacman'
+            await self._save_room(room)
 
         player = room.players.get(self.channel_name, {})
         await self.channel_layer.group_send(
@@ -507,11 +591,12 @@ class GameConsumer(AsyncWebsocketConsumer):
 
     async def handle_contact(self, data):
         ghost_id = data.get('ghost')
-        room = await self._load_room()
-        outcome = room.resolve_contact(self.channel_name, ghost_id, time.time())
-        if outcome is None:
-            return
-        await self._save_room(room)
+        async with _room_lock(self.room_name):
+            room = await self._load_room()
+            outcome = room.resolve_contact(self.channel_name, ghost_id, time.time())
+            if outcome is None:
+                return
+            await self._save_room(room)
 
         if outcome['type'] == 'ghost_home':
             await self.channel_layer.group_send(
@@ -560,9 +645,19 @@ class GameConsumer(AsyncWebsocketConsumer):
             await self._finish_game(room)
 
     async def handle_round_restart(self, data):
-        room = await self._load_room()
-        room.reset_round()
-        await self._save_room(room)
+        # Ne rejoue PAS la manche en place : `_finish_game` a déjà supprimé
+        # l'état Redis autoritaire à la fin de la manche précédente, donc
+        # `room = await self._load_room()` ici reconstruirait un salon fantôme
+        # vide (aucun `players` enregistré - `_rehydrate_from_db` ne restaure
+        # que pour un statut IN_PROGRESS) : les contacts/scores de tout le
+        # monde seraient ensuite rejetés en silence, désynchronisant la partie.
+        # On repasse simplement le salon en WAITING ; chaque client revient au
+        # salon d'attente (écran « prêt ») et refera un `round_start` propre,
+        # qui réenregistre chaque joueur normalement (comme au tout premier
+        # lancement).
+        await sync_to_async(cache.delete)(_room_key(self.room_name))
+        await sync_to_async(_drop_active_sync)(self.room_name)
+        await sync_to_async(_reset_game_to_waiting_sync)(self.room_name)
         await self.channel_layer.group_send(
             self.room_group_name,
             {'type': 'broadcast_round_restart', 'player_id': self.channel_name},

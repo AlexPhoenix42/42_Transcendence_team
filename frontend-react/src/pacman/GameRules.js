@@ -1,4 +1,4 @@
-import Timer from './engine/Timer.js';
+import Timer from './engine/Timer.ts';
 
 /**
  * Pac-Man Player Types

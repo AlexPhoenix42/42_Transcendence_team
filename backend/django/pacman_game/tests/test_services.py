@@ -304,6 +304,56 @@ class RoomStateSpectatorTests(SimpleTestCase):
         self.assertFalse(room.empty())
 
 
+class RoomStateRoleTakenTests(SimpleTestCase):
+    def test_role_taken_by_another_player(self):
+        room = RoomState()
+        room.add_player('p1', 'pacman')
+        self.assertTrue(room.role_taken('pacman', exclude_pid='p2'))
+
+    def test_role_not_taken_when_excluding_the_holder_itself(self):
+        room = RoomState()
+        room.add_player('p1', 'pacman')
+        self.assertFalse(room.role_taken('pacman', exclude_pid='p1'))
+
+    def test_role_free_when_nobody_has_it(self):
+        room = RoomState()
+        room.add_player('p1', 'pacman')
+        self.assertFalse(room.role_taken('ghost', exclude_pid='p2'))
+
+    def test_spectator_is_never_taken(self):
+        room = RoomState()
+        room.set_role('p1', 'spectator')
+        room.set_role('p2', 'spectator')
+        self.assertFalse(room.role_taken('spectator', exclude_pid='p3'))
+
+    def test_baby_is_never_taken(self):
+        room = RoomState()
+        room.add_player('p1', 'baby')
+        self.assertFalse(room.role_taken('baby', exclude_pid='p2'))
+
+
+class RoomStateFindPidByUserTests(SimpleTestCase):
+    def test_finds_the_stale_pid_for_the_same_user(self):
+        room = RoomState()
+        room.add_player('old-pid', 'pacman', user_id=42)
+        self.assertEqual(room.find_pid_by_user(42, exclude_pid='new-pid'), 'old-pid')
+
+    def test_excludes_the_pid_making_the_request(self):
+        room = RoomState()
+        room.add_player('p1', 'pacman', user_id=42)
+        self.assertIsNone(room.find_pid_by_user(42, exclude_pid='p1'))
+
+    def test_none_when_no_other_player_has_that_user(self):
+        room = RoomState()
+        room.add_player('p1', 'pacman', user_id=42)
+        self.assertIsNone(room.find_pid_by_user(99, exclude_pid='p2'))
+
+    def test_none_user_id_never_matches(self):
+        room = RoomState()
+        room.add_player('p1', 'pacman')  # user_id=None (défaut)
+        self.assertIsNone(room.find_pid_by_user(None, exclude_pid='p2'))
+
+
 class RoomStateRedisRoundTripTests(SimpleTestCase):
     def test_to_dict_from_dict_preserves_state(self):
         room = RoomState()

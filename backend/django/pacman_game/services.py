@@ -171,6 +171,41 @@ class RoomState:
         self.players.pop(pid, None)
         self.spectators.discard(pid)
 
+    def find_pid_by_user(self, user_id, exclude_pid=None):
+        """pid d'un AUTRE joueur du salon avec ce `user_id` (même compte),
+        ou `None`.
+
+        Sert à repérer une reconnexion réseau en pleine manche : le client
+        rouvre une socket (nouveau pid) avant que le serveur ait remarqué que
+        l'ancienne est morte, laissant le vieux pid enregistré - deux pids
+        pour le même compte, donc deux sprites affichés côté clients tant que
+        l'ancien n'expire pas. `user_id` est posé sur `add_player`/`set_role`
+        (le compte authentifié, pas le pid éphémère de la connexion), donc
+        stable d'une reconnexion à l'autre contrairement au pid.
+        """
+        if user_id is None:
+            return None
+        for pid, p in self.players.items():
+            if pid != exclude_pid and p.get('user_id') == user_id:
+                return pid
+        return None
+
+    def role_taken(self, role, exclude_pid=None):
+        """True si un AUTRE pid du salon a déjà ce rôle.
+
+        Les rôles de personnage (pacman, madame_pacman, blocker, builder,
+        ghost) sont exclusifs : un seul joueur à la fois, même contrainte que
+        `takenByOthers` côté front (PacmanGame.tsx). `spectator` (illimité) et
+        `baby` (né en jeu, jamais choisi via `role_assignment`) n'ont pas
+        cette contrainte.
+        """
+        if role in ('spectator', 'baby'):
+            return False
+        return any(
+            pid != exclude_pid and p.get('role') == role
+            for pid, p in self.players.items()
+        )
+
     def set_role(self, pid, role, name=None):
         """Change le rôle d'un pid. `'spectator'` le sort de la liste des joueurs."""
         if role == 'spectator':

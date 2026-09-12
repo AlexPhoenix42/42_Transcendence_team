@@ -141,7 +141,7 @@ export default function PacmanGame() {
         const h = Math.round(w / AR)
 
         let cancelled = false
-        import("../pacman/net/MultiplayerGame.js")
+        import("../pacman/net/MultiplayerGame.ts")
             .then(({ default: MultiplayerGame }) => {
                 if (cancelled || !el) return
                 gameRef.current = new MultiplayerGame({
@@ -153,6 +153,22 @@ export default function PacmanGame() {
                     role: myRole,
                     playerName: user?.username || "Joueur",
                     autoStart: true,
+                    // Manche terminée, tout le monde revient au salon d'attente
+                    // (écran « prêt ») au lieu de rejouer en place : voir le
+                    // commentaire de `_restartRound` dans MultiplayerGame.js.
+                    onReturnToLobby: () => {
+                        try {
+                            gameRef.current?.onDestroy()
+                        } catch {
+                            /* moteur déjà démonté */
+                        }
+                        gameRef.current = null
+                        setError("")
+                        setRoster([])
+                        setCount(0)
+                        setPhase("loading")
+                        join()
+                    },
                 })
                 ;(window as unknown as { __pacman?: unknown }).__pacman = gameRef.current
             })
@@ -259,6 +275,14 @@ export default function PacmanGame() {
             navigate("/pacman", { state: { notice: "Salon fermé (inactif 10 min)." } })
         })
         c.on("error", (m: string) => setError((m || "erreur").toUpperCase()))
+        c.on("roleRejected", (currentRole: string) => {
+            setError("PERSONNAGE DEJA PRIS PAR UN AUTRE JOUEUR")
+            if (currentRole === "spectator") setKind("spectator")
+            else {
+                setKind("player")
+                setCharacter(currentRole)
+            }
+        })
         c.on("close", (code: number) => {
             if (code === 4001) setError("SESSION EXPIREE — RECONNECTE-TOI")
             else if (code === 4004) {

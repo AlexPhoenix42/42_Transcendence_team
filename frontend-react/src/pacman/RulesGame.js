@@ -1,10 +1,10 @@
-import JsPacman from './Game.js';
-import { STATUS_PLAY } from './GameModel.js';
-import Timer from './engine/Timer.js';
+import JsPacman from './Game.ts';
+import { STATUS_PLAY } from './GameModel.ts';
+import Timer from './engine/Timer.ts';
 import GameRules from './GameRules.js';
-import makeBuilder from './factory/makeBuilder.js';
-import makePacmanMan from './factory/makePacmanMan.js';
-import makePacmanBaby from './factory/makePacmanBaby.js';
+import makeBuilder from './factory/makeBuilder.ts';
+import makePacmanMan from './factory/makePacmanMan.ts';
+import makePacmanBaby from './factory/makePacmanBaby.ts';
 
 /**
  * WASD / ZQSD keycodes for the second player.
