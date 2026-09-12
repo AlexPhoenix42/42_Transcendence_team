@@ -579,7 +579,7 @@ export default function ChessGame() {
 
     //    setPendingPromotion(null)
     //}
-
+	
 	function handlePromotionChoice(piece: string) {
         if (!pendingPromotion) return
         try {
@@ -709,7 +709,7 @@ export default function ChessGame() {
     //    wsRef.current.send(JSON.stringify(payload))
     //    setError("")
     //}
-
+	
 	function sendMove(from: string, to: string, promotion?: string) {
         if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
             setError("Not connected")
@@ -853,7 +853,7 @@ export default function ChessGame() {
                                     </span>
                                 )}
                             </div>
-
+						
                             <div className="flex flex-wrap gap-0.5 items-center mt-1">
                                 {(myColor === "white" ? capturedBlack : capturedWhite).map((p, i) => (
                                     <img key={i} src={`/pieces/${p}.svg`} alt={p} className={`w-8 h-8 ${p.startsWith("b") ? "drop-shadow-[0_0_3px_rgba(255,255,255,0.9)]" : ""}`} />

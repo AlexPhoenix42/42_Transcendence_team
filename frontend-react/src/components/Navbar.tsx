@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { useAuth } from "../context/AuthContext.tsx"
-import { api } from "../api/client.ts"
+import { api, mediaUrl } from "../api/client.ts"
 
 export default function Navbar() {
     const { user, logout } = useAuth()
@@ -124,7 +124,7 @@ export default function Navbar() {
                         >
                             <div className="w-8 h-8 bg-gray-700 rounded-full flex items-center justify-center text-sm text-white overflow-hidden">
                                 {user?.avatar
-                                    ? <img src={user.avatar} className="w-8 h-8 rounded-full object-cover" />
+									? <img src={mediaUrl(user.avatar) || undefined} className="w-8 h-8 rounded-full object-cover" />
                                     : user?.username?.[0]?.toUpperCase() || "?"
                                 }
                             </div>

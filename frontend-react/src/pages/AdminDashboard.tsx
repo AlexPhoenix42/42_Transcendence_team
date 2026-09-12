@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
-import { api } from "../api/client.ts"
+import { api, mediaUrl } from "../api/client.ts"
 import { useAuth } from "../context/AuthContext.tsx"
 import Status from "./Status.tsx"
 
@@ -382,7 +382,7 @@ export default function AdminDashboard() {
                             >
                                 {/* Avatar */}
                                 {u.avatar ? (
-                                    <img src={u.avatar} alt={u.username} className="w-10 h-10 rounded-full object-cover" />
+									<img src={mediaUrl(u.avatar) || undefined} alt={u.username} className="w-10 h-10 rounded-full object-cover" />
                                 ) : (
                                     <div className="w-10 h-10 rounded-full bg-gray-600 flex items-center justify-center text-white font-bold">
                                         {u.username[0].toUpperCase()}

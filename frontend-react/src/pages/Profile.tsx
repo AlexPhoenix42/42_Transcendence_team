@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useAuth } from "../context/AuthContext.tsx"
-import { api, getAccessToken } from "../api/client.ts"
+import { api, getAccessToken, mediaUrl } from "../api/client.ts"
 import { useNavigate } from "react-router-dom"
 import Achievements from "../components/Achievements.tsx"
 
@@ -268,7 +268,7 @@ export default function Profile() {
                     <label className="cursor-pointer group relative">
                         <div className="w-16 h-16 bg-gray-700 rounded-full flex items-center justify-center text-2xl text-white overflow-hidden">
                             {profile.avatar
-                                ? <img src={profile.avatar} className="w-16 h-16 rounded-full object-cover" />
+								? <img src={mediaUrl(profile.avatar) || undefined} className="w-16 h-16 rounded-full object-cover" />
                                 : profile.username[0].toUpperCase()
                             }
                         </div>

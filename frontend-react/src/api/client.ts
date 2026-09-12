@@ -31,6 +31,20 @@ interface ApiOptions extends RequestInit {
     headers?: Record<string, string>
 }
 
+export function mediaUrl(url: string | null | undefined): string | null {
+    if (!url) return null
+    try {
+        const parsed = new URL(url)
+        return `${window.location.protocol}//${window.location.hostname}:9000${parsed.pathname}`
+    } catch {
+        // Already a relative path
+        if (url.startsWith("/")) {
+            return `${window.location.protocol}//${window.location.hostname}:9000${url}`
+        }
+        return url
+    }
+}
+
 export async function api(url: string, options: ApiOptions = {}): Promise<Response> {
     // Proactively refresh if token is expiring soon
     if (accessToken && isTokenExpiringSoon()) {

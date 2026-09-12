@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useParams, useNavigate } from "react-router-dom"
-import { api } from "../api/client.ts"
+import { api, mediaUrl } from "../api/client.ts"
 
 import Achievements from "../components/Achievements.tsx"
 
@@ -86,7 +86,7 @@ export default function PublicProfile() {
                 <div className="flex items-center gap-4 mb-6">
                     <div className="w-20 h-20 bg-gray-700 rounded-full flex items-center justify-center text-3xl text-white overflow-hidden">
                         {profile.avatar
-                            ? <img src={profile.avatar} className="w-20 h-20 rounded-full object-cover" />
+							? <img src={mediaUrl(profile.avatar) || undefined} className="w-20 h-20 rounded-full object-cover" />
                             : profile.username[0].toUpperCase()
                         }
                     </div>
