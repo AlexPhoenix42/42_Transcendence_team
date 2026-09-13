@@ -152,8 +152,18 @@ class GameConsumer(AsyncWebsocketConsumer):
             "status"    : state.get("status", self.game.status),
         }
 
+        #if  state.get("clocks"):
+        #    payload["clocks"] = state["clocks"]
+
         if  state.get("clocks"):
-            payload["clocks"] = state["clocks"]
+            import time as _time
+            clocks = dict(state["clocks"])  # copy
+            last_tick = state.get("last_tick")
+            crnt = str(state.get("crnt_turn"))
+            if last_tick and crnt in clocks:
+                elapsed = _time.time() - last_tick
+                clocks[crnt] = max(0, clocks[crnt] - elapsed)
+            payload["clocks"] = clocks
 
         if state.get("timer"):
             payload["timer"] = state["timer"]
@@ -377,9 +387,26 @@ class GameConsumer(AsyncWebsocketConsumer):
             last_tick   = state.get("last_tick", now)
             elapsed     = now - last_tick
 
+            #mover_key   = str(self.user.pk)
+            #if  mover_key in clocks:
+            #    clocks[mover_key] -= elapsed
+            #    clocks[mover_key] += timer["inc"]
+
             mover_key   = str(self.user.pk)
             if  mover_key in clocks:
                 clocks[mover_key] -= elapsed
+                if  clocks[mover_key] <= 0:
+                    clocks[mover_key] = 0
+                    state["clocks"] = clocks
+                    state["status"] = GameStatus.FINISHED
+                    await sync_to_async(cache.set)(game_key, state, timeout=86400)
+                    opponent_id = self.game.player2_id if self.user == self.game.player1 else self.game.player1_id
+                    await self._finish_game(opponent_id, GameResultReason.TIMEOUT)
+                    await self.channel_layer.group_send(
+                        self.game_group_name,
+                        {"type": "game_over", "winner": opponent_id, "reason": GameResultReason.TIMEOUT},
+                    )
+                    return
                 clocks[mover_key] += timer["inc"]
 
             state["clocks"]     = clocks
@@ -817,9 +844,26 @@ class GameConsumer(AsyncWebsocketConsumer):
             last_tick   = state.get("last_tick", now)
             elapsed     = now - last_tick
 
+            #mover_key   = str(ai_user_id)
+            #if  mover_key in clocks:
+            #    clocks[mover_key] -= elapsed
+            #    clocks[mover_key] += timer["inc"]
+
             mover_key   = str(ai_user_id)
             if  mover_key in clocks:
                 clocks[mover_key] -= elapsed
+                if  clocks[mover_key] <= 0:
+                    clocks[mover_key] = 0
+                    state["clocks"] = clocks
+                    state["status"] = GameStatus.FINISHED
+                    await sync_to_async(cache.set)(game_key, state, timeout=86400)
+                    human_id = self.game.player1_id if str(self.game.player2_id) == mover_key else self.game.player2_id
+                    await self._finish_game(human_id, GameResultReason.TIMEOUT)
+                    await self.channel_layer.group_send(
+                        self.game_group_name,
+                        {"type": "game_over", "winner": human_id, "reason": GameResultReason.TIMEOUT},
+                    )
+                    return
                 clocks[mover_key] += timer["inc"]
 
             state["clocks"]     = clocks

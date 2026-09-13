@@ -10,8 +10,10 @@ from .models                import Game
 class GameSerializer(serializers.ModelSerializer):
     player1:        Any     = serializers.StringRelatedField()
     player2:        Any     = serializers.StringRelatedField()
+    player1_id:     Any     = serializers.ReadOnlyField()
+    player2_id:     Any     = serializers.ReadOnlyField()
     winner:         Any     = serializers.StringRelatedField()
-    crnt_turn:   Any     = serializers.StringRelatedField()
+    crnt_turn:      Any     = serializers.StringRelatedField()
     created_by:     Any     = serializers.StringRelatedField()
 
     class Meta:             # type: ignore[reportIncompatibleVariableOverride]
@@ -20,6 +22,8 @@ class GameSerializer(serializers.ModelSerializer):
             "id",
             "player1",
             "player2",
+            "player1_id",
+            "player2_id",
             "player1_color",
             "player2_is_ai",
             "ai_difficulty",
@@ -39,13 +43,14 @@ class GameSerializer(serializers.ModelSerializer):
             "id",
             "player1",
             "player2",
+            "player1_id",
+            "player2_id",
             "player1_color",
             "player2_is_ai",
             "ai_difficulty",
             "status",
             "winner",
             "result_reason",
-            #"board_state",
             "moves",
             "crnt_turn",
             "created_by",

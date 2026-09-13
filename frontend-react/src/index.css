@@ -7,8 +7,6 @@
 
 /* Protect chess pieces from any forced color inversion */
 img[src*="/pieces/"] {
-    filter: none !important;
-    -webkit-filter: none !important;
     mix-blend-mode: normal !important;
     forced-color-adjust: none !important;
 }

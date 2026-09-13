@@ -12,6 +12,8 @@ interface GameInfo {
     id: number
     player1: string
     player2: string | null
+	player1_id: number
+	player2_id: number
     player1_color: boolean
     player2_is_ai: boolean
     ai_difficulty: string | null
@@ -221,7 +223,7 @@ export default function ChessGame() {
             setGameOver(true)
         }
 
-        if (data.clocks) {
+		if (data.clocks) {
             setHasClock(true)
             const info = gameInfoRef.current
             if (info) {
@@ -234,6 +236,7 @@ export default function ChessGame() {
                 }
             }
         }
+
     }
 
 	//function handleSetFen(e: React.FormEvent) {
@@ -854,11 +857,11 @@ export default function ChessGame() {
                                 )}
                             </div>
 						
-                            <div className="flex flex-wrap gap-0.5 items-center mt-1">
+							<span className="flex flex-wrap gap-0.5 items-center mt-1 bg-gray-600/50 rounded px-1 py-0.5 empty:hidden w-fit">
                                 {(myColor === "white" ? capturedBlack : capturedWhite).map((p, i) => (
                                     <img key={i} src={`/pieces/${p}.svg`} alt={p} className={`w-8 h-8 ${p.startsWith("b") ? "drop-shadow-[0_0_3px_rgba(255,255,255,0.9)]" : ""}`} />
                                 ))}
-                            </div>
+                            </span>
                         </div>
                         {hasClock && (
                             <span className={`font-mono text-lg px-3 py-1 rounded ${
@@ -971,11 +974,11 @@ export default function ChessGame() {
                                     <span className="text-base text-red-400 font-bold">CHECK!</span>
                                 )}
                             </div>
-                            <div className="flex flex-wrap gap-0.5 items-center mt-1">
+							<span className="flex flex-wrap gap-0.5 items-center mt-1 bg-gray-600/50 rounded px-1 py-0.5 empty:hidden w-fit">
                                 {(myColor === "white" ? capturedWhite : capturedBlack).map((p, i) => (
-                                    <img key={i} src={`/pieces/${p}.svg`} alt={p} className={`w-6 h-6 ${p.startsWith("b") ? "drop-shadow-[0_0_3px_rgba(255,255,255,0.9)]" : ""}`} />
+                                    <img key={i} src={`/pieces/${p}.svg`} alt={p} className={`w-8 h-8 ${p.startsWith("b") ? "drop-shadow-[0_0_3px_rgba(255,255,255,0.9)]" : ""}`} />
                                 ))}
-                            </div>
+                            </span>
                         </div>
                         {hasClock && (
                             <span className={`font-mono text-lg px-3 py-1 rounded ${
