@@ -235,6 +235,24 @@ services:
     networks:
       - trans_net
      
+  # NOTE(local): construit frontend-react/dist dans un conteneur Node 22 (le
+  # host tourne en Node 18, trop vieux pour Vite 8) - meme principe que
+  # engine-builder. `npm ci` + `npm run build` ecrivent directement dans
+  # ./frontend-react/dist (bind-mount), que frontend_nginx sert ensuite. Pas
+  # de rebuild auto sur les changements de sources : relancer ce service
+  # (`docker compose -f docker-compose-dev.yml up -d --force-recreate frontend_builder`)
+  # apres une modif frontend, comme pour engine-builder/chess_engine.
+  frontend_builder:
+    image:           node:22-alpine
+    container_name:  trans_frontend_builder
+    working_dir:     /app
+    volumes:
+      - ./frontend-react:/app
+      - frontend_node_modules:/app/node_modules
+    command:         sh -c "npm ci --no-audit --no-fund && npm run build"
+    networks:
+      - trans_net
+
   frontend_nginx:
     build:
       context:      frontend
@@ -256,6 +274,8 @@ services:
     depends_on:
       backend_django:
         condition:  service_healthy
+      frontend_builder:
+        condition:  service_completed_successfully
     environment:
       FRONTEND_URL: ${FRONTEND_URL}
     networks:
@@ -270,6 +290,9 @@ services:
 networks:
   trans_net:
     driver: bridge
+
+volumes:
+  frontend_node_modules:
 
 
 

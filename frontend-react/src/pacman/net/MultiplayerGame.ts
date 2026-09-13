@@ -28,6 +28,14 @@ const noop = () => {};
  * (x,y, collisions) ne dépend pas de cette taille, seul le rendu rétrécit. */
 const SPRITE_SIZE = 48;
 
+/** All character sheets (characters.png / characters-plain.png) use a 64px
+ * grid pitch regardless of a Character/Ghost subclass's own display-width
+ * default (60/64) - `Sprite.spriteScale` needs that true native pitch, not
+ * whatever the box happened to default to, or a shrunk box stops lining up
+ * with its frame (see `spriteScale`'s doc comment in engine/Sprite.ts). */
+const NATIVE_SHEET_CELL = 64;
+const SPRITE_SCALE = SPRITE_SIZE / NATIVE_SHEET_CELL;
+
 /** Space bar: Builder drops a wall, Ghost uses freeze. */
 const KEY_ACTION = 32;
 
@@ -47,8 +55,18 @@ const OPPOSITE_DIR: Record<Direction, Direction> = { l: "r", r: "l", u: "d", d: 
  * Pac-Man who can never die (imprisoned instead) and builds anti-ghost walls. */
 const PACMAN_ROLES = ["pacman", "madame_pacman", "baby", "blocker"];
 
-/** Ghost sprite labels, picked by id hash so remote ghosts look varied. */
-const GHOST_LABELS: GhostLabel[] = ["pinky", "blinky", "inky", "sue"];
+/** The 4 ghost roles - each a distinct, separately selectable character
+ * (own colour + original single-player AI target, see makeGhost.ts), not a
+ * single generic "ghost" role anymore. */
+const GHOST_ROLES = ["ghost_pinky", "ghost_blinky", "ghost_inky", "ghost_sue"];
+
+/** role -> which makeGhost() skin it renders as. */
+const GHOST_ROLE_SKIN: Record<string, GhostLabel> = {
+    ghost_pinky: "pinky",
+    ghost_blinky: "blinky",
+    ghost_inky: "inky",
+    ghost_sue: "sue",
+};
 
 /**
  * Accent visuel par rôle, IDENTIQUE sur tous les clients. Le sprite porte déjà
@@ -63,7 +81,10 @@ const ROLE_LOOK: Record<string, string> = {
     madame_pacman: "drop-shadow(0 0 3px #ff6ec7)",
     baby: "brightness(1.2) saturate(1.5)",
     blocker: "hue-rotate(28deg) saturate(1.8) drop-shadow(0 0 4px #ff9a00)",
-    ghost: "",
+    ghost_pinky: "",
+    ghost_blinky: "",
+    ghost_inky: "",
+    ghost_sue: "",
     builder: "drop-shadow(0 0 4px #38d430)",
 };
 
@@ -75,7 +96,8 @@ export interface MultiplayerGameOptions extends JsPacmanOptions {
     room: string;
     /** WebSocket origin (`ws://host:8000`). */
     serverUrl?: string;
-    /** Our role: `pacman` | `madame_pacman` | `baby` | `blocker` | `ghost` | `builder` | `spectator`. */
+    /** Our role: `pacman` | `madame_pacman` | `baby` | `blocker` | `builder` |
+     * `ghost_pinky` | `ghost_blinky` | `ghost_inky` | `ghost_sue` | `spectator`. */
     role?: string;
     /** Display name (from the lobby / account). */
     playerName?: string;
@@ -337,6 +359,16 @@ class MultiplayerGame extends JsPacman {
             pac.el.style.width = `${SPRITE_SIZE}px`;
             pac.el.style.height = `${SPRITE_SIZE}px`;
         }
+        // Without this, the box above shrinks to 48px but the sheet stays at
+        // its native 64px-per-frame resolution (Sprite never touches
+        // background-size on its own) - a smaller box with overflow:hidden
+        // then just crops the right/bottom of the frame instead of shrinking
+        // it (see `spriteScale`'s doc comment in engine/Sprite.ts). Re-apply
+        // the current animation so setAnimation() recomputes background-size
+        // / background-position for the new scale right away, instead of
+        // waiting for the next frame change to (partially) self-correct.
+        pac.spriteScale = SPRITE_SCALE;
+        if (pac.animation) pac.setAnimation(pac.animation);
     }
 
     /**
@@ -626,7 +658,7 @@ class MultiplayerGame extends JsPacman {
      * @private
      */
     _maybeUseFreeze(): void {
-        if (this.role !== "ghost" || !this.avatar) return;
+        if (!GHOST_ROLES.includes(this.role) || !this.avatar) return;
         if (!this.keyboard.keys[KEY_ACTION]) return;
 
         const now = Date.now();
@@ -1364,7 +1396,11 @@ class MultiplayerGame extends JsPacman {
         this.avatar =
             this.role === "builder"
                 ? (makeBuilder({ ...this._ghostAttrs(), x: hc.x, y: hc.y } as any) as unknown as GhostClass)
-                : makeGhost("blinky", { ...this._ghostAttrs(), x: hc.x, y: hc.y } as any);
+                : makeGhost(GHOST_ROLE_SKIN[this.role] || "blinky", {
+                      ...this._ghostAttrs(),
+                      x: hc.x,
+                      y: hc.y,
+                  } as any);
 
         // Drop the ghost chase AI: its `item:tile` handler recomputes a path
         // every tile and blows up when we steer it by hand. Keep only the
@@ -1512,7 +1548,7 @@ class MultiplayerGame extends JsPacman {
      */
     _addRemote(id: string, pos: { x: number; y: number }): RemoteCharacter {
         const role = this._roles.get(id) || "pacman";
-        const remote = this._makeRemoteSprite(role, pos, id);
+        const remote = this._makeRemoteSprite(role, pos);
 
         remote._role = role;
         remote._netX = pos.x;
@@ -1545,6 +1581,7 @@ class MultiplayerGame extends JsPacman {
             factor: this.scaling.getFactor(),
             width: SPRITE_SIZE,
             height: SPRITE_SIZE,
+            spriteScale: SPRITE_SCALE,
             normalizeRefreshRate: this.normalizeRefreshRate.bind(this),
             addGameGhostEatEventListener: noop,
             addGameGhostModeFrightenedEnter: noop,
@@ -1562,6 +1599,7 @@ class MultiplayerGame extends JsPacman {
             factor: this.scaling.getFactor(),
             width: SPRITE_SIZE,
             height: SPRITE_SIZE,
+            spriteScale: SPRITE_SCALE,
             normalizeRefreshRate: this.normalizeRefreshRate.bind(this),
             addGameGlobalModeEventListener: noop,
             addGameGhostEatenEventListener: noop,
@@ -1574,15 +1612,14 @@ class MultiplayerGame extends JsPacman {
      * Build the right sprite for a role, network-driven (no input, no AI).
      * @private
      */
-    _makeRemoteSprite(role: string, pos: { x: number; y: number }, id: string): RemoteCharacter {
+    _makeRemoteSprite(role: string, pos: { x: number; y: number }): RemoteCharacter {
         const at = { x: pos.x, y: pos.y };
 
+        if (GHOST_ROLE_SKIN[role]) {
+            return makeGhost(GHOST_ROLE_SKIN[role], { ...this._ghostAttrs(), ...at } as any) as unknown as RemoteCharacter;
+        }
+
         switch (role) {
-            case "ghost":
-                return makeGhost(GHOST_LABELS[this._hue(id) % GHOST_LABELS.length], {
-                    ...this._ghostAttrs(),
-                    ...at,
-                } as any) as unknown as RemoteCharacter;
             case "builder":
                 return makeBuilder({ ...this._ghostAttrs(), ...at } as any) as unknown as RemoteCharacter;
             case "baby":
@@ -1642,18 +1679,6 @@ class MultiplayerGame extends JsPacman {
         if (next < 0) next += size;
         else if (next > size) next -= size;
         return next;
-    }
-
-    /**
-     * Stable hue (0-359) from a player id, so each remote keeps its colour.
-     * @private
-     */
-    _hue(id: string): number {
-        let hash = 0;
-        for (let i = 0; i < id.length; i++) {
-            hash = (hash * 31 + id.charCodeAt(i)) % 360;
-        }
-        return hash;
     }
 
     /**

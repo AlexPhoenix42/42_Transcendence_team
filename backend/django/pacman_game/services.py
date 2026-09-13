@@ -252,7 +252,9 @@ class RoomState:
     #: rôles gagnants selon `winner`
     _WINNING_ROLES = {
         'pacman': PACMAN_ROLES,
-        'ghosts': frozenset({'ghost', 'builder'}),
+        'ghosts': frozenset({
+            'builder', 'ghost_pinky', 'ghost_blinky', 'ghost_inky', 'ghost_sue',
+        }),
     }
 
     def match_result(self):

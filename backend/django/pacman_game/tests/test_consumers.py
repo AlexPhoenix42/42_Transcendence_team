@@ -1,31 +1,31 @@
 # pacman_game/tests/test_consumers.py
 #
 # `_room_lock` sérialise les séquences lecture-modif-écriture Redis (voir son
-# commentaire dans consumers.py) : un salon -> toujours le même verrou, pour
-# que deux connexions concurrentes sur le même salon s'excluent bien
-# mutuellement. Test unitaire pur (pas besoin de WebsocketCommunicator/Redis) :
-# `_room_lock` est une fonction sync ordinaire, seul son usage est `async with`.
-
-import asyncio
+# commentaire dans consumers.py) : un salon -> toujours le même verrou Redis,
+# pour que deux connexions concurrentes sur le même salon (y compris sur deux
+# workers Daphne différents, voir `_RedisRoomLock`) s'excluent bien
+# mutuellement. `_room_lock` retourne désormais un nouveau wrapper
+# `_RedisRoomLock` à chaque appel (plus de dict `_room_locks` en mémoire de
+# process - ça ne marcherait pas avec plusieurs workers) ; ce qui doit rester
+# stable pour un même salon, c'est la clé Redis sous-jacente, pas l'identité
+# de l'objet Python. Test unitaire pur (pas besoin de WebsocketCommunicator ni
+# de Redis vivant : `cache.lock()` ne se connecte qu'à `acquire()`).
 
 from django.test import SimpleTestCase
 
-from pacman_game.consumers import _room_lock, _room_locks
+from pacman_game.consumers import _RedisRoomLock, _room_lock
 
 
 class RoomLockTests(SimpleTestCase):
-    def setUp(self):
-        _room_locks.clear()
-
-    def test_same_room_returns_the_same_lock(self):
+    def test_same_room_gives_the_same_redis_lock_key(self):
         a = _room_lock('room1')
         b = _room_lock('room1')
-        self.assertIs(a, b)
+        self.assertEqual(a._lock.name, b._lock.name)
 
-    def test_different_rooms_get_different_locks(self):
+    def test_different_rooms_get_different_redis_lock_keys(self):
         a = _room_lock('room1')
         b = _room_lock('room2')
-        self.assertIsNot(a, b)
+        self.assertNotEqual(a._lock.name, b._lock.name)
 
-    def test_returns_an_asyncio_lock(self):
-        self.assertIsInstance(_room_lock('room1'), asyncio.Lock)
+    def test_returns_a_redis_room_lock(self):
+        self.assertIsInstance(_room_lock('room1'), _RedisRoomLock)

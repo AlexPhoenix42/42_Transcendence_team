@@ -15,6 +15,13 @@
 # ponytail: une seule ligne Game par salon (room_name unique), réutilisée d'une
 # manche à l'autre. Pas d'historique par manche (l'original avait un modèle
 # MatchResult séparé) — à ajouter si l'équipe le veut.
+#
+# Multi-worker Daphne : `_room_lock` et `_sync_loop` supposaient un seul
+# process (verrou/tâche en mémoire). Un test de charge (1000 salons x 8 rôles)
+# a montré qu'un seul worker sature vite. Passage à plusieurs process Daphne
+# (voir docker_conf/entrypoint.sh, `DAPHNE_WORKERS`) + verrou Redis distribué
+# (`cache.lock`, django-redis) + ownership Redis pour la boucle de synchro
+# (un seul process doit la faire tourner par salon, pas un par worker).
 
 import asyncio
 import json
@@ -37,11 +44,16 @@ SYNC_INTERVAL_SECONDS   = 2
 ACTIVE_ROOMS_KEY        = "pacman_active_rooms"
 
 ALLOWED_ROLES = (
-    'pacman', 'madame_pacman', 'baby', 'blocker', 'builder', 'ghost', 'spectator',
+    'pacman', 'madame_pacman', 'baby', 'blocker', 'builder',
+    'ghost_pinky', 'ghost_blinky', 'ghost_inky', 'ghost_sue',
+    'spectator',
 )
 
-# Une tâche de synchro périodique par salon actif. Comme l'original (et comme le
-# set `active_games` de chess_game), ça suppose un seul worker daphne.
+# Une tâche de synchro périodique par salon actif, PAR PROCESS (chaque worker
+# Daphne a son propre dict). Optimisation locale seulement : évite qu'un même
+# process relance N tâches pour N connexions au même salon. La garantie
+# "un seul worker fait tourner la boucle pour ce salon" vient de l'ownership
+# Redis dans `_sync_loop`, pas de ce dict.
 _sync_tasks = {}
 
 
@@ -148,16 +160,41 @@ def _drop_active_sync(room_name):
 
 # --- boucle de synchro de secours ------------------------------------------
 
+def _sync_owner_key(room_name: str) -> str:
+    return f"pacman_sync_owner:{room_name}"
+
+
 async def _sync_loop(channel_layer, room_name, group_name):
     """Rediffuse un `state_sync` toutes les 2 s + purge les joueurs absents.
 
     Filet de sécurité : le gros de la synchro passe par les événements en direct
     (`dot_eaten`, ...). Se termine d'elle-même quand le salon est vide.
+
+    Avec plusieurs workers Daphne, `connect()` peut appeler `_ensure_sync_task`
+    depuis N process différents pour le même salon (ses 8 joueurs ne tombent
+    pas forcément tous sur le même worker) - sans garde-fou, chacun lancerait
+    SA PROPRE boucle -> `state_sync` diffusé en double/triple. `cache.add` (SET
+    NX côté Redis) ne laisse qu'un seul process obtenir la clé d'ownership ;
+    les autres retournent tout de suite, leur entrée locale de `_sync_tasks`
+    reste juste un no-op déjà terminé.
     """
+    owner_key = _sync_owner_key(room_name)
+    got_ownership = await sync_to_async(cache.add)(
+        owner_key, 1, timeout=SYNC_INTERVAL_SECONDS * 3,
+    )
+    if not got_ownership:
+        return
+
     _tick = 0
     try:
         while True:
             await asyncio.sleep(SYNC_INTERVAL_SECONDS)
+            # Renouvelle l'ownership avant qu'elle expire (TTL = 3 ticks de
+            # marge) - sinon un autre worker pourrait la prendre pendant que
+            # cette boucle tourne encore.
+            await sync_to_async(cache.set)(
+                owner_key, 1, timeout=SYNC_INTERVAL_SECONDS * 3,
+            )
             room = await sync_to_async(_load_state_sync)(room_name)
             if room is None:
                 break
@@ -191,6 +228,7 @@ async def _sync_loop(channel_layer, room_name, group_name):
         pass
     finally:
         _sync_tasks.pop(room_name, None)
+        await sync_to_async(cache.delete)(owner_key)
 
 
 def _ensure_sync_task(channel_layer, room_name, group_name):
@@ -202,25 +240,79 @@ def _ensure_sync_task(channel_layer, room_name, group_name):
     )
 
 
-# Un verrou asyncio par salon pour sérialiser les séquences lecture-modif-
-# écriture sur l'état Redis (`add_player` à la connexion, `role_assignment`,
-# `eat_dot`, ...). Sans lui, deux connexions concurrentes (typiquement
-# plusieurs joueurs qui se (re)connectent au même instant, cf. le retour au
-# salon d'attente après une manche) peuvent chacune charger l'état AVANT que
-# l'autre ait sauvegardé le sien : la deuxième écriture écrase la première en
-# silence et le joueur qu'elle contenait disparaît du salon - symptôme observé
-# côté joueurs : "tout le monde ne se retrouve pas dans la même partie".
-# Suppose un seul worker daphne (même hypothèse que `_sync_tasks` ci-dessus) ;
-# plusieurs workers demanderaient un verrou distribué (`cache.lock`, dispo via
-# django-redis) plutôt qu'un `asyncio.Lock` en mémoire du process.
-_room_locks: dict = {}
+# Un verrou par salon pour sérialiser les séquences lecture-modif-écriture sur
+# l'état Redis (`add_player` à la connexion, `role_assignment`, `eat_dot`,
+# ...). Sans lui, deux connexions concurrentes (typiquement plusieurs joueurs
+# qui se (re)connectent au même instant, cf. le retour au salon d'attente
+# après une manche) peuvent chacune charger l'état AVANT que l'autre ait
+# sauvegardé le sien : la deuxième écriture écrase la première en silence et
+# le joueur qu'elle contenait disparaît du salon - symptôme observé côté
+# joueurs : "tout le monde ne se retrouve pas dans la même partie".
+#
+# Verrou Redis (`cache.lock`, django-redis - SET NX + expiration côté Redis,
+# libéré via un script Lua qui vérifie le token du détenteur) plutôt qu'un
+# `asyncio.Lock` en mémoire du process : deux connexions du MÊME salon qui
+# tombent sur deux workers Daphne différents doivent se voir mutuellement,
+# ce qu'un lock en mémoire ne peut pas faire. `timeout` = durée de vie max du
+# verrou côté Redis (garde-fou si un worker crashe en le tenant) ; les
+# sections critiques ici sont un aller-retour Redis, largement sous la
+# seconde.
+_ROOM_LOCK_TIMEOUT = 10
 
 
-def _room_lock(room_name: str) -> asyncio.Lock:
-    lock = _room_locks.get(room_name)
-    if lock is None:
-        lock = _room_locks[room_name] = asyncio.Lock()
-    return lock
+class _RedisRoomLock:
+    """Wrapper `async with` autour de `cache.lock()` (bloquant/sync côté
+    redis-py) - `acquire`/`release` passent par `sync_to_async` pour ne pas
+    geler la boucle asyncio pendant l'attente.
+
+    `thread_sensitive=False` est essentiel ici, pas juste une option : par
+    défaut `sync_to_async` fait tourner tout le code sync d'UN MÊME process
+    sur un seul thread partagé (pour imiter Django classique). Un `acquire()`
+    qui attend plusieurs secondes sur ce thread unique bloquait TOUT le reste
+    du travail sync_to_async du process pendant l'attente, y compris le
+    `release()` du salon qui tenait le verrou -> interblocage (constaté : les
+    connexions restaient ouvertes mais plus aucun rôle n'était jamais
+    confirmé). `thread_sensitive=False` fait tourner acquire/release sur le
+    pool de threads normal (plusieurs threads).
+
+    Deuxième piège, plus subtil, trouvé en testant avec plusieurs centaines de
+    connexions d'un coup : `acquire(blocking=True)` de redis-py attend en
+    bloquant LE THREAD pendant tout le poll (sleep entre essais compris) - un
+    thread du pool est donc immobilisé toute la durée de l'attente, pas
+    seulement le temps d'un essai. Avec un pool de taille fixe, ça sature vite
+    sous forte concurrence (beaucoup de connexions qui attendent le même
+    verrou de salon en même temps) et tout ralentit en cascade. On boucle donc
+    nous-mêmes sur des tentatives `blocking=False` (un aller-retour Redis
+    quasi instantané, le thread est rendu tout de suite) et on attend entre
+    deux essais avec `asyncio.sleep` - qui ne coûte rien en threads, juste de
+    la planification sur la boucle asyncio.
+    """
+
+    _POLL_INTERVAL = 0.05
+
+    def __init__(self, room_name: str):
+        # thread_local=False : redis-py range sinon le jeton d'acquisition
+        # dans un `threading.local()`, or acquire()/release() peuvent tourner
+        # sur deux threads différents du pool (thread_sensitive=False, voir
+        # plus haut) - release() plantait avec "'_thread._local' object has
+        # no attribute 'token'" dès que ça arrivait. Sûr ici : chaque instance
+        # de _RedisRoomLock n'a qu'un seul propriétaire logique (un `async
+        # with`), peu importe le thread réel qui exécute chaque étape.
+        self._lock = cache.lock(
+            f"pacman_room_lock:{room_name}", timeout=_ROOM_LOCK_TIMEOUT, thread_local=False,
+        )
+
+    async def __aenter__(self):
+        while not await sync_to_async(self._lock.acquire, thread_sensitive=False)(blocking=False):
+            await asyncio.sleep(self._POLL_INTERVAL)
+        return self
+
+    async def __aexit__(self, exc_type, exc, tb):
+        await sync_to_async(self._lock.release, thread_sensitive=False)()
+
+
+def _room_lock(room_name: str) -> _RedisRoomLock:
+    return _RedisRoomLock(room_name)
 
 
 class GameConsumer(AsyncWebsocketConsumer):

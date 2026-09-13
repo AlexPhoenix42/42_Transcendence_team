@@ -47,6 +47,12 @@ const defaults = {
     playing: true,
     factorH: 1,
     factorV: 1,
+    // Uniform scale applied to the sprite sheet's background-size AND to
+    // every background-position it's given (setAnimation + refresh below),
+    // keeping the two in lockstep - see spriteScale's own doc comment above
+    // its field for why this exists at all. 1 = no-op (default CSS
+    // background-size "auto"), so nothing that doesn't opt in is affected.
+    spriteScale: 1,
     animations: {} as Record<string, Animation>,
     defaultAnimation: "default",
     normalizeRefreshRate: null as ((rate: number) => number) | null,
@@ -85,6 +91,21 @@ class Sprite extends View {
     playing!: boolean;
     factorH!: number;
     factorV!: number;
+    /**
+     * Uniform scale for characters shown smaller than their sheet's native
+     * cell (e.g. multiplayer's 48px Pac-Man/ghosts, cut from a 64px grid -
+     * see `SPRITE_SIZE` in `net/MultiplayerGame.ts`). `width`/`height` alone
+     * only resize the *viewport* onto the background image: `render()` never
+     * touches `background-size`, so it stays at the sheet's native
+     * resolution and a smaller box (with `overflow: hidden`) just crops the
+     * right/bottom of the frame instead of shrinking it. Setting this scales
+     * `background-size` to match *and* scales every `background-position`
+     * (`setAnimation` below, `refresh` above) so the same frame still lines
+     * up - a smaller *window* onto a proportionally smaller sheet is a true
+     * shrink, not a crop. Leave at 1 (default) for anything meant to show at
+     * its sheet's native size, which is everything except the above.
+     */
+    spriteScale!: number;
     animations!: Record<string, Animation>;
     defaultAnimation!: string;
     normalizeRefreshRate!: ((rate: number) => number) | null;
@@ -125,9 +146,25 @@ class Sprite extends View {
      * @returns Promise that resolves when all animations are loaded.
      */
     load(): Promise<void[]> {
-        return Promise.all(
+        const loaded = Promise.all(
             Object.keys(this.animations).map((label) => this.animations[label].load()),
         );
+        // A character that's constructed already showing its default
+        // animation (the common case: e.g. a caged ghost sits on one frame
+        // until the round starts) can call setAnimation() - see its
+        // spriteScale handling - before `.load()` (called separately, after
+        // construction: see e.g. `_setupLocalAvatar` in MultiplayerGame.ts)
+        // has even created that animation's <img>. Its background-size then
+        // never gets corrected for a shrunk sprite (spriteScale !== 1),
+        // since nothing re-picks the same animation if the character never
+        // changes it again. Redo it now that every image is definitely
+        // loaded - a no-op for spriteScale === 1 (the overwhelming default).
+        if (this.spriteScale !== 1) {
+            loaded.then(() => {
+                if (this.animation) this.setAnimation(this.animation);
+            });
+        }
+        return loaded;
     }
 
     /**
@@ -214,7 +251,7 @@ class Sprite extends View {
                     y = -this.animation.offsetY;
                 }
 
-                this.el.style.backgroundPosition = `${x}px ${y}px`;
+                this.el.style.backgroundPosition = `${x * this.spriteScale}px ${y * this.spriteScale}px`;
             }
         }
         this.idleCounter = (this.idleCounter + 1) % normalize(this.animation.refreshRate);
@@ -256,7 +293,27 @@ class Sprite extends View {
         const distanceX = 0;
         const distanceY = 0;
 
-        this.el.style.backgroundPosition = `${-distanceX - animation.offsetX}px ${-distanceY - animation.offsetY}px`;
+        // See spriteScale's doc comment: scale background-size to match, or
+        // a smaller box just crops the frame instead of shrinking it.
+        // `naturalWidth`/`naturalHeight` are 0 until the image has actually
+        // loaded (and `animation.img` doesn't exist at all until `.load()`
+        // has run, which for most characters happens *after* construction -
+        // this first setAnimation() call, from `render()`, can land before
+        // either) - sizing to 0x0 would make the whole sprite invisible
+        // instead of just wrongly-scaled, so only size here when it's
+        // already usable. `Sprite.load()` redoes this once every animation
+        // image is definitely loaded, covering the case where nothing ever
+        // calls setAnimation() again to naturally pick it up (e.g. a caged
+        // ghost sitting on one frame until the round starts).
+        if (this.spriteScale !== 1 && animation.img?.complete && animation.img.naturalWidth) {
+            this.el.style.backgroundSize =
+                `${animation.img.naturalWidth * this.spriteScale}px ` +
+                `${animation.img.naturalHeight * this.spriteScale}px`;
+        }
+
+        this.el.style.backgroundPosition =
+            `${(-distanceX - animation.offsetX) * this.spriteScale}px ` +
+            `${(-distanceY - animation.offsetY) * this.spriteScale}px`;
 
         if (typeof callback === "function") {
             this.callback = callback;
