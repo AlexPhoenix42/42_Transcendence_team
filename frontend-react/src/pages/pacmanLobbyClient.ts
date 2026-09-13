@@ -27,7 +27,10 @@ const ROLES = [
     "baby",
     "blocker",
     "builder",
-    "ghost",
+    "ghost_pinky",
+    "ghost_blinky",
+    "ghost_inky",
+    "ghost_sue",
 ] as const
 
 export type PacmanRole = (typeof ROLES)[number]

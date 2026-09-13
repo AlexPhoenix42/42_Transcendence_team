@@ -73,7 +73,7 @@ class RoomStateEatDotTests(SimpleTestCase):
 
     def test_rejected_for_non_pacman_role(self):
         room = self._playing_room()
-        room.add_player('g1', 'ghost')
+        room.add_player('g1', 'ghost_blinky')
         cell = next(iter(room.dots))
         self.assertIsNone(room.eat_dot('g1', *cell))
 
@@ -86,7 +86,7 @@ class RoomStateContactTests(SimpleTestCase):
     def _room(self):
         room = RoomState()
         room.add_player('p1', 'pacman')
-        room.add_player('g1', 'ghost')
+        room.add_player('g1', 'ghost_blinky')
         room.start()
         return room
 
@@ -133,7 +133,7 @@ class RoomStateBlockerTests(SimpleTestCase):
     def _room(self):
         room = RoomState()
         room.add_player('p1', 'blocker')
-        room.add_player('g1', 'ghost')
+        room.add_player('g1', 'ghost_blinky')
         room.start()
         return room
 
@@ -172,7 +172,7 @@ class RoomStateMatchResultTests(SimpleTestCase):
     def _over_room(self, winner='pacman'):
         room = RoomState()
         room.set_role('p1', 'pacman', name='Alice')
-        room.set_role('g1', 'ghost', name='Bob')
+        room.set_role('g1', 'ghost_blinky', name='Bob')
         room.start()
         room.players['p1']['score'] = 240
         room.status = 'over'
@@ -250,7 +250,7 @@ class RoomStateRoundTests(SimpleTestCase):
     def test_prune_drops_stale_players(self):
         room = RoomState()
         room.add_player('p1', 'pacman')
-        room.add_player('p2', 'ghost')
+        room.add_player('p2', 'ghost_blinky')
         room.players['p1']['seen_ts'] = time.time() - 999
         room.prune(time.time())
         self.assertEqual(list(room.players), ['p2'])
@@ -258,11 +258,11 @@ class RoomStateRoundTests(SimpleTestCase):
     def test_snapshot_shape(self):
         room = RoomState()
         room.add_player('p1', 'pacman')
-        room.add_player('g1', 'ghost')
+        room.add_player('g1', 'ghost_blinky')
         snap = room.snapshot()
         self.assertEqual(snap['level'], 1)
         self.assertEqual(snap['scores'], {'p1': 0, 'g1': 0})
-        self.assertEqual(snap['roles'], {'p1': 'pacman', 'g1': 'ghost'})
+        self.assertEqual(snap['roles'], {'p1': 'pacman', 'g1': 'ghost_blinky'})
         self.assertEqual(snap['spectators'], 0)
         self.assertEqual(len(snap['dots']) + len(snap['pellets']), 224)
 
@@ -286,10 +286,10 @@ class RoomStateSpectatorTests(SimpleTestCase):
     def test_spectator_back_to_player(self):
         room = RoomState()
         room.set_role('s1', 'spectator')
-        room.set_role('s1', 'ghost')
+        room.set_role('s1', 'ghost_blinky')
         self.assertIn('s1', room.players)
         self.assertNotIn('s1', room.spectators)
-        self.assertEqual(room.players['s1']['role'], 'ghost')
+        self.assertEqual(room.players['s1']['role'], 'ghost_blinky')
 
     def test_remove_player_clears_spectator(self):
         room = RoomState()
@@ -318,7 +318,7 @@ class RoomStateRoleTakenTests(SimpleTestCase):
     def test_role_free_when_nobody_has_it(self):
         room = RoomState()
         room.add_player('p1', 'pacman')
-        self.assertFalse(room.role_taken('ghost', exclude_pid='p2'))
+        self.assertFalse(room.role_taken('ghost_blinky', exclude_pid='p2'))
 
     def test_spectator_is_never_taken(self):
         room = RoomState()
@@ -358,7 +358,7 @@ class RoomStateRedisRoundTripTests(SimpleTestCase):
     def test_to_dict_from_dict_preserves_state(self):
         room = RoomState()
         room.add_player('p1', 'pacman', name='Alice', user_id=7)
-        room.add_player('g1', 'ghost', name='Bob', user_id=8)
+        room.add_player('g1', 'ghost_blinky', name='Bob', user_id=8)
         room.set_role('s1', 'spectator')
         room.start()
         cell = next(iter(room.dots))

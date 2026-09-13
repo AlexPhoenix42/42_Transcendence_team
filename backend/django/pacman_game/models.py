@@ -24,7 +24,14 @@ class PlayerRole(models.TextChoices):
     BABY            = "baby",           "Bébé"
     BLOCKER         = "blocker",        "Blocker"
     BUILDER         = "builder",        "Builder"
-    GHOST           = "ghost",          "Fantôme"
+    # Un fantôme jouable par des vrais joueurs = un choix de personnage parmi
+    # 4, comme pacman/madame_pacman - chacun avec sa couleur et son
+    # comportement d'IA d'origine (repris dans makeGhost.ts côté front, même
+    # si seul le rendu compte ici : le déplacement est piloté par le joueur).
+    GHOST_PINKY     = "ghost_pinky",    "Fantôme (Pinky)"
+    GHOST_BLINKY    = "ghost_blinky",   "Fantôme (Blinky)"
+    GHOST_INKY      = "ghost_inky",     "Fantôme (Inky)"
+    GHOST_SUE       = "ghost_sue",      "Fantôme (Sue)"
     SPECTATOR       = "spectator",      "Spectateur"
 
 
@@ -33,7 +40,11 @@ PACMAN_ROLES = (
     PlayerRole.PACMAN, PlayerRole.MADAME_PACMAN,
     PlayerRole.BABY, PlayerRole.BLOCKER,
 )
-GHOST_ROLES  = (PlayerRole.BUILDER, PlayerRole.GHOST)
+GHOST_ROLES  = (
+    PlayerRole.BUILDER,
+    PlayerRole.GHOST_PINKY, PlayerRole.GHOST_BLINKY,
+    PlayerRole.GHOST_INKY, PlayerRole.GHOST_SUE,
+)
 
 
 class Winner(models.TextChoices):

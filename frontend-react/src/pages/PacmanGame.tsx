@@ -24,7 +24,13 @@ const CHARACTERS: { role: string; label: string }[] = [
     { role: "madame_pacman", label: "💗 MS PAC-MAN" },
     { role: "blocker", label: "🧱 BLOCKER" },
     { role: "builder", label: "👷 BUILDER" },
-    { role: "ghost", label: "👻 FANTÔME" },
+    // 4 fantômes distincts (couleur + comportement d'origine dans
+    // makeGhost.ts) au lieu d'un seul rôle "ghost" générique - chacun
+    // exclusif comme les autres personnages.
+    { role: "ghost_pinky", label: "🌸 PINKY" },
+    { role: "ghost_blinky", label: "🔴 BLINKY" },
+    { role: "ghost_inky", label: "🔵 INKY" },
+    { role: "ghost_sue", label: "🟠 SUE" },
 ]
 
 const ROLE_LABEL: Record<string, string> = {
@@ -34,7 +40,10 @@ const ROLE_LABEL: Record<string, string> = {
     baby: "🍼 Bébé",
     blocker: "🧱 Blocker",
     builder: "👷 Builder",
-    ghost: "👻 Fantôme",
+    ghost_pinky: "🌸 Pinky",
+    ghost_blinky: "🔴 Blinky",
+    ghost_inky: "🔵 Inky",
+    ghost_sue: "🟠 Sue",
 }
 
 export default function PacmanGame() {

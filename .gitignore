@@ -41,3 +41,6 @@ vault/secrets/
 frontend-react/tsconfig.tsbuildinfo
 .env
 .gitignore
+
+# ── Machine-local, voir AVANCEMENT.md §6 ─
+frontend/docker_conf/nginx.local.conf
