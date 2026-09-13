@@ -44,7 +44,7 @@ export default function Achievements({ username }: Props) {
     return (
         <div className="bg-gray-800 rounded-lg border border-gray-700 p-5">
             <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-white">Achievements</h2>
+                <h2 className="text-lg font-semibold text-white">Chess Achievements</h2>
                 <span className="text-sm text-gray-400">
                     {data.unlocked_count} / {data.total_count}
                 </span>
