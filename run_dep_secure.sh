@@ -92,11 +92,27 @@ chown -R 100:100 "$BACKUP_DATA_DIR"
 chmod 750 "$BACKUP_DATA_DIR"
 chmod 700 "$BACKUP_DATA_DIR/restic-repo"
 
-# 11. 
+# 11. Prepare Prometheus + Grafana data directories
+PROMETHEUS_DATA_DIR="$HOME/goinfre/trans_data/trans_prometheus_data"
+GRAFANA_DATA_DIR="$HOME/goinfre/trans_data/trans_grafana_data"
+mkdir -p "$PROMETHEUS_DATA_DIR" "$GRAFANA_DATA_DIR"
+chown -R 65534:65534 "$PROMETHEUS_DATA_DIR"   # prometheus runs as UID 65534
+chown -R 472:472     "$GRAFANA_DATA_DIR"       # grafana runs as UID 472
+chmod 750 "$PROMETHEUS_DATA_DIR" "$GRAFANA_DATA_DIR"
 
 # XX. Run docker compose with inline env var, no export
 # only vault-init gets DECRYPTED_SEC_ENV via compose env.
 # All services use plain .env for non-secrets.
+#DECRYPTED_SEC_FILE="$DECRYPTED_SEC_ENV" \
+#docker compose -f docker-compose-dep.yml --env-file "$PLAIN_ENV" up -d --build "$@"
+
+# the above line was edited here for Grafapha!
 DECRYPTED_SEC_FILE="$DECRYPTED_SEC_ENV" \
-docker compose -f docker-compose-dep.yml --env-file "$PLAIN_ENV" up -d --build "$@"
+    docker compose \
+    -f docker-compose-dep.yml \
+    --env-file "$PLAIN_ENV" \
+    --env-file "$DECRYPTED_SEC_ENV" \
+    up -d --build "$@"
+
+#    -f monitoring/docker-compose.monitoring.yml \
 

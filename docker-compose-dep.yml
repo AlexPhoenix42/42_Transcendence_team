@@ -257,7 +257,9 @@ services:
       vault-init:
         condition:  service_completed_successfully
     networks:
-      - trans_net
+      trans_net:
+        aliases:
+          - backend-django    # this fixes the problem with Grafana/Prometheus
     healthcheck:
       test: ["CMD", "python", "manage.py", "healthcheck"]
       interval:     10s
@@ -378,6 +380,117 @@ services:
     networks:
       - trans_net
 
+
+# Monitoring overlay for Transcendence.
+#
+# Run it alongside your main stack, e.g.:
+#   docker compose -f docker-compose-dep.yml -f monitoring/docker-compose.monitoring.yml up -d
+#
+# It assumes your existing services live on the "trans_net" network and are
+# named trans_backend_django, trans_db_server, trans_redis, trans_frontend_nginx.
+#
+# ---------------------------------------------------------------------------
+# IMPORTANT — the Django network alias.
+# Django rejects Host headers containing underscores (DisallowedHost, HTTP 400),
+# so Prometheus can never scrape "trans_backend_django:9000" directly. Give the
+# Django service a hyphen-only alias so Prometheus can reach it as
+# "backend-django:9000". Add this block to your Django service in your MAIN
+# compose file (docker-compose-dep.yml), not here:
+#
+#   backend_django:
+#     ...
+#     networks:
+#       trans_net:
+#         aliases:
+#           - backend-django
+#
+# and add "backend-django" to ALLOWED_HOSTS in .env.dep (NO leading space —
+# a stray space becomes part of the hostname and Django won't match it):
+#   ALLOWED_HOSTS=localhost,127.0.0.1,mi-r1-p4,10.3.1.4,10.3.1.4.nip.io,trans_backend_django,backend-django
+# ---------------------------------------------------------------------------
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: trans_prometheus
+    restart: unless-stopped
+    # Prometheus runs as UID 65534 (nobody). The bind-mounted data dir must be
+    # owned 65534:65534 or it crashes with "permission denied" on the TSDB.
+    user: "65534:65534"
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.enable-lifecycle"
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/prometheus/alert_rules.yml:/etc/prometheus/alert_rules.yml:ro
+      - ${HOME}/goinfre/trans_data/trans_prometheus_data:/prometheus
+    ports:
+      # Publish 9090 so you can open http://localhost:9090/targets from the host.
+      - "9090:9090"
+    networks:
+      - trans_net
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: trans_grafana
+    restart: unless-stopped
+    # Grafana runs as UID 472. Own the data dir 472:472 (472:0 also works but
+    # GID 0 = root group, which you flagged; 472:472 is fine in plain Docker).
+    user: "472:472"
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?set GRAFANA_ADMIN_PASSWORD in .env}
+      # Served behind nginx under /grafana/ (see nginx snippet). These two make
+      # Grafana generate correct links/redirects under the subpath.
+      #GF_SERVER_ROOT_URL: "%(protocol)s://%(domain)s:%(http_port)s/grafana/"
+      #GF_SERVER_SERVE_FROM_SUB_PATH: "true"
+      # No sign-up, no anonymous access.
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - ${HOME}/goinfre/trans_data/trans_grafana_data:/var/lib/grafana
+    ports:
+      # Direct access for testing: http://localhost:3001 (container listens on 3000).
+      - "3001:3000"
+    depends_on:
+      - prometheus
+    networks:
+      - trans_net
+
+  # Exposes nginx stub_status as Prometheus metrics.
+  # Needs the stub_status server block added to your nginx config (see snippet).
+  nginx-exporter:
+    image: nginx/nginx-prometheus-exporter:latest
+    container_name: trans_nginx_exporter
+    restart: unless-stopped
+    command:
+      - "--nginx.scrape-uri=http://trans_frontend_nginx:8080/stub_status"
+    networks:
+      - trans_net
+
+  # Read-only Postgres metrics via the dedicated prometheus_monitor user
+  # (created by monitoring/postgres/init_monitoring_user.sql).
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:latest
+    container_name: trans_postgres_exporter
+    restart: unless-stopped
+    environment:
+      DATA_SOURCE_NAME: "postgresql://prometheus_monitor:${MONITOR_PASS}@trans_db_server:5432/${DB_SERVER_DB}?sslmode=disable"
+    depends_on:
+      - prometheus
+    networks:
+      - trans_net
+
+  redis-exporter:
+    image: oliver006/redis_exporter:latest
+    container_name: trans_redis_exporter
+    restart: unless-stopped
+    environment:
+      REDIS_ADDR: "redis://trans_redis:6379"
+    depends_on:
+      - prometheus
+    networks:
+      - trans_net
 
 networks:
   trans_net:

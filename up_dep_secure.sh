@@ -55,5 +55,15 @@ chmod 700 "$BACKUP_DATA_DIR/restic-repo"
 
 # 9. Run docker compose (no --build)
 DECRYPTED_SEC_FILE="$DECRYPTED_SEC_ENV" \
-docker compose -f docker-compose-dep.yml --env-file "$PLAIN_ENV" up -d "$@"
+#docker compose -f docker-compose-dep.yml --env-file "$PLAIN_ENV" up -d "$@"
+
+# the above line was edited here for Grafapha!
+DECRYPTED_SEC_FILE="$DECRYPTED_SEC_ENV" \
+    docker compose \
+    -f docker-compose-dep.yml \
+    --env-file "$PLAIN_ENV" \
+    --env-file "$DECRYPTED_SEC_ENV" \
+    up -d "$@"
+
+#    -f monitoring/docker-compose.monitoring.yml \
 

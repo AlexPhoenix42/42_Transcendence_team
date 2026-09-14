@@ -28,6 +28,7 @@ from .views                     import (
 )
 
 urlpatterns = [
+    path('',                    include('django_prometheus.urls')),
     path('healthz/',            health_check,        name='health_check'),
     path('api/health/',         system_health,       name='system_health'),
     path('api/health/ready',    system_health_ready, name='system_health_ready'),
