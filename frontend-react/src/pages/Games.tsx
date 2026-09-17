@@ -25,6 +25,12 @@ export default function Games() {
                     <h2 className="text-xl font-semibold text-white mb-2">Pacman</h2>
                     <p className="text-gray-400">Multijoueur — labyrinthe, rôles, fantômes</p>
                 </Link>
+
+				<Link to="/goose" className="bg-gray-800 p-8 rounded-lg border border-gray-700 hover:border-green-500 transition text-center">
+                    <span className="text-4xl block mb-3">🪿</span>
+                    <h2 className="text-xl font-semibold text-white mb-2">Game of the Goose</h2>
+                    <p className="text-gray-400">Classic board game — 2-6 players</p>
+                </Link>
             </div>
         </div>
     )

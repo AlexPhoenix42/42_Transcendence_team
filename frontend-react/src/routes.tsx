@@ -21,6 +21,8 @@ import Tournaments from "./pages/Tournaments.tsx"
 import TournamentDetail from "./pages/TournamentDetail.tsx"
 import Chat from "./pages/Chat.tsx"
 import ChessCoach from "./pages/ChessCoach.tsx"
+import GooseLobby from "./pages/GooseLobby.tsx"
+import GooseGame from "./pages/GooseGame.tsx"
 
 import ForgotPassword from "./pages/ForgotPassword.tsx"
 import ResetPassword from "./pages/ResetPassword.tsx"
@@ -57,6 +59,8 @@ export const router = createBrowserRouter([
                     { path: "/tournaments/:id", element: <TournamentDetail /> },
                     { path: "/chat", element: <Chat /> },
 					{ path: "/coach", element: <ChessCoach /> },
+					{ path: "/goose", element: <GooseLobby /> },
+                    { path: "/goose/:id", element: <GooseGame /> },
                 ],
             },
         ],

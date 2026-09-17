@@ -1,8 +1,9 @@
-# AVANCEMENT — intégration Pac-Man multijoueur
+# AVANCEMENT — intégration Pac-Man multijoueur + Goose Game
 
-Branche : `pacman2` · Remote : `git@github.com:AlexPhoenix42/42_Transcendence_unofficial.git`
-Dernière mise à jour : 2026-09-12
-Dernier commit : `fcc212c pacman: corrige les désync multijoueur, convertit le moteur en TypeScript`
+Branche : `pacman2` (voir aussi `pacman`, `pacman3`, `main`, `mtice`, `bvan-duy`)
+Remote : `git@github.com:AlexPhoenix42/42_Transcendence_unofficial.git`
+Dernière mise à jour : 2026-09-17
+Dernier commit `pacman2` : `2d91ab8 pacman: sprites Pac-Man/fantômes/Mme Pac-Man + 4 fantômes sélectionnables + nginx local`
 
 ---
 
@@ -131,7 +132,7 @@ autoritaires serveur, fin de manche (« LES FANTÔMES ONT GAGNÉ ! » / « Espac
 
 ---
 
-## 2bis. En cours — 4 fantômes sélectionnables (⚠️ NON COMMITÉ, NON TESTÉ)
+## 2bis. 4 fantômes sélectionnables — ✅ COMMITÉ (`2d91ab8`), 46/46 tests verts
 
 Demande : le jeu a 4 fantômes avec chacune leur particularité (couleur, comportement d'IA
 d'origine dans `makeGhost.ts` — Pinky/Blinky/Inky/Sue), mais le multi n'exposait qu'un seul
@@ -165,17 +166,65 @@ maintenant jouer dans le même salon (au lieu d'un seul fantôme générique).
     `_maybeUseFreeze` (pouvoir du fantôme) vérifie l'appartenance à `GHOST_ROLES` au lieu de
     `role === "ghost"`.
 
-**Pas vérifié** : ni `tsc` ni Django ne sont installés hors conteneur ici — je n'ai relu le code
-qu'à la main, rien n'a été compilé, migré ni lancé réellement. À valider avant de committer :
-`make up`, `python manage.py makemigrations --check` puis `python manage.py test pacman_game`
-dans le conteneur backend, et un tour en jeu (build front + `roles2.mjs` dans le scratchpad e2e,
-qui teste déjà les 4 rôles mais avec l'ancien `ghost` générique — à adapter aux 4 nouveaux rôles).
+**Vérifié et commité** (`2d91ab8`, 2026-09-13) : migration `0003_ghost_roles` validée
+(`makemigrations --check` propre), 46/46 tests `pacman_game` passent. `roles2.mjs` (scratchpad e2e)
+reste à adapter aux 4 nouveaux rôles (`ghost_pinky` etc. au lieu de `ghost`) — toujours en TODO,
+voir §7.
+
+---
+
+## 2ter. Goose Game (jeu de l'oie) — ⚠️ NON COMMITÉ, testé en local (2026-09-17)
+
+Le jeu de l'oie (backend Django `goose_game/` + pages React `GooseLobby`/`GooseGame`/`GooseBoard`)
+a été ajouté par Alex sur `main` (via la branche `mtice`, commit `51b6310`). Ce commit mélangeait
+plein de choses sans rapport (réécriture de `ChessGame.tsx`, `Navbar.tsx`, `docker-compose-dev.yml`,
+suppression de `.env`...). **Seule la partie goose_game a été extraite et reportée sur les 3
+branches pacman**, pour ne pas tout écraser :
+
+- **Fichiers copiés tels quels depuis `main`** (nouveaux, aucun risque de conflit) :
+  `backend/django/goose_game/` (app complète), `frontend-react/src/components/GooseBoard.tsx`,
+  `frontend-react/src/pages/GooseGame.tsx`, `frontend-react/src/pages/GooseLobby.tsx`.
+- **Câblage ajouté à la main** (fichiers existants, identiques sur les 3 branches pacman donc
+  patch appliqué partout pareil) :
+  - `backend/django/config/asgi.py` — `import goose_game.routing` + concat dans `get_websocket_application()`.
+  - `backend/django/config/settings.py` — `'goose_game'` dans `INSTALLED_APPS`.
+  - `backend/django/config/urls.py` — `path('api/goose/', include('goose_game.urls'))`.
+  - `frontend-react/src/routes.tsx` — imports `GooseLobby`/`GooseGame` + routes `/goose` et `/goose/:id`.
+  - `frontend-react/src/pages/Games.tsx` — carte 🪿 "Game of the Goose" ajoutée après Pacman.
+- **PAS repris** : tout le reste du commit `51b6310` (réécriture ChessGame.tsx, Navbar.tsx,
+  docker-compose-dev.yml, suppression `.env`, `index.css` dark-mode chess) — sans rapport, aurait
+  cassé des choses ou créé des conflits inutiles.
+
+### Statut par branche
+- **`pacman2`** : appliqué directement dans le repo réel (`/goinfre/isadbaib/42_Transcendence_unofficial`).
+  **Testé en vrai** : `make` (régénère `.env`, up, seed) → build frontend OK (vite, nouvelles
+  pages incluses) → migration `goose_game` appliquée par Django → login test + `GET /api/goose/`
+  (200, liste vide) + `POST /api/goose/` (201, partie créée avec le joueur `test`) → fonctionnel
+  de bout en bout côté API. Pas testé visuellement dans un vrai navigateur (extension Chrome
+  indisponible pendant la session) — juste curl + shell Django.
+- **`pacman`** et **`pacman3`** : même patch appliqué mais dans des **worktrees temporaires**
+  (scratchpad de session, pas persistants) — **pas testés en live**, juste les fichiers copiés/édités.
+  À refaire dans le vrai checkout de ces branches si besoin (le patch est documenté ci-dessus,
+  reproductible en 5 minutes).
+- **Rien n'est commité nulle part** — à committer par l'utilisateur quand il valide.
+
+### À faire avant de committer
+1. Relire le code `goose_game/` (models/consumers/views/serializers) — c'est le code d'Alex,
+   jamais review, pas de tests dedans (`tests.py` vide, juste 3 lignes de stub Django par défaut).
+2. Tester `pacman` et `pacman3` en vrai (actuellement seul `pacman2` a été vérifié par API).
+3. Vérifier le rendu frontend dans un navigateur (GooseLobby/GooseGame/GooseBoard) — seul un test
+   API a été fait, jamais un clic réel dans l'UI.
+4. Compte de test local `test` : son email a été forcé `verified`/`email_verfd=True` en DB pour
+   débloquer le login pendant les tests ("Account frozen. please verify your email." bloquait
+   sinon) — changement fait direct en DB dev, pas dans le code, sans impact sur le comportement
+   normal de vérification d'email pour les autres comptes.
 
 ---
 
 ## 3. Historique des commits `pacman` (du plus récent)
 
 ```
+2d91ab8 pacman: sprites Pac-Man/fantômes/Mme Pac-Man + 4 fantômes sélectionnables + nginx local
 fcc212c pacman: corrige les désync multijoueur, convertit le moteur en TypeScript
 3fe39a6 pacman: player_count lit l'état live (Redis) au lieu de GamePlayer (toujours 0 en attente/en jeu)
 491a7e4 correction (resize du Pac-Man local, SPRITE_SIZE=48)
@@ -249,6 +298,14 @@ ae3a757 pacman: consumers multijoueur sur le pattern chess_game
 - PC de l'école : **pas de root**, installs **VSCode uniquement**, config éditeur **locale** seulement.
 - `.env` ne doit **jamais** être commité (secrets OAuth déchiffrés).
 - Commits GPG-signés requis (`commit.gpgsign=true`) — l'assistant ne peut pas signer.
+- **Ne jamais installer d'extension/outil tiers non vérifié pour l'assistant IA depuis un lien
+  externe** sans revue préalable (2026-09-17 : tentative d'installer un repo GitHub se présentant
+  comme un module lié à l'assistant — bloquée automatiquement, signal détecté : contenu à risque ;
+  signal supplémentaire : 118k+ stars sur un repo créé 5 mois plus tôt, très anormal). Toujours
+  vérifier la légitimité (stars/âge du repo, contenu du fichier chargé automatiquement) avant
+  d'ajouter quoi que ce soit à la config globale de l'assistant.
+- **Aucune mention du nom de l'outil d'assistance IA dans les fichiers du projet** (docs, README,
+  commentaires) — même en tant que simple description factuelle.
 
 ---
 
@@ -285,28 +342,37 @@ Dans `<scratchpad>/e2e/` : `verify.mjs` (mort/fin de manche/fantômes cachés), 
 
 ## 7. Où on en est / prochaine étape
 
-Dernière demande traitée : **4 fantômes sélectionnables** (Pinky/Blinky/Inky/Sue) au lieu d'un
-rôle `ghost` générique — voir §2bis. **⚠️ En cours, non commité, non testé** (pas de Django/tsc
-hors conteneur ici). Précédée de `fcc212c` (désync multijoueur + conversion TypeScript du
-moteur, commité) et `3fe39a6`/`491a7e4`/`cfc183d`/`c028f75`.
+Dernière demande traitée : **Goose Game reporté sur `pacman`/`pacman2`/`pacman3`** — voir §2ter.
+**⚠️ Non commité sur les 3 branches.** Précédée de `2d91ab8` (sprites + 4 fantômes, commité) et
+`fcc212c`/`3fe39a6`/`491a7e4`/`cfc183d`.
 
-**À faire avant de committer §2bis** :
-1. `make up` puis, dans le conteneur backend : `makemigrations --check` (valider la migration
-   écrite à la main) et `python manage.py test pacman_game`.
-2. Rebuild front + un tour en jeu à 2+ comptes pour vérifier les 4 fantômes en vrai (skin
-   cohérent local/distant, exclusivité par fantôme).
-3. Adapter `roles2.mjs` (scratchpad e2e) aux 4 nouveaux rôles (`ghost_pinky` etc. au lieu de
-   `ghost`).
+**Fait cette session (2026-09-17)** :
+- Synchro branches : `main` et `pacman2` à jour avec origin ; branches locales créées pour
+  `pacman3`, `mtice`, `bvan-duy` (n'existaient qu'en distant — `git pull` ne les crée jamais,
+  seul `git fetch` met à jour les refs `origin/*`, voir note ci-dessous).
+- Goose Game extrait de `mtice`/`main` et reporté sur les 3 branches pacman (§2ter), testé par
+  API sur `pacman2` uniquement.
+
+**À faire avant de committer §2ter (Goose Game)** :
+1. Relire le code `goose_game/` (jamais review, pas de tests).
+2. Tester `pacman` et `pacman3` en vrai (seul `pacman2` vérifié).
+3. Test visuel navigateur (seul testé via curl/API jusqu'ici).
 
 **Reprise possible ensuite sur** :
-4. Le tableau de scores du bandeau de fin (le rendre fiable).
-5. Les tests `GameConsumer` (`WebsocketCommunicator`, au-delà des tests triviaux `_room_lock`
+4. `roles2.mjs` (scratchpad e2e) à adapter aux 4 rôles fantômes (`ghost_pinky` etc.).
+5. Le tableau de scores du bandeau de fin (le rendre fiable).
+6. Les tests `GameConsumer` (`WebsocketCommunicator`, au-delà des tests triviaux `_room_lock`
    existants).
-6. Le triage de `backend/pacman/` (import brut — trois arborescences pacman coexistent encore :
+7. Le triage de `backend/pacman/` (import brut — trois arborescences pacman coexistent encore :
    `backend/pacman/`, `backend/django/pacman_game/`, `backend/pacman/backend/pacman_server`).
-7. OAuth (surtout côté consoles Google / 42 — action utilisateur).
-8. Clarifier les messages de commit non descriptifs (`491a7e4` « correction », `c1edccc` « resumer »)
+8. OAuth (surtout côté consoles Google / 42 — action utilisateur).
+9. Clarifier les messages de commit non descriptifs (`491a7e4` « correction », `c1edccc` « resumer »)
    pour la prochaine fois.
+
+**Piège git à retenir** : `git pull` (même `--all`) ne met à jour QUE la branche courante. Pour
+tout synchroniser d'un coup sans checkout : `git fetch origin <branche>:<branche>` pour chaque
+branche locale (refusé automatiquement si ce n'est pas un fast-forward, donc sans risque) — sauf
+la branche courante, qui doit passer par un `pull` classique.
 
 `.env.dep` reste modifié localement, non commité — à vérifier avant de committer/écraser.
 

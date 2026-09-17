@@ -162,6 +162,7 @@ INSTALLED_APPS = [
 
     'chess_game',
     'pacman_game',
+    'goose_game',
 
     'users',
     'friends',

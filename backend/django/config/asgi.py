@@ -21,11 +21,13 @@ def get_websocket_application():
     import chess_game.routing
     import chess_coach.routing
     import pacman_game.routing
+    import goose_game.routing
     return URLRouter(
         chat.routing.websocket_urlpatterns +
         chess_game.routing.websocket_urlpatterns +
         chess_coach.routing.websocket_urlpatterns +
-        pacman_game.routing.websocket_urlpatterns
+        pacman_game.routing.websocket_urlpatterns +
+        goose_game.routing.websocket_urlpatterns
     )
 
 

@@ -38,6 +38,7 @@ urlpatterns = [
     path('api/auth/',           include('two_factor_auth.urls')),
     path('accounts/',           include('allauth.urls')),
     path('api/tournaments/',    include('tournament.urls')),
+    path('api/goose/',          include('goose_game.urls')),
 ]
 
 if  settings.DEBUG:
