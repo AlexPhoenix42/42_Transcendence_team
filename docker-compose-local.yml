@@ -1,0 +1,202 @@
+# ═══════════════════════════════════════════════════════════════════════
+#  docker-compose-local.yml — run the whole stack on localhost, no VM.
+#
+#  This is an OVERRIDE layer. It never replaces docker-compose-dev.yml;
+#  compose merges the two, so the team's file stays untouched on this branch.
+#
+#  Run:
+#    docker compose -f docker-compose-dev.yml -f docker-compose-local.yml up --build
+#
+#  Then open  http://localhost:3000
+#
+#  What this layer changes, and why:
+#    1. vault-init   — the base mounts a HOST script (docker CLI + jq) into a
+#                      vault container where neither exists, so it always fails
+#                      and django's service_completed_successfully gate never
+#                      opens. Swapped for scripts_dev/seed_vault_dev.sh.
+#    2. backend_django — dev vault is http + root token; .env.dep says
+#                      https + approle, which can't authenticate here.
+#    3. frontend_dev — NEW. Vite dev server on frontend-react (the real app).
+#    4. frontend_nginx — profiled off. It builds ./frontend, which is still
+#                      the untouched Vite starter, and serves ./frontend/dist,
+#                      which doesn't exist. Also wants port 3000.
+# ═══════════════════════════════════════════════════════════════════════
+
+services:
+
+  # ── Postgres: fix a broken build context ────────────────────────────
+  #  The base file sets  context: db_server/docker_conf  +  dockerfile: Dockerfile,
+  #  but that Dockerfile's line 16 is:
+  #      COPY docker_conf/vault-entrypoint.sh /usr/local/bin/...
+  #  COPY is relative to the CONTEXT, so docker looks for
+  #      db_server/docker_conf/docker_conf/vault-entrypoint.sh   ← doubled
+  #  and the build dies before anything else starts.
+  #
+  #  Every other service in this stack uses  context: <dir>  +
+  #  dockerfile: docker_conf/Dockerfile. Postgres is the odd one out.
+  #  This is a real bug in docker-compose-dev.yml — worth fixing upstream.
+  postgres:
+    build:
+      context:      db_server
+      dockerfile:   docker_conf/Dockerfile
+      target:       dev
+
+  # ── Stockfish: drop the CPU quota, which this machine cannot honour ─
+  #  The base file sets  deploy.resources.limits.cpus: "1.0". Creating that
+  #  container fails outright here:
+  #      NanoCPUs can not be set, as your kernel does not support
+  #      CPU CFS scheduler or the cgroup is not mounted
+  #  `docker info` confirms it — "No cpu cfs quota support", "No cpu shares
+  #  support". The cpu controller is not delegated to docker's cgroup on this
+  #  box, so ANY cpus: limit is rejected at create time.
+  #
+  #  cpus "0" means unlimited. The memory cap is kept: memory limits DO work
+  #  here, and it is the one that actually matters for a runaway engine.
+  #  Leave the base file alone — on the lab machine the CPU limit is valid.
+  stockfish_ai:
+    deploy:
+      resources:
+        limits:
+          cpus:   "0"
+          memory: 512M
+
+  # ── Vault: plain http, and get past the entrypoint's chown ──────────
+  #  docker_conf/entrypoint.sh line 8 runs, unconditionally and BEFORE it
+  #  looks at VAULT_MODE:
+  #      chown -R vault:vault /vault/config /vault/data
+  #  Dev mode uses `storage "inmem"` and never writes to /vault/data, but
+  #  the chown happens anyway. The base file bind-mounts
+  #      ${HOME}/goinfre/trans_data/trans_vault_data -> /vault/data
+  #  which is owned by the host user (uid 146424). The container is not that
+  #  user, so chown fails, `set -e` exits, and vault restart-loops:
+  #      chown: /vault/data: Operation not permitted
+  #
+  #  Two changes, both dev-only:
+  #    user "0:0"  — root can chown, so the entrypoint gets past line 8
+  #    named volume — so the chown lands on a docker volume instead of
+  #                   rewriting ownership of your /goinfre directory
+  #  Running vault as root is fine for a dev-mode, in-memory, throwaway
+  #  instance. The dep stack keeps the unprivileged user and the bind mount.
+  vault:
+    user: "0:0"
+    environment:
+      VAULT_MODE:               dev
+      VAULT_DEV_ROOT_TOKEN_ID:  root
+      VAULT_ADDR:               http://vault:8200
+      VAULT_API_ADDR:           http://vault:8200
+    volumes:
+      - vault_dev_data:/vault/data
+
+  # ── Seed vault from inside the container ────────────────────────────
+  vault-init:
+    environment:
+      VAULT_ADDR:             http://vault:8200
+      VAULT_TOKEN:            root
+      SECRET_KEY:             ${SECRET_KEY}
+      DB_SERVER_USER:         ${DB_SERVER_USER}
+      DB_SERVER_PASS:         ${DB_SERVER_PASS}
+      FT_CLIENT_ID:           ${FT_CLIENT_ID}
+      FT_CLIENT_SECRET:       ${FT_CLIENT_SECRET}
+      GOOGLE_CLIENT_ID:       ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET:   ${GOOGLE_CLIENT_SECRET}
+    volumes:
+      - ./scripts_dev/seed_vault_dev.sh:/app/seed_vault_dev.sh:ro
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - /app/seed_vault_dev.sh
+
+  # ── Django: point at the dev vault, talk to db/redis by service name ─
+  backend_django:
+    # This host runs ROOTLESS docker (socket /run/user/146424/docker.sock,
+    # subuid base 246424). Under rootless, container uid 0 maps to YOUR host
+    # uid, and container uid 1000 maps to host 247423 — a subuid that owns
+    # nothing in your repo. The image's django_user is uid 1000, so the
+    # entrypoint's collectstatic cannot write to the bind-mounted /django:
+    #     PermissionError: [Errno 13] Permission denied:
+    #         '/django/staticfiles/admin/css/login.css'
+    # Running as 0:0 therefore means "run as bvan-duy" here, not "run as
+    # real root" — files it creates land owned by you on the host.
+    # The dep stack, on rootful docker, keeps the unprivileged django_user.
+    user: "0:0"
+    environment:
+      # that uid has no home directory inside the image
+      HOME:               /tmp
+      VAULT_URL:          http://vault:8200
+      VAULT_AUTH_METHOD:  token
+      VAULT_TOKEN:        root
+      DB_HOST:            trans_db_server
+      DB_PORT:            "5432"
+      REDIS_HOST:         trans_redis
+      REDIS_PORT:         "6379"
+    # The base healthcheck allows 5s for `manage.py healthcheck`, but that
+    # command boots all of django and calls vault. Measured here: 5.74s,
+    # every time — so docker SIGKILLs it (health log shows exit -1) and the
+    # container is marked unhealthy even though daphne is serving fine.
+    # Everything that depends_on it then refuses to start.
+    healthcheck:
+      test: ["CMD", "python", "manage.py", "healthcheck"]
+      interval:     30s
+      timeout:      30s
+      retries:      5
+      start_period: 90s
+    # Give this service a hostname without underscores.
+    #
+    # Vite proxies with changeOrigin, which rewrites the Host header to the
+    # target. Pointed at the service name, django answers 400:
+    #     Invalid HTTP_HOST header: 'trans_backend_django:9000'.
+    #     The domain name provided is not valid according to RFC 1034/1035.
+    # That is NOT an ALLOWED_HOSTS miss — underscores are illegal in
+    # hostnames, and django's host regex rejects them before the list is
+    # ever consulted. No ALLOWED_HOSTS entry can rescue it.
+    #
+    # `backend-django` is already in ALLOWED_HOSTS (someone hit this before),
+    # so an alias is all that's needed. No change to vite.config.js.
+    networks:
+      trans_net:
+        aliases:
+          - backend-django
+
+  # ── Vite dev server — THE frontend for local work ───────────────────
+  #  node:22-bookworm-slim, not alpine: tailwind v4 (@tailwindcss/oxide)
+  #  and oxlint both ship native binaries, and glibc builds are the ones
+  #  that are always published. Your host node is v18.20.4, which vite 8
+  #  refuses to run on (engines: ^20.19.0 || >=22.12.0) — the container is
+  #  what gets you a supported node without touching the system install.
+  frontend_dev:
+    image:            node:22-bookworm-slim
+    container_name:   trans_frontend_dev
+    restart:          unless-stopped
+    working_dir:      /app
+    environment:
+      # Vite proxies /api, /media and /ws here. Service name, not localhost —
+      # localhost inside this container is this container.
+      VITE_PROXY_TARGET:    http://backend-django:9000
+      VITE_ALLOWED_HOSTS:   localhost,127.0.0.1
+    command:
+      - sh
+      - -c
+      - |
+        if [ ! -x node_modules/.bin/vite ]; then
+          echo "→ installing dependencies into the named volume (first run only)"
+          npm ci
+        fi
+        exec npm run dev -- --host 0.0.0.0 --port 3000
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend-react:/app
+      # node_modules lives in a docker volume, NOT on /home — keeps ~400MB
+      # and ~30k files off a disk that only has about 1.3GB free.
+      - frontend_node_modules:/app/node_modules
+    networks:
+      - trans_net
+
+  # ── nginx: off by default locally, still available ──────────────────
+  #  Bring it back with:  --profile nginx   (needs frontend/dist to exist)
+  frontend_nginx:
+    profiles:
+      - nginx
+
+volumes:
+  frontend_node_modules:
+  vault_dev_data:

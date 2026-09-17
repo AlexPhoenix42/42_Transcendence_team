@@ -1,11 +1,13 @@
 # ── Secrets — never commit these ─────────
-#.env
+.env
 .swp
 .swo
 
 # ── JavaScript ───────────────────────────
 frontend/node_modules/
 frontend/dist/
+frontend-react/node_modules/
+frontend-react/dist/
 
 # ── Python ───────────────────────────────
 backend/__pycache__/
