@@ -1,6 +1,7 @@
 // frontend-react/src/components/GooseBoard.tsx
 
 import { useEffect, useRef, useState } from "react"
+import { useT } from "../i18n/I18nProvider.tsx"
 
 interface PlayerData {
     username: string
@@ -19,26 +20,26 @@ interface Props {
 const PLAYER_TOKENS = ["🐸", "🦊", "🐻", "🐰", "🦉", "🐱"]
 
 const SPECIAL_SQUARES: Record<number, { icon: string; label: string; bg: string; border: string }> = {
-    5:  { icon: "🪿", label: "Goose",  bg: "#166534", border: "#22c55e" },
-    6:  { icon: "🌉", label: "Bridge", bg: "#1e3a5f", border: "#60a5fa" },
-    9:  { icon: "🪿", label: "Goose",  bg: "#166534", border: "#22c55e" },
-    14: { icon: "🪿", label: "Goose",  bg: "#166534", border: "#22c55e" },
-    18: { icon: "🪿", label: "Goose",  bg: "#166534", border: "#22c55e" },
-    19: { icon: "🏨", label: "Inn",    bg: "#78350f", border: "#f59e0b" },
-    23: { icon: "🪿", label: "Goose",  bg: "#166534", border: "#22c55e" },
-    27: { icon: "🪿", label: "Goose",  bg: "#166534", border: "#22c55e" },
-    31: { icon: "🕳️", label: "Well",   bg: "#164e63", border: "#22d3ee" },
-    32: { icon: "🪿", label: "Goose",  bg: "#166534", border: "#22c55e" },
-    36: { icon: "🪿", label: "Goose",  bg: "#166534", border: "#22c55e" },
-    41: { icon: "🪿", label: "Goose",  bg: "#166534", border: "#22c55e" },
-    42: { icon: "🌀", label: "Maze",   bg: "#4c1d95", border: "#a78bfa" },
-    45: { icon: "🪿", label: "Goose",  bg: "#166534", border: "#22c55e" },
-    50: { icon: "🪿", label: "Goose",  bg: "#166534", border: "#22c55e" },
-    52: { icon: "⛓️", label: "Prison", bg: "#374151", border: "#9ca3af" },
-    54: { icon: "🪿", label: "Goose",  bg: "#166534", border: "#22c55e" },
-    58: { icon: "💀", label: "Death",  bg: "#7f1d1d", border: "#f87171" },
-    59: { icon: "🪿", label: "Goose",  bg: "#166534", border: "#22c55e" },
-    63: { icon: "🏁", label: "Finish", bg: "#713f12", border: "#facc15" },
+    5:  { icon: "🪿", label: "square.goose",  bg: "#166534", border: "#22c55e" },
+    6:  { icon: "🌉", label: "square.bridge", bg: "#1e3a5f", border: "#60a5fa" },
+    9:  { icon: "🪿", label: "square.goose",  bg: "#166534", border: "#22c55e" },
+    14: { icon: "🪿", label: "square.goose",  bg: "#166534", border: "#22c55e" },
+    18: { icon: "🪿", label: "square.goose",  bg: "#166534", border: "#22c55e" },
+    19: { icon: "🏨", label: "square.inn",    bg: "#78350f", border: "#f59e0b" },
+    23: { icon: "🪿", label: "square.goose",  bg: "#166534", border: "#22c55e" },
+    27: { icon: "🪿", label: "square.goose",  bg: "#166534", border: "#22c55e" },
+    31: { icon: "🕳️", label: "square.well",   bg: "#164e63", border: "#22d3ee" },
+    32: { icon: "🪿", label: "square.goose",  bg: "#166534", border: "#22c55e" },
+    36: { icon: "🪿", label: "square.goose",  bg: "#166534", border: "#22c55e" },
+    41: { icon: "🪿", label: "square.goose",  bg: "#166534", border: "#22c55e" },
+    42: { icon: "🌀", label: "square.maze",   bg: "#4c1d95", border: "#a78bfa" },
+    45: { icon: "🪿", label: "square.goose",  bg: "#166534", border: "#22c55e" },
+    50: { icon: "🪿", label: "square.goose",  bg: "#166534", border: "#22c55e" },
+    52: { icon: "⛓️", label: "square.prison", bg: "#374151", border: "#9ca3af" },
+    54: { icon: "🪿", label: "square.goose",  bg: "#166534", border: "#22c55e" },
+    58: { icon: "💀", label: "square.death",  bg: "#7f1d1d", border: "#f87171" },
+    59: { icon: "🪿", label: "square.goose",  bg: "#166534", border: "#22c55e" },
+    63: { icon: "🏁", label: "square.finish", bg: "#713f12", border: "#facc15" },
 }
 
 /**
@@ -126,6 +127,7 @@ function getNeighborGap(positions: { x: number; y: number }[], index: number): n
 }
 
 export default function GooseBoard({ players, lastMove }: Props) {
+    const t = useT()
     const containerRef = useRef<HTMLDivElement>(null)
     const [size, setSize] = useState({ width: 600, height: 600 })
     const [animatingPlayer, setAnimatingPlayer] = useState<string | null>(null)
@@ -240,7 +242,7 @@ export default function GooseBoard({ players, lastMove }: Props) {
                                 ? `0 0 6px ${special.border}40`
                                 : "none",
                         }}
-                        title={`Square ${sq}${special ? ` — ${special.label}` : ""}`}
+                        title={`${t("goose.square")} ${sq}${special ? ` — ${t(special.label as never)}` : ""}`}
                     >
                         {special ? (
                             <span style={{ fontSize: circleSize * 0.48 }}>{special.icon}</span>
@@ -302,7 +304,7 @@ export default function GooseBoard({ players, lastMove }: Props) {
                 <div className="text-center" style={{ opacity: 0.25 }}>
                     <span className="text-4xl">🪿</span>
                     <p className="text-xs font-bold mt-1" style={{ color: "#c9b896" }}>
-                        Game of the Goose
+                        {t("goose.title")}
                     </p>
                 </div>
             </div>

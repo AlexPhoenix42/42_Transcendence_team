@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# ─────────────────────────────────────────────────────────────────────────
-#  check_logical_css.sh — fail if any PHYSICAL direction class is used.
+# -------------------------------------------------------------------------
+#  check_logical_css.sh -- fail if any PHYSICAL direction class is used.
 #
 #  The app supports Arabic, which renders under dir="rtl". Logical Tailwind
 #  utilities (ms-*, me-*, ps-*, pe-*, start-*, end-*, text-start/end) flip
@@ -9,8 +9,8 @@
 #  silently wrong in Arabic while looking perfect in English.
 #
 #  Run:   make check-rtl
-#  Or as a pre-commit hook — see the bottom of this file.
-# ─────────────────────────────────────────────────────────────────────────
+#  Or as a pre-commit hook -- see the bottom of this file.
+# -------------------------------------------------------------------------
 set -uo pipefail
 
 SRC="${1:-frontend-react/src}"
@@ -32,13 +32,13 @@ hits=$(grep -rnoE "$PATTERN" \
 # which appear in comments explaining this very subject and which the pattern
 # happily matches as though "right-to" were a utility class.
 #
-# Note the [[:space:]]* — grep -o emits the leading boundary character that
+# Note the [[:space:]]* -- grep -o emits the leading boundary character that
 # the pattern captures, so a match arrives as ": right-to", with a space.
 #
 # This is the honest cost of a grep rather than an AST-aware lint. The escape
 # hatch is narrow: "right-to" and "left-to" are not valid Tailwind utilities,
 # so no real class can hide behind it. A physical class written inside a code
-# comment would still be reported — a false positive, but a harmless one.
+# comment would still be reported -- a false positive, but a harmless one.
 
 if [ -z "$hits" ]; then
     printf '\033[32m✓\033[0m no physical direction classes in %s\n' "$SRC"
@@ -71,7 +71,7 @@ cat <<'HELP'
 HELP
 exit 1
 
-# ── Install as a pre-commit hook ────────────────────────────────────────
+# -- Install as a pre-commit hook ----------------------------------------
 #   printf '#!/bin/sh\nexec ./scripts_dev/check_logical_css.sh\n' \
 #       > .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit
 #

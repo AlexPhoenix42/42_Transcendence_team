@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { Link, useSearchParams } from "react-router-dom"
+import { useI18n } from "../i18n/I18nProvider.tsx"
 
 export default function ResetPassword() {
     const [searchParams] = useSearchParams()
@@ -14,13 +15,14 @@ export default function ResetPassword() {
     const [error, setError] = useState("")
     const [success, setSuccess] = useState(false)
     const [loading, setLoading] = useState(false)
+    const { t, ts } = useI18n()
 
     if (!token || !uid) {
         return (
             <div className="w-full max-w-sm text-center">
-                <h1 className="text-2xl font-bold text-red-400 mb-4">Invalid Reset Link</h1>
-                <p className="text-gray-400 mb-6">This reset link is invalid or has expired.</p>
-                <Link to="/login" className="text-blue-400 hover:underline">Back to login</Link>
+                <h1 className="text-2xl font-bold text-red-400 mb-4">{t("reset.invalid.title")}</h1>
+                <p className="text-gray-400 mb-6">{t("reset.invalid.body")}</p>
+                <Link to="/login" className="text-blue-400 hover:underline">{t("common.backToLogin")}</Link>
             </div>
         )
     }
@@ -34,7 +36,7 @@ export default function ResetPassword() {
         setError("")
 
         if (password !== password2) {
-            setError("Passwords do not match")
+            setError(t("common.error.passwordMismatch"))
             return
         }
 
@@ -51,10 +53,10 @@ export default function ResetPassword() {
                 setSuccess(true)
             } else {
                 const data = await resp.json()
-                setError(data.error || data.details?.[0] || "Reset failed")
+                setError(data.error || data.details?.[0] || t("reset.error.failed"))
             }
         } catch {
-            setError("Network error. Please try again.")
+            setError(t("common.error.network"))
         } finally {
             setLoading(false)
         }
@@ -63,16 +65,16 @@ export default function ResetPassword() {
     if (success) {
         return (
             <div className="w-full max-w-sm text-center">
-                <h1 className="text-2xl font-bold text-green-400 mb-4">Password Reset!</h1>
-                <p className="text-gray-400 mb-6">Your password has been changed. You can now log in.</p>
-                <Link to="/login" className="text-blue-400 hover:underline">Go to login</Link>
+                <h1 className="text-2xl font-bold text-green-400 mb-4">{t("reset.done.title")}</h1>
+                <p className="text-gray-400 mb-6">{t("reset.done.body")}</p>
+                <Link to="/login" className="text-blue-400 hover:underline">{t("common.goToLogin")}</Link>
             </div>
         )
     }
 
     return (
         <div className="w-full max-w-sm">
-            <h1 className="text-2xl font-bold text-white text-center mb-6">Set New Password</h1>
+            <h1 className="text-2xl font-bold text-white text-center mb-6">{t("reset.title")}</h1>
 
             <form onSubmit={handleSubmit} className="space-y-4">
                 {error && (
@@ -83,7 +85,7 @@ export default function ResetPassword() {
 
                 <input
                     type="password"
-                    placeholder="New password"
+                    placeholder={t("reset.placeholder.new")}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="w-full px-4 py-2 bg-gray-800 text-white border border-gray-700 rounded focus:outline-none focus:border-blue-500"
@@ -92,7 +94,7 @@ export default function ResetPassword() {
 
                 <input
                     type="password"
-                    placeholder="Confirm new password"
+                    placeholder={t("reset.placeholder.confirm")}
                     value={password2}
                     onChange={(e) => setPassword2(e.target.value)}
                     className="w-full px-4 py-2 bg-gray-800 text-white border border-gray-700 rounded focus:outline-none focus:border-blue-500"
@@ -104,7 +106,7 @@ export default function ResetPassword() {
                     disabled={loading}
                     className="w-full py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
                 >
-                    {loading ? "Resetting..." : "Reset Password"}
+                    {loading ? t("reset.submitting") : t("reset.submit")}
                 </button>
             </form>
         </div>
@@ -115,6 +117,7 @@ function TwoFactorReset({ token, uid }: { token: string; uid: string }) {
     const [error, setError] = useState("")
     const [success, setSuccess] = useState(false)
     const [loading, setLoading] = useState(false)
+    const { t, ts } = useI18n()
 
 	async function handleReset() {
         setLoading(true)
@@ -131,10 +134,10 @@ function TwoFactorReset({ token, uid }: { token: string; uid: string }) {
                 setSuccess(true)
             } else {
                 const data = await resp.json()
-                setError(data.error || "2FA reset failed")
+                setError(ts(data.error))
             }
         } catch {
-            setError("Network error. Please try again.")
+            setError(t("common.error.network"))
         } finally {
             setLoading(false)
         }
@@ -143,17 +146,17 @@ function TwoFactorReset({ token, uid }: { token: string; uid: string }) {
     if (success) {
         return (
             <div className="w-full max-w-sm text-center">
-                <h1 className="text-2xl font-bold text-green-400 mb-4">2FA Reset!</h1>
-                <p className="text-gray-400 mb-6">Two-factor authentication has been disabled. You can now log in normally.</p>
-                <Link to="/login" className="text-blue-400 hover:underline">Go to login</Link>
+                <h1 className="text-2xl font-bold text-green-400 mb-4">{t("reset2fa.done.title")}</h1>
+                <p className="text-gray-400 mb-6">{t("reset2fa.done.body")}</p>
+                <Link to="/login" className="text-blue-400 hover:underline">{t("common.goToLogin")}</Link>
             </div>
         )
     }
 
     return (
         <div className="w-full max-w-sm text-center">
-            <h1 className="text-2xl font-bold text-white mb-4">Reset 2FA</h1>
-            <p className="text-gray-400 mb-6">Click below to disable two-factor authentication on your account.</p>
+            <h1 className="text-2xl font-bold text-white mb-4">{t("reset2fa.title")}</h1>
+            <p className="text-gray-400 mb-6">{t("reset2fa.body")}</p>
 
             {error && (
                 <div className="bg-red-900/50 border border-red-500 text-red-300 px-4 py-2 rounded mb-4">
@@ -166,7 +169,7 @@ function TwoFactorReset({ token, uid }: { token: string; uid: string }) {
                 disabled={loading}
                 className="w-full py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50"
             >
-                {loading ? "Resetting..." : "Disable 2FA"}
+                {loading ? t("reset.submitting") : t("reset2fa.submit")}
             </button>
         </div>
     )

@@ -38,7 +38,7 @@ C_CYN  := \033[36m
 
 .PHONY: up dev down stop restart re front front-install logs logs-front logs-api \
         ps status health shell-api shell-front psql redis-cli migrate makemigrations \
-        superuser seed-vault nginx build env check clean fclean nuke-vault-data prune du check-rtl help
+        superuser seed-vault nginx build env check clean fclean nuke-vault-data prune du check-rtl check-i18n help
 
 # ══ run ═══════════════════════════════════════════════════════════════════
 
@@ -230,6 +230,10 @@ prune:
 ## check-rtl: fail if any physical direction class (ml-*, text-right, ...) crept in
 check-rtl:
 	@./scripts_dev/check_logical_css.sh frontend-react/src
+
+## check-i18n: verify all 4 locales carry every key and every backend message is mapped
+check-i18n:
+	@python3 ./scripts_dev/check_i18n.py
 
 ## du: where docker disk actually goes (daemon AND buildx builders)
 du:

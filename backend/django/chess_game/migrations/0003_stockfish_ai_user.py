@@ -9,7 +9,7 @@
 #
 # That message promised a migration that did not exist. The account had only
 # ever been created by hand on a developer machine, so it lived in that one
-# database and vanished the moment the database was recreated — and a fresh
+# database and vanished the moment the database was recreated -- and a fresh
 # clone of this repo could never start an AI game at all.
 #
 # This migration makes the message true. It is idempotent: it does nothing if

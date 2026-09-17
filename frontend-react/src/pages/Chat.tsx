@@ -5,6 +5,7 @@ import { api } from "../api/client.ts"
 import { useAuth } from "../context/AuthContext.tsx"
 import { ChatSocket, ChatMessage } from "../ws/chat.ts"
 import { useNavigate } from "react-router-dom"
+import { useI18n } from "../i18n/I18nProvider.tsx"
 
 
 type Tab = "global" | "dm"
@@ -16,6 +17,7 @@ interface Friend {
 }
 
 export default function Chat() {
+    const { t, tn, d, ts } = useI18n()
     const { user } = useAuth()
 	const navigate = useNavigate()
     const [tab, setTab] = useState<Tab>("global")
@@ -129,7 +131,7 @@ export default function Chat() {
         try {
             const resp = await api("/api/chat/rooms/global/")
             if (!resp.ok) {
-                setError("Failed to resolve global chat room")
+                setError(t("chat.error.resolveRoom"))
                 return
             }
             const data = await resp.json()
@@ -139,7 +141,7 @@ export default function Chat() {
             await loadHistory(id)
             connectWebSocket(id)
         } catch {
-            setError("Failed to connect to global chat")
+            setError(t("chat.error.connect"))
         }
     }
 
@@ -158,7 +160,7 @@ export default function Chat() {
             })
             if (!resp.ok) {
                 const data = await resp.json()
-                setError(data.error || "Failed to open DM")
+                setError(ts(data.error))
                 return
             }
             const data = await resp.json()
@@ -170,7 +172,7 @@ export default function Chat() {
 			markAsRead(id)
 			fetchReadStatus(id)
         } catch {
-            setError("Failed to connect to DM")
+            setError(t("chat.error.connectDM"))
         }
     }
 
@@ -237,9 +239,9 @@ export default function Chat() {
 			(code) => {
                 setConnected(false)
                 if (code === 4001) {
-                    setError("Authentication failed. Please log in again.")
+                    setError(t("chat.error.auth"))
                 } else if (code === 4003) {
-                    setError("Access denied to this room.")
+                    setError(t("chat.error.denied"))
                 }
             },
             (sender) => {
@@ -275,7 +277,7 @@ export default function Chat() {
             socketRef.current.send(input.trim())
             setInput("")
         } else {
-            setError("Not connected. Please wait...")
+            setError(t("chat.error.notConnected"))
         }
     }
 
@@ -299,11 +301,11 @@ export default function Chat() {
                 navigate(`/chess/${data.id}`)
             } else {
                 const data = await resp.json()
-                setError(data.error || "Failed to accept invite")
+                setError(ts(data.error, "chat.error.invite"))
                 setGameInvite(null)
             }
         } catch {
-            setError("Network error")
+            setError(t("common.error.networkShort"))
         }
     }
 
@@ -342,7 +344,7 @@ export default function Chat() {
                 setMuteTarget(null)
             } else {
                 const data = await resp.json()
-                setError(data.error || "Failed to mute user")
+                setError(ts(data.error, "chat.error.mute"))
             }
         } catch {}
     }
@@ -376,13 +378,13 @@ export default function Chat() {
                     onClick={connectToGlobal}
                     className={`text-start px-3 py-2 rounded ${tab === "global" && !dmTarget ? "bg-blue-600 text-white" : "text-gray-300 hover:bg-gray-700"}`}
                 >
-                    Global Chat
+                    {t("chat.global")}
                 </button>
 
                 <div className="border-t border-gray-700 mt-2 pt-2">
-                    <p className="text-gray-500 text-xs uppercase mb-2">Direct Messages</p>
+                    <p className="text-gray-500 text-xs uppercase mb-2">{t("chat.directMessages")}</p>
                     {friends.length === 0 && (
-                        <p className="text-gray-500 text-xs">No friends yet</p>
+                        <p className="text-gray-500 text-xs">{t("chat.noFriends")}</p>
                     )}
 					{friends.map((friend) => (
                         <button
@@ -407,7 +409,7 @@ export default function Chat() {
                 {/* Header */}
 				<div className="p-4 border-b border-gray-700 flex items-center gap-2">
                     <h2 className="text-white font-semibold">
-                        {dmTarget ? `DM: ${dmTarget.username}` : "Global Chat"}
+                        {dmTarget ? t("chat.dmWith", { name: dmTarget.username }) : t("chat.global")}
                     </h2>
                     <span className={`w-2 h-2 rounded-full ${dmTarget ? (dmTarget.is_online ? "bg-green-500" : "bg-gray-600") : (connected ? "bg-green-500" : "bg-red-500")}`}></span>
                 </div>
@@ -422,7 +424,7 @@ export default function Chat() {
                 {/* Messages */}
 				<div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-3">
                     {messages.length === 0 && (
-                        <p className="text-gray-500 text-center mt-10">No messages yet</p>
+                        <p className="text-gray-500 text-center mt-10">{t("chat.noMessages")}</p>
                     )}
 					{messages.map((msg) => {
                         // Handle game invite messages
@@ -464,13 +466,13 @@ export default function Chat() {
                                                     onClick={() => acceptGameInvite(inviteId)}
                                                     className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 text-sm"
                                                 >
-                                                    Accept
+                                                    {t("common.accept")}
                                                 </button>
                                                 <button
                                                     onClick={() => declineGameInvite(inviteId)}
                                                     className="px-3 py-1 bg-gray-700 text-white rounded hover:bg-gray-600 text-sm"
                                                 >
-                                                    Decline
+                                                    {t("common.decline")}
                                                 </button>
                                             </div>
                                         )}
@@ -499,7 +501,7 @@ export default function Chat() {
                                             }}
                                             className="text-[10px] px-2 py-0.5 bg-green-800 text-green-300 rounded hover:bg-green-700"
                                         >
-                                            Unmute
+                                            {t("chat.unmute")}
                                         </button>
                                     )}
                                 </div>
@@ -523,10 +525,10 @@ export default function Chat() {
                                                 <bdi>{msg.sender}</bdi>
                                             </span>
                                             {msg.sender_role === "admin" && (
-                                                <span className="ms-1 px-1 py-0.5 rounded text-[10px] font-bold bg-red-900/50 text-red-400">Admin</span>
+                                                <span className="ms-1 px-1 py-0.5 rounded text-[10px] font-bold bg-red-900/50 text-red-400">{t("role.admin")}</span>
                                             )}
                                             {msg.sender_role === "moderator" && (
-                                                <span className="ms-1 px-1 py-0.5 rounded text-[10px] font-bold bg-yellow-900/50 text-yellow-400">Mod</span>
+                                                <span className="ms-1 px-1 py-0.5 rounded text-[10px] font-bold bg-yellow-900/50 text-yellow-400">{t("role.mod")}</span>
                                             )}
                                         </p>
                                     )}
@@ -551,7 +553,7 @@ export default function Chat() {
                                     )}
                                 </div>
                                 <p className="text-xs text-gray-500 mt-1">
-                                    {new Date(msg.created_at).toLocaleTimeString()}
+                                    {d(msg.created_at)}
                                     {tab === "dm" && msg.sender === user?.username && otherReadAt && new Date(otherReadAt) >= new Date(msg.created_at) && (
                                         <span className="ms-2 text-blue-400">✓ Seen</span>
                                     )}
@@ -565,7 +567,7 @@ export default function Chat() {
 				{/* Mute dialog */}
                 {muteTarget && (
                     <div className="px-4 py-3 border-t border-gray-700 bg-yellow-900/20">
-                        <p className="text-yellow-300 text-sm mb-2">Mute {muteTarget.username} for:</p>
+                        <p className="text-yellow-300 text-sm mb-2">{t("chat.mutePrompt", { name: muteTarget.username })}</p>
                         <div className="flex gap-2">
 							{[5, 10, 30, 60].map((mins) => (
                                 <button
@@ -573,14 +575,14 @@ export default function Chat() {
                                     onClick={() => muteUser(muteTarget.username, mins)}
                                     className="px-2 py-1 bg-yellow-800 text-yellow-200 rounded text-xs hover:bg-yellow-700"
                                 >
-                                    {mins}m
+                                    {tn("common.minutes", mins)}
                                 </button>
                             ))}
                             <button
                                 onClick={() => setMuteTarget(null)}
                                 className="px-2 py-1 bg-gray-700 text-gray-300 rounded text-xs hover:bg-gray-600"
                             >
-                                Cancel
+                                {t("common.cancel")}
                             </button>
                         </div>
                     </div>
@@ -606,13 +608,13 @@ export default function Chat() {
                                 onClick={acceptGameInvite}
                                 className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 text-sm"
                             >
-                                Accept
+                                {t("common.accept")}
                             </button>
                             <button
                                 onClick={() => setGameInvite(null)}
                                 className="px-3 py-1 bg-gray-700 text-white rounded hover:bg-gray-600 text-sm"
                             >
-                                Decline
+                                {t("common.decline")}
                             </button>
                         </div>
                     </div>
@@ -635,7 +637,7 @@ export default function Chat() {
 							setInput(e.target.value)
 							socketRef.current?.sendTyping()
 						}}
-                        placeholder="Type a message..."
+                        placeholder={t("chat.placeholder")}
                         className="flex-1 px-4 py-2 bg-gray-900 text-white border border-gray-700 rounded focus:outline-none focus:border-blue-500"
                         maxLength={2000}
                     />
@@ -644,7 +646,7 @@ export default function Chat() {
                             type="button"
                             onClick={sendGameInvite}
                             className="px-3 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700 text-sm"
-                            title="Invite to play chess"
+                            title={t("chat.inviteToChess")}
                         >
                             ⚔️
                         </button>
@@ -653,7 +655,7 @@ export default function Chat() {
                         type="submit"
                         className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
                     >
-                        Send
+                        {t("common.send")}
                     </button>*/}
 					<button
                         type="submit"

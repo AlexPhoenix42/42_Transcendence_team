@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
+import { useI18n } from "../i18n/I18nProvider.tsx"
 import { api, mediaUrl } from "../api/client.ts"
 import { useAuth } from "../context/AuthContext.tsx"
 
@@ -19,6 +20,7 @@ interface LeaderboardEntry {
 }
 
 export default function Leaderboard() {
+    const { t, n } = useI18n()
     const { user } = useAuth()
     const navigate = useNavigate()
 
@@ -36,10 +38,10 @@ export default function Leaderboard() {
                 const data = await resp.json()
                 setEntries(data)
             } else {
-                setError("Failed to load leaderboard")
+                setError(t("leaderboard.error.load"))
             }
         } catch {
-            setError("Network error")
+            setError(t("common.error.networkShort"))
         }
     }
 
@@ -60,12 +62,12 @@ export default function Leaderboard() {
     return (
         <div className="max-w-3xl mx-auto mt-0">
             <div className="flex items-center justify-between mb-6">
-                <h1 className="text-3xl font-bold text-white">Leaderboard</h1>
+                <h1 className="text-3xl font-bold text-white">{t("leaderboard.title")}</h1>
                 <button
                     onClick={() => navigate(-1)}
                     className="px-4 py-2 bg-gray-700 text-white rounded hover:bg-gray-600"
                 >
-                    Back
+                    {t("common.back")}
                 </button>
             </div>
 
@@ -79,17 +81,17 @@ export default function Leaderboard() {
                 <div className="min-w-[600px]">
                     {/* Header */}
                     <div className="grid grid-cols-12 gap-2 px-4 py-3 bg-gray-900 text-gray-400 text-sm font-semibold">
-                        <div className="col-span-1">Rank</div>
-                        <div className="col-span-4">Player</div>
-                        <div className="col-span-2 text-center">Rating</div>
+                        <div className="col-span-1">{t("leaderboard.rank")}</div>
+                        <div className="col-span-4">{t("leaderboard.player")}</div>
+                        <div className="col-span-2 text-center">{t("stats.rating")}</div>
                         <div className="col-span-1 text-center text-green-400">W</div>
                         <div className="col-span-1 text-center text-red-400">L</div>
                         <div className="col-span-1 text-center text-gray-400">D</div>
-                        <div className="col-span-2 text-center">Games</div>
+                        <div className="col-span-2 text-center">{t("stats.games")}</div>
                     </div>
 
                     {entries.length === 0 && (
-                        <p className="text-gray-400 text-center py-6">No players yet</p>
+                        <p className="text-gray-400 text-center py-6">{t("leaderboard.empty")}</p>
                     )}
 
                     {entries.map((entry) => (
@@ -131,20 +133,20 @@ export default function Leaderboard() {
                                         <span className="text-gray-500 text-xs ms-1">@<bdi>{entry.username}</bdi></span>
                                     )}
                                     {entry.role === "admin" && (
-                                        <span className="ms-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-900/50 text-red-400">Admin</span>
+                                        <span className="ms-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-900/50 text-red-400">{t("role.admin")}</span>
                                     )}
                                     {entry.role === "moderator" && (
-                                        <span className="ms-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-yellow-900/50 text-yellow-400">Mod</span>
+                                        <span className="ms-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-yellow-900/50 text-yellow-400">{t("role.mod")}</span>
                                     )}
                                 </div>
                             </div>
 
                             <div className="col-span-2 text-center">
-                                <span className="text-white font-bold text-lg">{entry.rating}</span>
+                                <span className="text-white font-bold text-lg">{n(entry.rating, { useGrouping: false })}</span>
                             </div>
 
-                            <div className="col-span-1 text-center text-green-400 text-sm">{entry.wins}</div>
-                            <div className="col-span-1 text-center text-red-400 text-sm">{entry.loss}</div>
+                            <div className="col-span-1 text-center text-green-400 text-sm">{n(entry.wins)}</div>
+                            <div className="col-span-1 text-center text-red-400 text-sm">{n(entry.loss)}</div>
                             <div className="col-span-1 text-center text-gray-400 text-sm">{entry.draw}</div>
 
                             <div className="col-span-2 text-center text-gray-400 text-sm">

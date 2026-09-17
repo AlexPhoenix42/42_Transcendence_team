@@ -2,12 +2,14 @@
 
 import { useState } from "react"
 import { Link } from "react-router-dom"
+import { useI18n } from "../i18n/I18nProvider.tsx"
 
 export default function ForgotPassword() {
     const [email, setEmail] = useState("")
     const [submitted, setSubmitted] = useState(false)
     const [error, setError] = useState("")
     const [loading, setLoading] = useState(false)
+    const { t, ts } = useI18n()
 
 	async function handleSubmit(e: React.FormEvent) {
         e.preventDefault()
@@ -25,10 +27,10 @@ export default function ForgotPassword() {
                 setSubmitted(true)
             } else {
                 const data = await resp.json()
-                setError(data.error || "Something went wrong")
+                setError(ts(data.error, "common.error.generic"))
             }
         } catch {
-            setError("Network error. Please try again.")
+            setError(t("common.error.network"))
         } finally {
             setLoading(false)
         }
@@ -37,12 +39,12 @@ export default function ForgotPassword() {
     if (submitted) {
         return (
             <div className="w-full max-w-sm text-center">
-                <h1 className="text-2xl font-bold text-white mb-4">Check your email</h1>
+                <h1 className="text-2xl font-bold text-white mb-4">{t("forgot.sent.title")}</h1>
                 <p className="text-gray-400 mb-6">
-                    If the email is registered, a reset link has been sent. Check your inbox (or Mailpit in dev).
+                    {t("forgot.sent.body")}
                 </p>
                 <Link to="/login" className="text-blue-400 hover:underline">
-                    Back to login
+                    {t("common.backToLogin")}
                 </Link>
             </div>
         )
@@ -50,7 +52,7 @@ export default function ForgotPassword() {
 
     return (
         <div className="w-full max-w-sm">
-            <h1 className="text-2xl font-bold text-white text-center mb-6">Reset Password</h1>
+            <h1 className="text-2xl font-bold text-white text-center mb-6">{t("forgot.title")}</h1>
 
             <form onSubmit={handleSubmit} className="space-y-4">
                 {error && (
@@ -61,7 +63,7 @@ export default function ForgotPassword() {
 
                 <input
                     type="email"
-                    placeholder="Enter your email"
+                    placeholder={t("forgot.placeholder")}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="w-full px-4 py-2 bg-gray-800 text-white border border-gray-700 rounded focus:outline-none focus:border-blue-500"
@@ -73,13 +75,13 @@ export default function ForgotPassword() {
                     disabled={loading}
                     className="w-full py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
                 >
-                    {loading ? "Sending..." : "Send Reset Link"}
+                    {loading ? t("forgot.submitting") : t("forgot.submit")}
                 </button>
             </form>
 
             <p className="text-gray-400 text-center mt-4">
                 <Link to="/login" className="text-blue-400 hover:underline">
-                    Back to login
+                    {t("common.backToLogin")}
                 </Link>
             </p>
         </div>

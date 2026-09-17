@@ -6,6 +6,7 @@ import { Chessboard } from "react-chessboard"
 import { Chess, Square } from "chess.js"
 import { api } from "../api/client.ts"
 import { useAuth } from "../context/AuthContext.tsx"
+import { useI18n } from "../i18n/I18nProvider.tsx"
 import { ChatSocket, ChatMessage } from "../ws/chat.ts"
 
 interface GameInfo {
@@ -23,6 +24,7 @@ interface GameInfo {
 }
 
 export default function ChessGame() {
+    const { t, ts } = useI18n()
     const { id } = useParams()
     const { user } = useAuth()
     const navigate = useNavigate()
@@ -119,10 +121,10 @@ export default function ChessGame() {
                     }
                     pendingMessages.current = []
                 } else {
-                    setError("Game not found")
+                    setError(t("chess.error.notFound"))
                 }
             } catch {
-                setError("Failed to load game info")
+                setError(t("chess.error.load"))
             }
         }
         fetchGame()
@@ -150,9 +152,9 @@ export default function ChessGame() {
         ws.onclose = (event) => {
             setConnected(false)
             if (event.code === 4003) {
-                setError("Access denied")
+                setError(t("chess.error.denied"))
             } else if (event.code === 4001) {
-                setError("Authentication failed")
+                setError(t("chess.error.auth"))
             }
         }
 
@@ -182,7 +184,7 @@ export default function ChessGame() {
                 }
             }
         } catch {
-            setError("Failed to parse server message")
+            setError(t("chess.error.parse"))
         }
     }
 
@@ -242,7 +244,7 @@ export default function ChessGame() {
 	//function handleSetFen(e: React.FormEvent) {
     //    e.preventDefault()
     //    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
-    //        setError("Not connected")
+    //        setError(t("chess.error.notConnected"))
     //        return
     //    }
     //    if (!fenInput.trim()) return
@@ -253,7 +255,7 @@ export default function ChessGame() {
 	function handleSetFen(e: React.FormEvent) {
         e.preventDefault()
         if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
-            setError("Not connected")
+            setError(t("chess.error.notConnected"))
             return
         }
         if (!fenInput.trim()) return
@@ -693,7 +695,7 @@ export default function ChessGame() {
 
     //function sendMove(from: string, to: string) {
     //    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
-    //        setError("Not connected")
+    //        setError(t("chess.error.notConnected"))
     //        return
     //    }
 
@@ -715,7 +717,7 @@ export default function ChessGame() {
 	
 	function sendMove(from: string, to: string, promotion?: string) {
         if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
-            setError("Not connected")
+            setError(t("chess.error.notConnected"))
             return
         }
 
@@ -736,16 +738,16 @@ export default function ChessGame() {
 
             if (!resp.ok) {
                 const data = await resp.json()
-                setError(data.error || "Failed to resign")
+                setError(ts(data.error, "chessLobby.error.resign"))
             }
         } catch {
-            setError("Network error")
+            setError(t("common.error.networkShort"))
         }
     }
 
 	function handleUndo() {
         if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
-            setError("Not connected")
+            setError(t("chess.error.notConnected"))
             return
         }
         wsRef.current.send(JSON.stringify({ type: "undo" }))
@@ -781,7 +783,7 @@ export default function ChessGame() {
                     <h1 className="text-2xl font-bold text-white">Game #{id}</h1>
                     <span className={`w-2 h-2 rounded-full ${connected ? "bg-green-500" : "bg-red-500"}`}></span>
                     {isSpectator && (
-                        <span className="text-yellow-400 text-sm bg-yellow-900/50 px-2 py-1 rounded">Spectating</span>
+                        <span className="text-yellow-400 text-sm bg-yellow-900/50 px-2 py-1 rounded">{t("chess.spectating")}</span>
                     )}
                 </div>
                 <div className="flex gap-2">
@@ -792,14 +794,14 @@ export default function ChessGame() {
                                 onClick={handleUndo}
                                 className="px-2 py-1 md:px-4 md:py-2 text-sm md:text-base bg-yellow-600 text-white rounded hover:bg-yellow-700"
                             >
-                                Undo
+                                {t("chess.undo")}
                             </button>
                             )}
                             <button
                                 onClick={handleResign}
                                 className="px-2 py-1 md:px-4 md:py-2 text-sm md:text-base bg-red-600 text-white rounded hover:bg-red-700"
                             >
-                                Resign
+                                {t("chess.resign")}
                             </button>
                         </>
                     )}
@@ -807,7 +809,7 @@ export default function ChessGame() {
                         onClick={() => navigate("/chess")}
                         className="px-2 py-1 md:px-4 md:py-2 text-sm md:text-base bg-gray-700 text-white rounded hover:bg-gray-600"
                     >
-                        Back to Lobby
+                        {t("chess.backToLobby")}
                     </button>
                 </div>
             </div>
@@ -820,7 +822,7 @@ export default function ChessGame() {
 
             {gameOver && gameOverInfo && (
                 <div className="bg-blue-900/50 border border-blue-500 text-blue-300 px-4 py-4 rounded mb-4 text-center">
-                    <p className="text-xl font-bold mb-1">Game Over</p>
+                    <p className="text-xl font-bold mb-1">{t("chess.gameOver")}</p>
                     <p>{gameOverInfo.reason}</p>
                 </div>
             )}
@@ -911,14 +913,14 @@ export default function ChessGame() {
                                 type="text"
                                 value={fenInput}
                                 onChange={(e) => setFenInput(e.target.value)}
-                                placeholder="Set position (FEN)"
+                                placeholder={t("chess.fenPlaceholder")}
                                 className="flex-1 px-3 py-2 bg-gray-900 text-white border border-gray-700 rounded text-xs focus:outline-none focus:border-blue-500"
                             />
                             <button
                                 type="submit"
                                 className="px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
                             >
-                                Set
+                                {t("chess.set")}
                             </button>
                         </form>
                     )}
@@ -926,13 +928,13 @@ export default function ChessGame() {
 					{pendingPromotion && (
                         <div className="absolute inset-0 bg-black/60 flex items-center justify-center z-10">
                             <div className="bg-gray-800 border border-gray-600 rounded-lg p-4">
-                                <p className="text-white text-center mb-3">Promote to:</p>
+                                <p className="text-white text-center mb-3">{t("chess.promoteTo")}</p>
                                 <div className="flex gap-2">
 									{[
-                                        { piece: "q", name: "Queen" },
-                                        { piece: "r", name: "Rook" },
-                                        { piece: "b", name: "Bishop" },
-                                        { piece: "n", name: "Knight" },
+                                        { piece: "q", name: t("piece.queen") },
+                                        { piece: "r", name: t("piece.rook") },
+                                        { piece: "b", name: t("piece.bishop") },
+                                        { piece: "n", name: t("piece.knight") },
                                     ].map(({ piece, name }) => (
                                         <button
                                             key={piece}
@@ -953,7 +955,7 @@ export default function ChessGame() {
 						{/*<div className="flex items-center gap-2">
                             <span className="text-white text-xl font-bold">{myName}</span>
                             {!isSpectator && isMyTurn && !gameOver && (
-								<span className="text-base text-green-400 font-semibold">Your turn</span>
+								<span className="text-base text-green-400 font-semibold">{t("chess.yourTurn")}</span>
                             )}
 							{check && isMyTurn && (
                                 <span className="text-base text-red-400 font-bold">CHECK!</span>
@@ -974,7 +976,7 @@ export default function ChessGame() {
                                     {myName}
                                 </span>
                                 {!isSpectator && isMyTurn && !gameOver && (
-                                    <span className="text-base text-green-400 font-semibold">Your turn</span>
+                                    <span className="text-base text-green-400 font-semibold">{t("chess.yourTurn")}</span>
                                 )}
                                 {check && isMyTurn && (
                                     <span className="text-base text-red-400 font-bold">CHECK!</span>
@@ -1002,12 +1004,12 @@ export default function ChessGame() {
                 {/* Game Chat */}
 				<div className="w-full lg:w-72 bg-gray-800 rounded-lg border border-gray-700 flex flex-col self-stretch">
                     <div className="p-3 border-b border-gray-700 flex items-center gap-2">
-                        <span className="text-white text-sm font-semibold">Game Chat</span>
+                        <span className="text-white text-sm font-semibold">{t("chess.gameChat")}</span>
                         <span className={`w-2 h-2 rounded-full ${chatConnected ? "bg-green-500" : "bg-red-500"}`}></span>
                     </div>
 					<div className="flex-1 min-h-0 overflow-y-auto p-3 space-y-2 max-h-64 lg:max-h-96">
                         {chatMessages.length === 0 && (
-                            <p className="text-gray-500 text-xs text-center">No messages yet</p>
+                            <p className="text-gray-500 text-xs text-center">{t("chat.noMessages")}</p>
                         )}
 						{chatMessages.map((msg) => (
                             <div key={msg.id} className={`text-sm ${
@@ -1052,7 +1054,7 @@ export default function ChessGame() {
 								setChatInput(e.target.value)
 								chatSocketRef.current?.sendTyping()
 							}}
-                            placeholder="Chat..."
+                            placeholder={t("chat.short")}
                             className="flex-1 px-2 py-1 bg-gray-900 text-white border border-gray-700 rounded text-sm focus:outline-none focus:border-blue-500"
                             maxLength={2000}
                         />
@@ -1060,7 +1062,7 @@ export default function ChessGame() {
                             type="submit"
                             className="px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
                         >
-                            Send
+                            {t("chess.send")}
                         </button>
                     </form>
                 </div>

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { api, mediaUrl } from "../api/client.ts"
 import { useAuth } from "../context/AuthContext.tsx"
+import { useI18n } from "../i18n/I18nProvider.tsx"
 import Status from "./Status.tsx"
 
 interface UserEntry {
@@ -23,6 +24,7 @@ interface UserEntry {
 }
 
 export default function AdminDashboard() {
+    const { t, n, ts } = useI18n()
     const { user } = useAuth()
     const navigate = useNavigate()
 
@@ -47,7 +49,7 @@ export default function AdminDashboard() {
 	if (!user?.is_staff && user?.role !== "admin" && user?.role !== "moderator") {
         return (
             <div className="max-w-4xl mx-auto">
-                <p className="text-red-400 text-center mt-10">Access denied. Admin only.</p>
+                <p className="text-red-400 text-center mt-10">{t("admin.denied")}</p>
             </div>
         )
     }
@@ -65,10 +67,10 @@ export default function AdminDashboard() {
             if (resp.ok) {
                 setUsers(await resp.json())
             } else {
-                setUserError("Failed to load users")
+                setUserError(t("admin.error.loadUsers"))
             }
         } catch {
-            setUserError("Network error")
+            setUserError(t("common.error.networkShort"))
         }
     }
 
@@ -81,14 +83,14 @@ export default function AdminDashboard() {
                 body: JSON.stringify({ role }),
             })
             if (resp.ok) {
-                setUserSuccess("Role updated")
+                setUserSuccess(t("admin.msg.roleUpdated"))
                 fetchUsers()
             } else {
                 const data = await resp.json()
-                setUserError(data.error || "Failed to update role")
+                setUserError(ts(data.error, "admin.error.updateRole"))
             }
         } catch {
-            setUserError("Network error")
+            setUserError(t("common.error.networkShort"))
         }
     }
 
@@ -101,14 +103,14 @@ export default function AdminDashboard() {
                 body: JSON.stringify({ is_active: active }),
             })
             if (resp.ok) {
-                setUserSuccess(active ? "User activated" : "User deactivated")
+                setUserSuccess(active ? t("admin.msg.userActivated") : t("admin.msg.userDeactivated"))
                 fetchUsers()
             } else {
                 const data = await resp.json()
-                setUserError(data.error || "Failed to update user")
+                setUserError(ts(data.error, "admin.error.updateUser"))
             }
         } catch {
-            setUserError("Network error")
+            setUserError(t("common.error.networkShort"))
         }
     }
 
@@ -126,10 +128,10 @@ export default function AdminDashboard() {
                 fetchUsers()
             } else {
                 const data = await resp.json()
-                setUserError(data.error || "Failed to delete user")
+                setUserError(ts(data.error, "admin.error.deleteUser"))
             }
         } catch {
-            setUserError("Network error")
+            setUserError(t("common.error.networkShort"))
         }
     }
 
@@ -143,19 +145,19 @@ export default function AdminDashboard() {
         const aiC = parseInt(aiCount)
 
         if (isNaN(maxP) || maxP < 2 || maxP > 16) {
-            setError("Max players must be between 2 and 16")
+            setError(t("admin.error.maxPlayers"))
             setLoading(false)
             return
         }
 
         if (isNaN(aiC) || aiC < 0) {
-            setError("AI count must be 0 or more")
+            setError(t("admin.error.aiCount"))
             setLoading(false)
             return
         }
 
         if (aiC >= maxP) {
-            setError("AI count must be less than max players")
+            setError(t("admin.error.aiTooMany"))
             setLoading(false)
             return
         }
@@ -175,7 +177,7 @@ export default function AdminDashboard() {
 
             if (!resp.ok) {
                 const data = await resp.json()
-                setError(data.error || data.detail || "Failed to create tournament")
+                setError(data.error || ts(data.detail, "admin.error.createTournament"))
                 setLoading(false)
                 return
             }
@@ -190,7 +192,7 @@ export default function AdminDashboard() {
 
                 if (!aiResp.ok) {
                     const data = await aiResp.json()
-                    setError(data.error || "Tournament created but failed to add AI players")
+                    setError(ts(data.error, "admin.error.addAI"))
                     setLoading(false)
                     return
                 }
@@ -205,21 +207,21 @@ export default function AdminDashboard() {
 
             setTimeout(() => navigate(`/tournaments/${tournament.id}`), 1500)
         } catch {
-            setError("Network error")
+            setError(t("common.error.networkShort"))
         } finally {
             setLoading(false)
         }
     }
 
     function roleBadge(role: string) {
-        if (role === "admin") return <span className="px-2 py-0.5 rounded text-xs font-bold bg-red-900/50 text-red-400">Admin</span>
-        if (role === "moderator") return <span className="px-2 py-0.5 rounded text-xs font-bold bg-yellow-900/50 text-yellow-400">Mod</span>
-        return <span className="px-2 py-0.5 rounded text-xs font-bold bg-gray-700 text-gray-400">User</span>
+        if (role === "admin") return <span className="px-2 py-0.5 rounded text-xs font-bold bg-red-900/50 text-red-400">{t("role.admin")}</span>
+        if (role === "moderator") return <span className="px-2 py-0.5 rounded text-xs font-bold bg-yellow-900/50 text-yellow-400">{t("role.mod")}</span>
+        return <span className="px-2 py-0.5 rounded text-xs font-bold bg-gray-700 text-gray-400">{t("admin.role.user")}</span>
     }
 
     return (
         <div className="max-w-4xl mx-auto">
-            <h1 className="text-3xl font-bold text-white mb-6">Admin Dashboard</h1>
+            <h1 className="text-3xl font-bold text-white mb-6">{t("admin.title")}</h1>
 
             {/* Tab switcher */}
             <div className="flex gap-2 mb-6">
@@ -227,7 +229,7 @@ export default function AdminDashboard() {
                     onClick={() => setTab("tournament")}
                     className={`px-4 py-2 rounded ${tab === "tournament" ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-300 hover:bg-gray-600"}`}
                 >
-                    Create Tournament
+                    {t("admin.tab.createTournament")}
                 </button>
 				{(user?.is_staff || user?.role === "admin") && (
                     <>
@@ -235,13 +237,13 @@ export default function AdminDashboard() {
                             onClick={() => setTab("users")}
                             className={`px-4 py-2 rounded ${tab === "users" ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-300 hover:bg-gray-600"}`}
                         >
-                            Manage Users
+                            {t("admin.tab.manageUsers")}
                         </button>
                         <button
                             onClick={() => setTab("status")}
                             className={`px-4 py-2 rounded ${tab === "status" ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-300 hover:bg-gray-600"}`}
                         >
-                            System Status
+                            {t("admin.tab.systemStatus")}
                         </button>
                     </>
                 )}
@@ -250,7 +252,7 @@ export default function AdminDashboard() {
             {/* Tournament tab */}
             {tab === "tournament" && (
                 <div className="bg-gray-800 rounded-lg border border-gray-700 p-6">
-                    <h2 className="text-xl font-semibold text-white mb-4">Create Tournament</h2>
+                    <h2 className="text-xl font-semibold text-white mb-4">{t("admin.tab.createTournament")}</h2>
 
                     {error && (
                         <div className="bg-red-900/50 border border-red-500 text-red-300 px-4 py-2 rounded mb-4">
@@ -265,12 +267,12 @@ export default function AdminDashboard() {
 
                     <form onSubmit={createTournament} className="space-y-4">
                         <div>
-                            <label className="text-gray-400 text-sm block mb-1">Tournament Name</label>
+                            <label className="text-gray-400 text-sm block mb-1">{t("admin.form.name")}</label>
                             <input
                                 type="text"
                                 value={name}
                                 onChange={(e) => setName(e.target.value)}
-                                placeholder="e.g. Weekly Championship"
+                                placeholder={t("admin.form.namePlaceholder")}
                                 className="w-full px-4 py-2 bg-gray-900 text-white border border-gray-700 rounded focus:outline-none focus:border-blue-500"
                                 required
                             />
@@ -278,7 +280,7 @@ export default function AdminDashboard() {
 
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label className="text-gray-400 text-sm block mb-1">Max Players</label>
+                                <label className="text-gray-400 text-sm block mb-1">{t("admin.form.maxPlayers")}</label>
                                 <select
                                     value={maxPlayers}
                                     onChange={(e) => {
@@ -296,7 +298,7 @@ export default function AdminDashboard() {
                             </div>
 
                             <div>
-                                <label className="text-gray-400 text-sm block mb-1">AI Players</label>
+                                <label className="text-gray-400 text-sm block mb-1">{t("admin.form.aiPlayers")}</label>
                                 <select
                                     value={aiCount}
                                     onChange={(e) => setAiCount(e.target.value)}
@@ -310,13 +312,13 @@ export default function AdminDashboard() {
                         </div>
 
                         <div>
-                            <label className="text-gray-400 text-sm block mb-1">Time Control</label>
+                            <label className="text-gray-400 text-sm block mb-1">{t("admin.form.timeControl")}</label>
                             <select
                                 value={timer}
                                 onChange={(e) => setTimer(e.target.value)}
                                 className="w-full px-4 py-2 bg-gray-900 text-white border border-gray-700 rounded focus:outline-none focus:border-blue-500"
                             >
-                                <option value="">Unlimited</option>
+                                <option value="">{t("admin.form.unlimited")}</option>
                                 <option value="3+2">3 min + 2 sec</option>
                                 <option value="5+0">5 min</option>
                                 <option value="10+5">10 min + 5 sec</option>
@@ -324,11 +326,11 @@ export default function AdminDashboard() {
                         </div>
 
                         <div>
-                            <label className="text-gray-400 text-sm block mb-1">Description (optional)</label>
+                            <label className="text-gray-400 text-sm block mb-1">{t("admin.form.description")}</label>
                             <textarea
                                 value={description}
                                 onChange={(e) => setDescription(e.target.value)}
-                                placeholder="Tournament description..."
+                                placeholder={t("admin.form.descPlaceholder")}
                                 className="w-full px-4 py-2 bg-gray-900 text-white border border-gray-700 rounded focus:outline-none focus:border-blue-500 h-20 resize-none"
                             />
                         </div>
@@ -347,7 +349,7 @@ export default function AdminDashboard() {
             {/* Users tab */}
             {tab === "users" && (
                 <div className="bg-gray-800 rounded-lg border border-gray-700 p-6">
-                    <h2 className="text-xl font-semibold text-white mb-4">Manage Users</h2>
+                    <h2 className="text-xl font-semibold text-white mb-4">{t("admin.tab.manageUsers")}</h2>
 
                     {userError && (
                         <div className="bg-red-900/50 border border-red-500 text-red-300 px-4 py-2 rounded mb-4">
@@ -364,13 +366,13 @@ export default function AdminDashboard() {
                         type="text"
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
-                        placeholder="Search users..."
+                        placeholder={t("admin.users.search")}
                         className="w-full px-4 py-2 bg-gray-900 text-white border border-gray-700 rounded focus:outline-none focus:border-blue-500 mb-4"
                     />
 
                     <div className="space-y-2">
                         {users.length === 0 && (
-                            <p className="text-gray-400 text-center py-4">No users found</p>
+                            <p className="text-gray-400 text-center py-4">{t("admin.users.empty")}</p>
                         )}
 
                         {users.map((u) => (
@@ -407,8 +409,8 @@ export default function AdminDashboard() {
 
                                 {/* Rating */}
                                 <div className="text-center px-2">
-                                    <p className="text-white font-bold">{u.rating}</p>
-                                    <p className="text-gray-500 text-xs">Rating</p>
+                                    <p className="text-white font-bold">{n(u.rating, { useGrouping: false })}</p>
+                                    <p className="text-gray-500 text-xs">{t("stats.rating")}</p>
                                 </div>
 
                                 {/* Actions */}
@@ -419,9 +421,9 @@ export default function AdminDashboard() {
                                             onChange={(e) => updateUserRole(u.id, e.target.value)}
                                             className="px-2 py-1 bg-gray-800 text-white border border-gray-600 rounded text-sm"
                                         >
-                                            <option value="user">User</option>
-                                            <option value="moderator">Moderator</option>
-                                            <option value="admin">Admin</option>
+                                            <option value="user">{t("admin.role.user")}</option>
+                                            <option value="moderator">{t("admin.role.moderator")}</option>
+                                            <option value="admin">{t("role.admin")}</option>
                                         </select>
 
                                         <button
@@ -439,7 +441,7 @@ export default function AdminDashboard() {
                                             onClick={() => deleteUser(u.id, u.username)}
                                             className="px-2 py-1 bg-red-800 text-red-300 rounded text-xs hover:bg-red-700"
                                         >
-                                            Delete
+                                            {t("admin.delete")}
                                         </button>
                                     </div>
                                 )}

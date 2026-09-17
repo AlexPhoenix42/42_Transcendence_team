@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from "react"
 import { api, setAccessToken, clearAccessToken, refreshAccessToken } from "../api/client"
+import { useI18n } from "../i18n/I18nProvider.tsx"
 
 interface User {
     id          : number
@@ -31,6 +32,9 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | null>(null)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+    // Safe because main.tsx renders <I18nProvider> ABOVE <App/>, so this
+    // provider is always inside the i18n context.
+    const { ts } = useI18n()
     const [user, setUser]       = useState<User | null>(null)
     const [loading, setLoading] = useState(true)
 
@@ -93,7 +97,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             const data = await resp.json()
 
             if (!resp.ok) {
-                return { success: false, error: data.error || "OAuth login failed" }
+                return { success: false, error: ts(data.error) }
             }
 
             if (data.requires_2fa) {
@@ -120,7 +124,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             const data = await resp.json()
 
             if (!resp.ok) {
-                return { success: false, error: data.error || "2FA verification failed" }
+                return { success: false, error: ts(data.error) }
             }
 
             setAccessToken(data.access)

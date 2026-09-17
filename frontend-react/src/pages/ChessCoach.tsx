@@ -1,6 +1,7 @@
 // frontend-react/src/pages/ChessCoach.tsx
 
 import { useState, useEffect, useRef } from "react"
+import { useT } from "../i18n/I18nProvider.tsx"
 
 interface CoachMessage {
     role: "user" | "coach" | "error"
@@ -8,6 +9,7 @@ interface CoachMessage {
 }
 
 export default function ChessCoach() {
+    const t = useT()
     const [messages, setMessages] = useState<CoachMessage[]>([])
     const [input, setInput] = useState("")
     const [oldFen, setOldFen] = useState("")
@@ -46,7 +48,7 @@ export default function ChessCoach() {
 
             ws.onopen = () => {
                 setConnected(true)
-                setMessages([{ role: "coach", text: "Chess coach connected! Ask me anything about chess." }])
+                setMessages([{ role: "coach", text: t("coach.msg.connected") }])
             }
 
             ws.onmessage = (event) => {
@@ -83,7 +85,7 @@ export default function ChessCoach() {
                         setStreaming(false)
                     }
                 } catch {
-                    setMessages((prev) => [...prev, { role: "error", text: "Failed to parse response" }])
+                    setMessages((prev) => [...prev, { role: "error", text: t("coach.error.parse") }])
                     streamingRef.current = false
                     setStreaming(false)
                 }
@@ -101,7 +103,7 @@ export default function ChessCoach() {
 
             wsRef.current = ws
         } catch {
-            setMessages((prev) => [...prev, { role: "error", text: "Failed to connect to chess coach" }])
+            setMessages((prev) => [...prev, { role: "error", text: t("coach.error.connect") }])
         }
     }
 
@@ -110,7 +112,7 @@ export default function ChessCoach() {
         const question = input.trim()
 
         if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
-            setMessages((prev) => [...prev, { role: "error", text: "Not connected. Reconnecting..." }])
+            setMessages((prev) => [...prev, { role: "error", text: t("coach.error.notConnected") }])
             connect()
             return
         }
@@ -131,14 +133,14 @@ export default function ChessCoach() {
     return (
         <div className="max-w-2xl mx-auto flex flex-col h-[calc(100vh-120px)]">
             <div className="flex items-center gap-2 mb-4">
-                <h1 className="text-2xl font-bold text-white">Chess Coach</h1>
+                <h1 className="text-2xl font-bold text-white">{t("coach.title")}</h1>
                 <span className={`w-2 h-2 rounded-full ${connected ? "bg-green-500" : "bg-red-500"}`}></span>
                 {!connected && (
                     <button
                         onClick={connect}
                         className="text-sm text-blue-400 hover:text-blue-300"
                     >
-                        Reconnect
+                        {t("coach.reconnect")}
                     </button>
                 )}
             </div>
@@ -158,7 +160,7 @@ export default function ChessCoach() {
                                 : "bg-gray-700 text-white"
                         }`}>
                             {msg.role === "coach" && (
-                                <p className="text-xs text-green-400 mb-1">Coach</p>
+                                <p className="text-xs text-green-400 mb-1">{t("coach.label")}</p>
                             )}
                             <p className="whitespace-pre-wrap">{msg.text}</p>
                         </div>
@@ -167,7 +169,7 @@ export default function ChessCoach() {
                 {streaming && bufferRef.current === "" && (
                     <div className="flex justify-start">
                         <div className="bg-gray-700 text-gray-400 px-4 py-2 rounded-lg">
-                            Thinking...
+                            {t("coach.thinking")}
                         </div>
                     </div>
                 )}
@@ -180,21 +182,21 @@ export default function ChessCoach() {
                 onClick={() => setShowFen(!showFen)}
                 className="text-gray-400 text-sm hover:text-gray-300 mb-2 text-start"
             >
-                {showFen ? "Hide FEN inputs" : "Add FEN position (optional)"}
+                {showFen ? t("coach.fenHide") : t("coach.fenShow")}
             </button>
 
             {showFen && (
                 <div className="grid grid-cols-2 gap-2 mb-2">
                     <input
                         type="text"
-                        placeholder="Position before move (FEN)"
+                        placeholder={t("coach.fenBefore")}
                         value={oldFen}
                         onChange={(e) => setOldFen(e.target.value)}
                         className="px-3 py-2 bg-gray-900 text-white border border-gray-700 rounded text-sm focus:outline-none focus:border-blue-500"
                     />
                     <input
                         type="text"
-                        placeholder="Position after move (FEN)"
+                        placeholder={t("coach.fenAfter")}
                         value={newFen}
                         onChange={(e) => setNewFen(e.target.value)}
                         className="px-3 py-2 bg-gray-900 text-white border border-gray-700 rounded text-sm focus:outline-none focus:border-blue-500"
@@ -208,7 +210,7 @@ export default function ChessCoach() {
                     type="text"
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
-                    placeholder="Ask about chess..."
+                    placeholder={t("coach.askPlaceholder")}
                     className="flex-1 px-4 py-2 bg-gray-900 text-white border border-gray-700 rounded focus:outline-none focus:border-blue-500"
                     maxLength={500}
                     disabled={streaming}
@@ -218,7 +220,7 @@ export default function ChessCoach() {
                     disabled={streaming || !connected}
                     className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
                 >
-                    Ask
+                    {t("coach.ask")}
                 </button>
             </form>
         </div>

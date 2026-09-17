@@ -1,0 +1,65 @@
+{
+  // -- Unicode highlighting -----------------------------------------------
+  //
+  // src/i18n/messages/{ar,he}.ts are Arabic and Hebrew by design -- several
+  // thousand non-ASCII characters each. VS Code's nonBasicASCII rule flags
+  // every one, so the files render as a wall of underlines meaning nothing
+  // more than "this is not English".
+  //
+  // Turned off. The two rules that actually protect you stay ON:
+  //
+  //   invisibleCharacters  catches zero-width and bidi CONTROL characters --
+  //                        the invisible RLO/PDF overrides behind the
+  //                        "Trojan Source" attack (CVE-2021-42574), where
+  //                        code is visually reordered so a reviewer reads
+  //                        something different from what compiles.
+  //
+  //   ambiguousCharacters  catches homoglyphs -- a Cyrillic "a" posing as a
+  //                        Latin "a" in an identifier.
+  "editor.unicodeHighlight.nonBasicASCII": false,
+  "editor.unicodeHighlight.invisibleCharacters": true,
+  "editor.unicodeHighlight.ambiguousCharacters": true,
+
+  // -- Spell checking -----------------------------------------------------
+  //
+  // If the Code Spell Checker extension is installed it underlines every
+  // word it does not recognise. An i18n project is close to a worst case:
+  // the message tables are Arabic, Hebrew and Klingon, and serverErrors.ts
+  // is a wall of camelCase keys and protocol abbreviations.
+  //
+  // Rather than disable spell checking (which is genuinely useful in prose),
+  // teach it this project's vocabulary and skip the files that are, by
+  // definition, not English.
+  "cSpell.ignorePaths": [
+    "**/src/i18n/messages/**",
+    "**/node_modules/**",
+    "**/package-lock.json",
+    "**/*.enc"
+  ],
+  "cSpell.words": [
+    // project
+    "transcendence", "goinfre", "bvan", "duy", "Duynslager", "mailpit",
+    "stockfish", "daphne", "oxlint", "tailwindcss", "vite", "esbuild",
+    "fontsource", "nanoid", "hvac", "buildkit", "buildx", "rootless",
+    // i18n vocabulary
+    "i18n", "locale", "locales", "BCP", "CLDR", "bidi", "RTL", "LTR",
+    "nonBasicASCII", "tlhingan", "Qapla", "Klingon", "numberingsystem",
+    "nu", "latn", "arab", "unicodes",
+    // domain
+    "srv", "dms", "totp", "oauth", "twofa", "elo", "fen", "san",
+    "chessboard", "checkmate", "stalemate", "promotable", "bracketed",
+    "disqualify", "forfeited", "unmute", "unmuted", "unblock", "unblocked",
+    // keys that read oddly out of context
+    "tdetail", "tstatus", "gooselobby", "chesslobby", "publicprofile",
+    "dispname", "verfd", "crnt", "nb", "pu", "mey"
+  ],
+
+  // -- Editing RTL message files ------------------------------------------
+  // Arabic and Hebrew lines render right-to-left in the editor, which is
+  // correct but can make cursor movement feel inverted. Rendering control
+  // characters makes it obvious where a string begins and ends.
+  "editor.renderControlCharacters": true,
+
+  // Message tables are aligned by hand; stop the formatter unpicking them.
+  "editor.formatOnSave": false
+}

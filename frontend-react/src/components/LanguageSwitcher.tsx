@@ -9,7 +9,7 @@ import { useI18n } from "../i18n/I18nProvider.tsx"
  *   🇬🇧 English      🇳🇱 Nederlands      🇸🇦 العربية
  *
  * The name is always shown beside the flag, never the flag alone. That keeps
- * the control readable on Windows, which ships no flag-emoji font — there
+ * the control readable on Windows, which ships no flag-emoji font -- there
  * 🇳🇱 falls back to the letters "NL" rather than rendering a flag. The text
  * carries the meaning either way.
  *
@@ -35,7 +35,7 @@ export default function LanguageSwitcher() {
         >
             {LOCALE_CODES.map((code) => (
                 // lang on the <option> so a screen reader pronounces the
-                // native name with the right voice. Safe here — unlike on a
+                // native name with the right voice. Safe here -- unlike on a
                 // button, :lang(ar) font swapping cannot affect sibling
                 // options, since each option renders its own text.
                 <option key={code} value={code} lang={code}>

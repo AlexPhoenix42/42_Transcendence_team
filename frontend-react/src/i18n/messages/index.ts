@@ -8,9 +8,10 @@ import { en } from "./en.ts"
 import { nl } from "./nl.ts"
 import { ar } from "./ar.ts"
 import { he } from "./he.ts"
+import { tlh } from "./tlh.ts"
 
 // `en` is complete by definition; the others may be partial.
-export const MESSAGES: Record<Locale, MessageTable> = { en, nl, ar, he }
+export const MESSAGES: Record<Locale, MessageTable> = { en, nl, ar, he, tlh }
 
 // Exported separately because the fallback chain always needs the full
 // English table, not the partial view.

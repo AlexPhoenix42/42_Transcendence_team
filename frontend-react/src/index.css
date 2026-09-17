@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-/* Tell browsers this is a dark site — don't apply forced dark mode */
+/* Tell browsers this is a dark site -- don't apply forced dark mode */
 :root {
     color-scheme: dark only;
 }
@@ -18,9 +18,9 @@ img[src*="/pieces/"] {
 }
 
 
-/* ═══════════════════════════════════════════════════════════════════════
+/* =======================================================================
    Arabic typography
-   ═══════════════════════════════════════════════════════════════════════
+   =======================================================================
 
    Deliberately a SYSTEM font stack, not a webfont from a CDN.
 
@@ -87,9 +87,9 @@ img[src*="/pieces/"] {
     letter-spacing: normal;
 }
 
-/* ═══════════════════════════════════════════════════════════════════════
+/* =======================================================================
    Hebrew typography
-   ═══════════════════════════════════════════════════════════════════════
+   =======================================================================
 
    Hebrew is RTL like Arabic, and this block is why the Arabic rules above
    are keyed on :lang(ar) and not [dir="rtl"]. The two share a direction and
