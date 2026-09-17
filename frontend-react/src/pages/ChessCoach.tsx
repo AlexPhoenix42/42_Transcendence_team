@@ -178,7 +178,7 @@ export default function ChessCoach() {
             <button
                 type="button"
                 onClick={() => setShowFen(!showFen)}
-                className="text-gray-400 text-sm hover:text-gray-300 mb-2 text-left"
+                className="text-gray-400 text-sm hover:text-gray-300 mb-2 text-start"
             >
                 {showFen ? "Hide FEN inputs" : "Add FEN position (optional)"}
             </button>

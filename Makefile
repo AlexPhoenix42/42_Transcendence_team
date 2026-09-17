@@ -38,7 +38,7 @@ C_CYN  := \033[36m
 
 .PHONY: up dev down stop restart re front front-install logs logs-front logs-api \
         ps status health shell-api shell-front psql redis-cli migrate makemigrations \
-        superuser seed-vault nginx build env check clean fclean nuke-vault-data prune du help
+        superuser seed-vault nginx build env check clean fclean nuke-vault-data prune du check-rtl help
 
 # ══ run ═══════════════════════════════════════════════════════════════════
 
@@ -226,6 +226,10 @@ prune:
 	@docker buildx prune -f 2>/dev/null || true
 	@printf "$(C_GRN)\u2713 pruned$(C_OFF)\n"
 	@$(MAKE) --no-print-directory du
+
+## check-rtl: fail if any physical direction class (ml-*, text-right, ...) crept in
+check-rtl:
+	@./scripts_dev/check_logical_css.sh frontend-react/src
 
 ## du: where docker disk actually goes (daemon AND buildx builders)
 du:

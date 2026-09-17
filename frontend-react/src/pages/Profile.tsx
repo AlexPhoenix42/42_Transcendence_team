@@ -284,7 +284,7 @@ export default function Profile() {
                     </label>
 					<div>
                         <div className="flex items-center gap-2">
-                            <h2 className="text-xl text-white font-semibold">{profile.username}</h2>
+                            <h2 className="text-xl text-white font-semibold"><bdi>{profile.username}</bdi></h2>
                             {profile.role === "admin" && (
                                 <span className="px-2 py-0.5 rounded text-xs font-bold bg-red-900/50 text-red-400">Admin</span>
                             )}

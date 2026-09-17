@@ -208,7 +208,7 @@ export default function Friends() {
                                 {friend.username[0].toUpperCase()}
                             </div>
                             <Link to={`/profile/${friend.username}`} className="text-white hover:text-blue-400 flex-1">
-                                {friend.username}
+                                <bdi>{friend.username}</bdi>
                             </Link>
                             <button
                                 onClick={() => removeFriend(friend.id)}

@@ -102,7 +102,7 @@ export default function TournamentBracket({ matches, currentUser, isStaff, onSta
                     <div className="flex items-center gap-2 min-w-0">
                         {match.winner === match.player1 && <span className="text-green-400 text-xs">▶</span>}
                         <span className={`text-sm truncate ${playerClass(match, match.player1)}`}>
-                            {match.player1 || "TBD"}
+                            <bdi>{match.player1 || "TBD"}</bdi>
                         </span>
                     </div>
                 </div>
@@ -114,7 +114,7 @@ export default function TournamentBracket({ matches, currentUser, isStaff, onSta
                     <div className="flex items-center gap-2 min-w-0">
                         {match.winner === match.player2 && <span className="text-green-400 text-xs">▶</span>}
                         <span className={`text-sm truncate ${playerClass(match, match.player2)}`}>
-                            {match.player2 || "TBD"}
+                            <bdi>{match.player2 || "TBD"}</bdi>
                         </span>
                     </div>
                 </div>
@@ -253,7 +253,13 @@ export default function TournamentBracket({ matches, currentUser, isStaff, onSta
     }
 
     return (
-        <div className="overflow-x-auto">
+        // dir="ltr": brackets genuinely DO flow right-to-left in RTL
+        // publications, so mirroring would arguably be more correct — but this
+        // is 280 lines of nested flex and connector geometry, and a correct
+        // LTR bracket beats a half-mirrored one. Revisit only with time to
+        // spare. Until then this pin keeps the connectors attached to the
+        // right matches.
+        <div dir="ltr" className="overflow-x-auto">
             {renderRound(0)}
 
             {/* Champion banner */}
@@ -264,10 +270,10 @@ export default function TournamentBracket({ matches, currentUser, isStaff, onSta
                         <div className="mt-6 text-center">
                             <div className="inline-block bg-yellow-900/30 border border-yellow-600 rounded-lg px-6 py-3">
                                 <span className="text-yellow-400 text-lg">🏆</span>
-                                <span className="text-yellow-300 font-bold text-lg ml-2">
-                                    {finalMatch.winner}
+                                <span className="text-yellow-300 font-bold text-lg ms-2">
+                                    <bdi>{finalMatch.winner}</bdi>
                                 </span>
-                                <span className="text-yellow-400 text-lg ml-2">🏆</span>
+                                <span className="text-yellow-400 text-lg ms-2">🏆</span>
                             </div>
                         </div>
                     )

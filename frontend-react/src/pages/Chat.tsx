@@ -374,7 +374,7 @@ export default function Chat() {
 			<div className="w-full md:w-48 bg-gray-800 rounded-lg border border-gray-700 p-3 flex flex-row md:flex-col gap-2 overflow-x-auto md:overflow-y-auto shrink-0">
                 <button
                     onClick={connectToGlobal}
-                    className={`text-left px-3 py-2 rounded ${tab === "global" && !dmTarget ? "bg-blue-600 text-white" : "text-gray-300 hover:bg-gray-700"}`}
+                    className={`text-start px-3 py-2 rounded ${tab === "global" && !dmTarget ? "bg-blue-600 text-white" : "text-gray-300 hover:bg-gray-700"}`}
                 >
                     Global Chat
                 </button>
@@ -388,10 +388,10 @@ export default function Chat() {
                         <button
                             key={friend.id}
                             onClick={() => connectToDM(friend)}
-                            className={`w-full text-left px-3 py-2 rounded text-sm flex items-center gap-2 ${dmTarget?.id === friend.id ? "bg-blue-600 text-white" : "text-gray-300 hover:bg-gray-700"}`}
+                            className={`w-full text-start px-3 py-2 rounded text-sm flex items-center gap-2 ${dmTarget?.id === friend.id ? "bg-blue-600 text-white" : "text-gray-300 hover:bg-gray-700"}`}
                         >
                             <span className={`w-2 h-2 rounded-full ${friend.is_online ? "bg-green-500" : "bg-gray-600"}`}></span>
-                            <span className="flex-1">{friend.username}</span>
+                            <span className="flex-1"><bdi>{friend.username}</bdi></span>
                             {unreadByUser[friend.id] && (
                                 <span className="bg-red-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
                                     {unreadByUser[friend.id]}
@@ -455,7 +455,7 @@ export default function Chat() {
                                                 : `⚔️ ${fromUser} invited you to play chess!`
                                             }
                                             {isExpired && !gameStartedAfter && (
-                                                <span className="ml-1 text-gray-500 text-xs">(expired)</span>
+                                                <span className="ms-1 text-gray-500 text-xs">(expired)</span>
                                             )}
                                         </p>
                                         {showButtons && (
@@ -487,7 +487,7 @@ export default function Chat() {
 
                             return (
                                 <div key={msg.id} className="flex justify-center my-1 gap-2 items-center">
-                                    <span className="text-yellow-400 text-xs italic">{msg.content}</span>
+                                    <span className="text-yellow-400 text-xs italic" dir="auto">{msg.content}</span>
                                     {mutedUsername && (user?.role === "admin" || user?.role === "moderator") && (
                                         <button
                                             onClick={async () => {
@@ -520,17 +520,17 @@ export default function Chat() {
                                                 className="text-blue-400 cursor-pointer hover:underline"
                                                 onClick={() => navigate(`/profile/${msg.sender}`)}
                                             >
-                                                {msg.sender}
+                                                <bdi>{msg.sender}</bdi>
                                             </span>
                                             {msg.sender_role === "admin" && (
-                                                <span className="ml-1 px-1 py-0.5 rounded text-[10px] font-bold bg-red-900/50 text-red-400">Admin</span>
+                                                <span className="ms-1 px-1 py-0.5 rounded text-[10px] font-bold bg-red-900/50 text-red-400">Admin</span>
                                             )}
                                             {msg.sender_role === "moderator" && (
-                                                <span className="ml-1 px-1 py-0.5 rounded text-[10px] font-bold bg-yellow-900/50 text-yellow-400">Mod</span>
+                                                <span className="ms-1 px-1 py-0.5 rounded text-[10px] font-bold bg-yellow-900/50 text-yellow-400">Mod</span>
                                             )}
                                         </p>
                                     )}
-                                    <p>{msg.content}</p>
+                                    <p dir="auto">{msg.content}</p>
                                     {(user?.role === "admin" || user?.role === "moderator") && msg.sender !== "system" && (
                                         <div className="flex gap-1 mt-1">
                                             <button
@@ -553,7 +553,7 @@ export default function Chat() {
                                 <p className="text-xs text-gray-500 mt-1">
                                     {new Date(msg.created_at).toLocaleTimeString()}
                                     {tab === "dm" && msg.sender === user?.username && otherReadAt && new Date(otherReadAt) >= new Date(msg.created_at) && (
-                                        <span className="ml-2 text-blue-400">✓ Seen</span>
+                                        <span className="ms-2 text-blue-400">✓ Seen</span>
                                     )}
                                 </p>
                             </div>

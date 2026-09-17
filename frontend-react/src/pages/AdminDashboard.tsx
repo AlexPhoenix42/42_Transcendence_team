@@ -396,7 +396,7 @@ export default function AdminDashboard() {
                                             className="text-white font-semibold cursor-pointer hover:text-blue-400"
                                             onClick={() => navigate(`/profile/${u.username}`)}
                                         >
-                                            {u.username}
+                                            <bdi>{u.username}</bdi>
                                         </span>
                                         {roleBadge(u.role)}
                                         <span className={`w-2 h-2 rounded-full ${u.is_online ? "bg-green-500" : "bg-gray-500"}`}></span>

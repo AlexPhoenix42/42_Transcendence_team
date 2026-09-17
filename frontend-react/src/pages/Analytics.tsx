@@ -117,7 +117,7 @@ export default function Analytics() {
                                 <span className="text-green-400 font-semibold">{data.white_wins}W</span>
                                 <span className="text-gray-500">/</span>
                                 <span className="text-gray-400">{data.white_total} games</span>
-                                <span className="text-white font-bold w-12 text-right">{winRate(data.white_wins, data.white_total)}</span>
+                                <span className="text-white font-bold w-12 text-end">{winRate(data.white_wins, data.white_total)}</span>
                             </div>
                         </div>
                         <div className="flex items-center justify-between">
@@ -129,7 +129,7 @@ export default function Analytics() {
                                 <span className="text-green-400 font-semibold">{data.black_wins}W</span>
                                 <span className="text-gray-500">/</span>
                                 <span className="text-gray-400">{data.black_total} games</span>
-                                <span className="text-white font-bold w-12 text-right">{winRate(data.black_wins, data.black_total)}</span>
+                                <span className="text-white font-bold w-12 text-end">{winRate(data.black_wins, data.black_total)}</span>
                             </div>
                         </div>
                     </div>
@@ -145,7 +145,7 @@ export default function Analytics() {
                                 <span className="text-green-400 font-semibold">{data.human_wins}W</span>
                                 <span className="text-gray-500">/</span>
                                 <span className="text-gray-400">{data.human_total} games</span>
-                                <span className="text-white font-bold w-12 text-right">{winRate(data.human_wins, data.human_total)}</span>
+                                <span className="text-white font-bold w-12 text-end">{winRate(data.human_wins, data.human_total)}</span>
                             </div>
                         </div>
                         <div className="flex items-center justify-between">
@@ -154,7 +154,7 @@ export default function Analytics() {
                                 <span className="text-green-400 font-semibold">{data.ai_wins}W</span>
                                 <span className="text-gray-500">/</span>
                                 <span className="text-gray-400">{data.ai_total} games</span>
-                                <span className="text-white font-bold w-12 text-right">{winRate(data.ai_wins, data.ai_total)}</span>
+                                <span className="text-white font-bold w-12 text-end">{winRate(data.ai_wins, data.ai_total)}</span>
                             </div>
                         </div>
                     </div>
@@ -209,7 +209,7 @@ export default function Analytics() {
                                 onClick={() => navigate(`/profile/${opp.username}`)}
                                 className="flex items-center justify-between py-2 px-3 rounded hover:bg-gray-700/50 cursor-pointer"
                             >
-                                <span className="text-white font-semibold">{opp.username}</span>
+                                <span className="text-white font-semibold"><bdi>{opp.username}</bdi></span>
                                 <span className="text-gray-400 text-sm">{opp.games} game{opp.games !== 1 ? "s" : ""}</span>
                             </div>
                         ))}

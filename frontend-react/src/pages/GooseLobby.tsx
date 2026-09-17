@@ -158,7 +158,7 @@ export default function GooseLobby() {
                                 <div className="flex gap-1 mt-2">
                                     {game.players.map((p) => (
                                         <span key={p.username} className="text-xs bg-gray-700 text-gray-300 px-2 py-0.5 rounded">
-                                            {p.username}
+                                            <bdi>{p.username}</bdi>
                                         </span>
                                     ))}
                                 </div>

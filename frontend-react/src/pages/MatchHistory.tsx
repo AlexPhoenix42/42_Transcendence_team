@@ -178,17 +178,17 @@ export default function MatchHistory() {
                         </div>
 
                         {/* Reason */}
-                        <div className="text-right">
+                        <div className="text-end">
                             <span className="text-gray-400 text-xs">{reasonLabel(match.result_reason)}</span>
                         </div>
 
                         {/* Moves */}
-                        <div className="text-right">
+                        <div className="text-end">
                             <span className="text-gray-500 text-xs">{match.moves_count} moves</span>
                         </div>
 
                         {/* Date */}
-                        <div className="text-right">
+                        <div className="text-end">
                             <span className="text-gray-500 text-xs">{formatDate(match.date)}</span>
                         </div>
                     </div>

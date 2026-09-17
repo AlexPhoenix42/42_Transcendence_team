@@ -186,7 +186,13 @@ export default function GooseBoard({ players, lastMove }: Props) {
     const circleSize = Math.max(16, Math.min(medianGap * 0.75, size.width / 14))
 
     return (
+        // dir="ltr": the spiral track's numbering is part of the game's
+        // geometry, not the interface's reading order. Squares are positioned
+        // with inline left/top (physical, so already direction-immune), but
+        // pinning the container keeps any text inside — square numbers,
+        // player labels — from being reordered by the bidi algorithm.
         <div
+            dir="ltr"
             ref={containerRef}
             className="w-full aspect-square relative rounded-xl overflow-hidden"
             style={{

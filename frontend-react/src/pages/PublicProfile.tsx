@@ -101,7 +101,7 @@ export default function PublicProfile() {
                             )}
                             <span className={`w-2.5 h-2.5 rounded-full ${profile.is_online ? "bg-green-500" : "bg-gray-600"}`}></span>
                         </div>
-                        <p className="text-gray-400">@{profile.username}</p>
+                        <p className="text-gray-400">@<bdi>{profile.username}</bdi></p>
                     </div>
                 </div>
 

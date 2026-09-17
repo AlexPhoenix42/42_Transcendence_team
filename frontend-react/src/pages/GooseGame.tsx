@@ -263,7 +263,7 @@ export default function GooseGame() {
                                         }`}
                                         onClick={() => navigate(`/profile/${p.username}`)}
                                     >
-                                        {p.username}
+                                        <bdi>{p.username}</bdi>
                                     </span>
                                     <span className="text-xs text-gray-500">sq {p.position}</span>
                                     {p.skip_turns > 0 && (

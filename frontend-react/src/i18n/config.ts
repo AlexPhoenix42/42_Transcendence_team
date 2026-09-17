@@ -1,0 +1,51 @@
+// frontend-react/src/i18n/config.ts
+//
+// The single source of truth for which languages exist.
+// Adding a fourth language means adding one entry here and one message file.
+
+export const LOCALES = {
+    en: { label: "English",    dir: "ltr", intl: "en-GB"        },
+    nl: { label: "Nederlands", dir: "ltr", intl: "nl-BE"        },
+    ar: { label: "العربية",      dir: "rtl", intl: "ar-u-nu-latn" },
+} as const
+
+// `as const` is doing real work here. Without it TypeScript widens `dir` to
+// `string`, and `el.dir = LOCALES[locale].dir` stops type-checking. With it,
+// dir is the literal union "ltr" | "rtl" and Locale below is "en" | "nl" | "ar"
+// rather than plain string — so a typo like t("nav.gmaes") or setLocale("de")
+// is a compile error, not a blank label discovered in the browser.
+export type Locale = keyof typeof LOCALES
+export type Dir    = (typeof LOCALES)[Locale]["dir"]
+
+export const DEFAULT_LOCALE: Locale = "en"
+export const LOCALE_CODES  = Object.keys(LOCALES) as Locale[]
+
+// localStorage key. One place, so the provider and any future code agree.
+export const STORAGE_KEY = "lang"
+
+// Narrowing helper: anything read back from localStorage or navigator is
+// untrusted string data, and this is what turns it into a Locale safely.
+export function isLocale(value: unknown): value is Locale {
+    return typeof value === "string" && value in LOCALES
+}
+
+// ── Why these particular `intl` tags ────────────────────────────────────
+//
+// These are BCP-47 tags handed to Intl.DateTimeFormat / NumberFormat /
+// PluralRules. They are deliberately NOT the same strings as the locale keys.
+//
+//   en-GB    not en-US — 17/09/2026, not 09/17/2026. Wrong date format is
+//            the classic i18n bug that nobody notices until the 13th.
+//
+//   nl-BE    not nl-NL — Belgian Dutch. Same language, different conventions
+//            (currency placement, some number formatting).
+//
+//   ar-u-nu-latn
+//            Arabic, but with LATIN digits: 1400, not ١٤٠٠.
+//            The `-u-nu-latn` suffix is a Unicode extension selecting the
+//            numbering system. Plain "ar" gives Eastern Arabic numerals,
+//            which are authentic for prose but wrong next to chess notation
+//            and a running clock — "e4" beside "٠٥:٣٠" reads badly, and
+//            ratings become ambiguous. This is one character of config that
+//            silently changes every number in the app, so it is worth being
+//            deliberate about.

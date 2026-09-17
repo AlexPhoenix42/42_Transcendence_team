@@ -117,7 +117,7 @@ export default function Leaderboard() {
                                             {entry.username[0].toUpperCase()}
                                         </div>
                                     )}
-                                    <span className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-gray-800 ${
+                                    <span className={`absolute -bottom-0.5 -end-0.5 w-3 h-3 rounded-full border-2 border-gray-800 ${
                                         entry.is_online ? "bg-green-500" : "bg-gray-500"
                                     }`}></span>
                                 </div>
@@ -128,13 +128,13 @@ export default function Leaderboard() {
                                         {entry.dispname || entry.username}
                                     </span>
                                     {entry.dispname && (
-                                        <span className="text-gray-500 text-xs ml-1">@{entry.username}</span>
+                                        <span className="text-gray-500 text-xs ms-1">@<bdi>{entry.username}</bdi></span>
                                     )}
                                     {entry.role === "admin" && (
-                                        <span className="ml-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-900/50 text-red-400">Admin</span>
+                                        <span className="ms-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-900/50 text-red-400">Admin</span>
                                     )}
                                     {entry.role === "moderator" && (
-                                        <span className="ml-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-yellow-900/50 text-yellow-400">Mod</span>
+                                        <span className="ms-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-yellow-900/50 text-yellow-400">Mod</span>
                                     )}
                                 </div>
                             </div>

@@ -5,6 +5,30 @@
     <meta name="color-scheme" content="dark only">
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- Set lang/dir BEFORE first paint.
+         React sets these too (the useEffect in src/i18n/I18nProvider.tsx),
+         but that only runs after mount. Without this an Arabic user sees the
+         whole page laid out left-to-right and then snap to RTL.
+         This deliberately duplicates detectLocale() — keep the two in sync. -->
+    <script>
+      (function () {
+        var SUPPORTED = { en: 1, nl: 1, ar: 1 }
+        var RTL       = { ar: 1 }
+        var lang
+        try { lang = localStorage.getItem("lang") } catch (e) { /* private mode */ }
+        if (!SUPPORTED[lang]) {
+          var tags = navigator.languages || [navigator.language || "en"]
+          for (var i = 0; i < tags.length; i++) {
+            var base = String(tags[i]).split("-")[0].toLowerCase()
+            if (SUPPORTED[base]) { lang = base; break }
+          }
+        }
+        if (!SUPPORTED[lang]) lang = "en"
+        document.documentElement.lang = lang
+        document.documentElement.dir  = RTL[lang] ? "rtl" : "ltr"
+      })()
+    </script>
     <title>frontend-react</title>
   </head>
   <body>

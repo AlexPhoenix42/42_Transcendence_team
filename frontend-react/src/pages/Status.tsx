@@ -132,7 +132,7 @@ export default function Status() {
 								<span className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${cfg.badge}`}>
 									{svc.status}
 								</span>
-								<span className="text-xs text-gray-500 w-14 text-right tabular-nums">
+								<span className="text-xs text-gray-500 w-14 text-end tabular-nums">
 									{svc.response_time_ms} ms
 								</span>
 							</div>

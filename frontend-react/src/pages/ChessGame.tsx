@@ -836,7 +836,7 @@ export default function ChessGame() {
                                     AI {gameInfo.ai_difficulty}
                                 </span>
                             )}
-							<span className="ml-2 flex gap-0.5 items-center bg-gray-600/50 rounded px-1 py-0.5">
+							<span className="ms-2 flex gap-0.5 items-center bg-gray-600/50 rounded px-1 py-0.5">
                                 {(myColor === "white" ? capturedBlack : capturedWhite).map((p, i) => (
 									<img key={i} src={`/pieces/${p}.svg`} alt={p} className={`w-8 h-8 ${p.startsWith("b") ? "drop-shadow-[0_0_3px_rgba(255,255,255,0.9)]" : ""}`} />
                                 ))}
@@ -870,12 +870,18 @@ export default function ChessGame() {
                                     ? "bg-red-900 text-red-300"
                                     : "bg-gray-800 text-white"
                             }`}>
-                                {formatTime(myColor === "white" ? blackTime : whiteTime)}
+                                <bdi dir="ltr">{formatTime(myColor === "white" ? blackTime : whiteTime)}</bdi>
                             </span>
                         )}
                     </div>
 
-					<div className="chess-board-wrapper relative [&>div>div]:leading-none [&>div>div]:text-[0px]">
+					{/* dir="ltr" is REQUIRED, not cosmetic. A chessboard has no reading
+					    direction: a1 is bottom-left and h8 top-right in every language.
+					    Without this pin, dir="rtl" on <html> mirrors the board and files
+					    run h->a, so every coordinate shown to the player is wrong.
+					    boardOrientation below is a different thing entirely — that is
+					    whose turn it is, not which way the language reads. */}
+					<div dir="ltr" className="chess-board-wrapper relative [&>div>div]:leading-none [&>div>div]:text-[0px]">
 						<Chessboard
 							options={{
 								position: fen,
@@ -952,7 +958,7 @@ export default function ChessGame() {
 							{check && isMyTurn && (
                                 <span className="text-base text-red-400 font-bold">CHECK!</span>
                             )}
-							<span className="ml-2 flex gap-0.5 items-center bg-gray-600/50 rounded px-1 py-0.5">
+							<span className="ms-2 flex gap-0.5 items-center bg-gray-600/50 rounded px-1 py-0.5">
                                 {(myColor === "white" ? capturedWhite : capturedBlack).map((p, i) => (
                                     <img key={i} src={`/pieces/${p}.svg`} alt={p} className="w-8 h-8" />
 
@@ -987,7 +993,7 @@ export default function ChessGame() {
                                     ? "bg-red-900 text-red-300"
                                     : "bg-gray-800 text-white"
                             }`}>
-                                {formatTime(myColor === "white" ? whiteTime : blackTime)}
+                                <bdi dir="ltr">{formatTime(myColor === "white" ? whiteTime : blackTime)}</bdi>
                             </span>
                         )}
                     </div>

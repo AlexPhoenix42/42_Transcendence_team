@@ -4,10 +4,13 @@ import { useState, useEffect, useRef } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { useAuth } from "../context/AuthContext.tsx"
 import { api, mediaUrl } from "../api/client.ts"
+import { useT } from "../i18n/I18nProvider.tsx"
+import LanguageSwitcher from "./LanguageSwitcher.tsx"
 
 export default function Navbar() {
     const { user, logout } = useAuth()
     const navigate = useNavigate()
+    const t = useT()
     const [menuOpen, setMenuOpen] = useState(false)
     const [mobileOpen, setMobileOpen] = useState(false)
     const [requestCount, setRequestCount] = useState(0)
@@ -77,28 +80,28 @@ export default function Navbar() {
 
     const navLinks = (
         <>
-            <Link to="/games" onClick={() => setMobileOpen(false)} className="text-gray-300 hover:text-white">Games</Link>
-            <Link to="/tournaments" onClick={() => setMobileOpen(false)} className="text-gray-300 hover:text-white">Tournaments</Link>
-            <Link to="/leaderboard" onClick={() => setMobileOpen(false)} className="text-gray-300 hover:text-white">Leaderboard</Link>
+            <Link to="/games" onClick={() => setMobileOpen(false)} className="text-gray-300 hover:text-white">{t("nav.games")}</Link>
+            <Link to="/tournaments" onClick={() => setMobileOpen(false)} className="text-gray-300 hover:text-white">{t("nav.tournaments")}</Link>
+            <Link to="/leaderboard" onClick={() => setMobileOpen(false)} className="text-gray-300 hover:text-white">{t("nav.leaderboard")}</Link>
             <Link to="/friends" onClick={() => setMobileOpen(false)} className="text-gray-300 hover:text-white relative">
-                Friends
+                {t("nav.friends")}
                 {requestCount > 0 && (
-                    <span className="absolute -top-2 -right-3 bg-red-500 text-white text-xs w-4 h-4 rounded-full flex items-center justify-center">
+                    <span className="absolute -top-2 -end-3 bg-red-500 text-white text-xs w-4 h-4 rounded-full flex items-center justify-center">
                         {requestCount}
                     </span>
                 )}
             </Link>
             <Link to="/chat" onClick={() => setMobileOpen(false)} className="text-gray-300 hover:text-white relative">
-                Chat
+                {t("nav.chat")}
                 {unreadChats > 0 && (
-                    <span className="absolute -top-2 -right-3 bg-red-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                    <span className="absolute -top-2 -end-3 bg-red-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
                         {unreadChats > 9 ? "9+" : unreadChats}
                     </span>
                 )}
             </Link>
-            <Link to="/profile" onClick={() => setMobileOpen(false)} className="text-gray-300 hover:text-white">Profile</Link>
+            <Link to="/profile" onClick={() => setMobileOpen(false)} className="text-gray-300 hover:text-white">{t("nav.profile")}</Link>
             {(user?.is_staff || user?.role === "admin" || user?.role === "moderator") && (
-                <Link to="/admin" onClick={() => setMobileOpen(false)} className="text-yellow-400 hover:text-yellow-300">Admin</Link>
+                <Link to="/admin" onClick={() => setMobileOpen(false)} className="text-yellow-400 hover:text-yellow-300">{t("nav.admin")}</Link>
             )}
         </>
     )
@@ -116,6 +119,9 @@ export default function Navbar() {
 
                 {/* User menu (desktop) + hamburger (mobile) */}
                 <div className="flex items-center gap-3">
+                    {/* Language switcher */}
+                    <LanguageSwitcher />
+
                     {/* User avatar & dropdown */}
                     <div className="relative" ref={menuRef}>
                         <button
@@ -128,24 +134,24 @@ export default function Navbar() {
                                     : user?.username?.[0]?.toUpperCase() || "?"
                                 }
                             </div>
-                            <span className="font-semibold text-white hidden sm:inline">{user?.username}</span>
+                            <span className="font-semibold text-white hidden sm:inline"><bdi>{user?.username}</bdi></span>
                             <span className="w-2 h-2 bg-green-500 rounded-full"></span>
                         </button>
 
                         {menuOpen && (
-                            <div className="absolute right-0 mt-2 w-48 bg-gray-800 border border-gray-700 rounded-lg shadow-lg z-50">
+                            <div className="absolute end-0 mt-2 w-48 bg-gray-800 border border-gray-700 rounded-lg shadow-lg z-50">
                                 <Link
                                     to="/profile"
                                     onClick={() => setMenuOpen(false)}
                                     className="block px-4 py-3 text-gray-300 hover:bg-gray-700 hover:text-white rounded-t-lg"
                                 >
-                                    ⚙️ Edit Profile
+                                    ⚙️ {t("nav.editProfile")}
                                 </Link>
                                 <button
                                     onClick={handleLogout}
-                                    className="w-full text-left px-4 py-3 text-gray-300 hover:bg-gray-700 hover:text-red-400 rounded-b-lg"
+                                    className="w-full text-start px-4 py-3 text-gray-300 hover:bg-gray-700 hover:text-red-400 rounded-b-lg"
                                 >
-                                    🚪 Logout
+                                    🚪 {t("nav.logout")}
                                 </button>
                             </div>
                         )}
