@@ -86,3 +86,42 @@ img[src*="/pieces/"] {
 :lang(ar) :is(.tracking-wide, .tracking-wider, .tracking-widest):not(input):not(textarea) {
     letter-spacing: normal;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Hebrew typography
+   ═══════════════════════════════════════════════════════════════════════
+
+   Hebrew is RTL like Arabic, and this block is why the Arabic rules above
+   are keyed on :lang(ar) and not [dir="rtl"]. The two share a direction and
+   almost nothing else:
+
+     · Hebrew is NOT cursive. Letters stand apart, so letter-spacing is
+       harmless — no equivalent of the Arabic tracking rule belongs here.
+     · No mandatory diacritics. Nikud is optional and usually absent, so
+       Hebrew needs less extra leading than Arabic: 1.65 rather than 1.8.
+     · Different fonts entirely. An Arabic face has no Hebrew glyphs.
+
+   Had the Arabic block been written as [dir="rtl"], adding Hebrew would have
+   silently applied an Arabic font stack and Arabic leading to Hebrew text. */
+
+:root:lang(he),
+:root:lang(he) body {
+    font-family:
+        "Noto Sans Hebrew",        /* Linux, Android              */
+        "Arial Hebrew",            /* macOS                       */
+        "Segoe UI",                /* Windows — full Hebrew cover */
+        Tahoma,                    /* reliable Windows fallback   */
+        David,                     /* older Windows               */
+        system-ui,
+        sans-serif;
+
+    line-height: 1.65;
+}
+
+/* Hebrew has no capital letters either, so uppercase does nothing to Hebrew
+   glyphs but still shouts any Latin mixed in — usernames, "AI", notation. */
+:lang(he) .uppercase { text-transform: none }
+
+/* Note what is deliberately ABSENT: no tracking override. Hebrew letters do
+   not join, so .tracking-wider on a Hebrew label is a normal stylistic
+   choice rather than a legibility bug. */

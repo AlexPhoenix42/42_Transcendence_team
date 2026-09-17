@@ -13,8 +13,8 @@
          This deliberately duplicates detectLocale() — keep the two in sync. -->
     <script>
       (function () {
-        var SUPPORTED = { en: 1, nl: 1, ar: 1 }
-        var RTL       = { ar: 1 }
+        var SUPPORTED = { en: 1, nl: 1, ar: 1, he: 1 }
+        var RTL       = { ar: 1, he: 1 }
         var lang
         try { lang = localStorage.getItem("lang") } catch (e) { /* private mode */ }
         if (!SUPPORTED[lang]) {

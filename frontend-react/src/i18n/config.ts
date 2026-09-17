@@ -4,9 +4,10 @@
 // Adding a fourth language means adding one entry here and one message file.
 
 export const LOCALES = {
-    en: { label: "English",    dir: "ltr", intl: "en-GB"        },
-    nl: { label: "Nederlands", dir: "ltr", intl: "nl-BE"        },
-    ar: { label: "العربية",      dir: "rtl", intl: "ar-u-nu-latn" },
+    en: { label: "English",    flag: "🇬🇧", dir: "ltr", intl: "en-GB"        },
+    nl: { label: "Nederlands", flag: "🇳🇱", dir: "ltr", intl: "nl-BE"        },
+    ar: { label: "العربية",      flag: "🇸🇦", dir: "rtl", intl: "ar-u-nu-latn" },
+    he: { label: "עברית",       flag: "🇮🇱", dir: "rtl", intl: "he-IL"        },
 } as const
 
 // `as const` is doing real work here. Without it TypeScript widens `dir` to
@@ -49,3 +50,10 @@ export function isLocale(value: unknown): value is Locale {
 //            ratings become ambiguous. This is one character of config that
 //            silently changes every number in the app, so it is worth being
 //            deliberate about.
+//
+//   he-IL    Hebrew. RTL like Arabic, but NOT cursive — Hebrew letters stand
+//            apart, so letter-spacing is harmless there whereas it breaks
+//            Arabic joins. Hebrew also uses Western digits natively, so no
+//            -u-nu- extension is needed. This is exactly why the CSS in
+//            index.css keys on :lang(ar) rather than [dir="rtl"]: the two
+//            languages share a direction but need different typography.

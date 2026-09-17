@@ -1,5 +1,11 @@
-# ── Secrets — never commit these ─────────
-.env
+# ── Env ──────────────────────────────────
+# .env IS committed on purpose: this is a school project and the team
+# needs to clone and run instantly from any machine. It holds only
+# localhost dev values — a throwaway DB password, a DEBUG-only
+# SECRET_KEY, the dev vault's root token (already hardcoded in
+# docker-compose-dev.yml), and OAuth placeholders. Real deployment
+# secrets live in Vault and in .env.secrets.enc, never here.
+#.env
 .swp
 .swo
 
