@@ -1,5 +1,8 @@
 // frontend-react/src/ws/chat.ts
 
+import { wsUrl } from './utils';
+import { debug } from '../utils/debug'
+
 export interface ChatMessage {
     id: number
     sender: string
@@ -54,8 +57,9 @@ export class ChatSocket {
     }
 
     connect(): void {
-        const wsHost = window.location.hostname + ":9000"
-        const url = `ws://${wsHost}/ws/chat/${this.roomId}/`
+        //const wsHost = window.location.hostname + ":9000"
+        //const url = `ws://${wsHost}/ws/chat/${this.roomId}/`
+		const url = wsUrl(`/ws/chat/${this.roomId}/`)
 
         try {
             this.ws = new WebSocket(url)
@@ -84,9 +88,9 @@ export class ChatSocket {
 		//this.ws.onmessage = (event) => {
         //    try {
         //        const data = JSON.parse(event.data)
-        //        console.log("WS received:", data)
+        //        debug("WS received:", data)
         //        if (data.type === "typing") {
-        //            console.log("Typing from:", data.sender, "handler:", !!this.onTyping)
+        //            debug("Typing from:", data.sender, "handler:", !!this.onTyping)
         //            if (this.onTyping) this.onTyping(data.sender)
         //            return
         //        }
@@ -103,9 +107,9 @@ export class ChatSocket {
 		this.ws.onmessage = (event) => {
             try {
                 const data = JSON.parse(event.data)
-                console.log("WS received:", data)
+                debug("WS received:", data)
                 if (data.type === "typing") {
-                    console.log("Typing from:", data.sender, "handler:", !!this.onTyping)
+                    debug("Typing from:", data.sender, "handler:", !!this.onTyping)
                     if (this.onTyping) this.onTyping(data.sender)
                     return
                 }

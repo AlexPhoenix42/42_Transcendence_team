@@ -8,6 +8,9 @@ import { api } from "../api/client.ts"
 import { useAuth } from "../context/AuthContext.tsx"
 import { ChatSocket, ChatMessage } from "../ws/chat.ts"
 
+import { wsUrl } from '../ws/utils';
+import { debug } from '../utils/debug'
+
 interface GameInfo {
     id: number
     player1: string
@@ -130,10 +133,12 @@ export default function ChessGame() {
 
     // WebSocket connection
     useEffect(() => {
-        if (!id) return
+        if (!id || !infoLoaded) return
+		if (gameOver) return
 
-        const wsHost = window.location.hostname + ":9000"
-        const ws = new WebSocket(`ws://${wsHost}/ws/game/${id}/`)
+        //const wsHost = window.location.hostname + ":9000"
+        //const ws = new WebSocket(`ws://${wsHost}/ws/chess/${id}/`)
+		const ws = new WebSocket(wsUrl(`/ws/chess/${id}/`))
 
         ws.onopen = () => {
             setConnected(true)
@@ -166,7 +171,7 @@ export default function ChessGame() {
                 clearInterval(clockIntervalRef.current)
             }
         }
-    }, [id])
+    }, [id, infoLoaded, gameOver])
 
     function processMessage(raw: string) {
         try {
@@ -194,6 +199,11 @@ export default function ChessGame() {
         status: string
         clocks?: Record<string, number>
     }) {
+		if (!data.fen || data.fen.split(" ").length < 2) {
+			setError("Invalid board position received")
+            return
+		}
+
         setFen(data.fen)
         setCheck(data.check)
 
@@ -257,7 +267,7 @@ export default function ChessGame() {
             return
         }
         if (!fenInput.trim()) return
-        console.log("SENDING FEN:", fenInput.trim())
+        debug("SENDING FEN:", fenInput.trim())
         wsRef.current.send(JSON.stringify({ type: "set_fen", fen: fenInput.trim() }))
         setFenInput("")
     }
@@ -803,12 +813,20 @@ export default function ChessGame() {
                             </button>
                         </>
                     )}
-                    <button
-                        onClick={() => navigate("/chess")}
-                        className="px-2 py-1 md:px-4 md:py-2 text-sm md:text-base bg-gray-700 text-white rounded hover:bg-gray-600"
-                    >
-                        Back to Lobby
-                    </button>
+					<div className="flex gap-2">
+						<button
+							onClick={() => navigate("/chess")}
+							className="px-2 py-1 md:px-4 md:py-2 text-sm md:text-base bg-gray-700 text-white rounded hover:bg-gray-600"
+						>
+							Back to Lobby
+						</button>
+						<button
+							onClick={() => window.history.length > 1 ? navigate(-1) : navigate("/chess")}
+							className="px-2 py-1 md:px-4 md:py-2 text-sm md:text-base bg-gray-700 text-white rounded hover:bg-gray-600"
+						>
+							Back
+						</button>
+					</div>
                 </div>
             </div>
 

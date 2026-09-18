@@ -2,7 +2,7 @@ FROM	hashicorp/vault:latest
 
 # Install jq
 USER	root
-RUN		apk add --no-cache jq openssl
+RUN		apk add --no-cache jq openssl postgresql-client
 
 # Create shared group for services that need to read Vault credentials
 RUN		addgroup -g 100 users || true \

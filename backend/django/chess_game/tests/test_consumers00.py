@@ -45,7 +45,7 @@ class DebugConsumerTest(TestCase):
 
             app = AuthMiddlewareStack(URLRouter(websocket_urlpatterns))
             communicator = WebsocketCommunicator(
-                app, f"/ws/game/{game.pk}/", headers=headers
+                app, f"/ws/chess/{game.pk}/", headers=headers
             )
 
             try:

@@ -97,7 +97,7 @@ class GameConsumerTests(TestCase):
         cookie = await self._get_cookie(user)
         headers = [(b"cookie", f"sessionid={cookie}".encode())]
         communicator = WebsocketCommunicator(
-            self.app, f"/ws/game/{game_id}/", headers=headers
+            self.app, f"/ws/chess/{game_id}/", headers=headers
         )
         try:
             connected, code = await communicator.connect()
@@ -115,7 +115,7 @@ class GameConsumerTests(TestCase):
     def test_anonymous_connection_rejected(self):
         async def run():
             communicator = WebsocketCommunicator(
-                self.app, f"/ws/game/{self.game.pk}/"
+                self.app, f"/ws/chess/{self.game.pk}/"
             )
             connected, code = False, None
             try:

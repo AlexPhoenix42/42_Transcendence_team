@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react"
 import { useNavigate, Link, useSearchParams } from "react-router-dom"
 import { useAuth } from "../context/AuthContext.tsx"
+import { validateRequired } from '../utils/validate'
 
 export default function Login() {
     const { login, exchangeOAuthToken } = useAuth()
@@ -94,6 +95,14 @@ export default function Login() {
         setError("")
         setSuccess("")
         setShowResend(false)
+
+		const err = validateRequired(username, "Username")
+            || validateRequired(password, "Password")
+        if (err) {
+            setError(err)
+            return
+        }
+
         setLoading(true)
 
         try {
@@ -149,6 +158,13 @@ export default function Login() {
     async function handleResolveUsername(e: React.FormEvent) {
         e.preventDefault()
         setError("")
+
+		const err = validateUsername(newUsername)
+        if (err) {
+            setError(err)
+            return
+        }
+
         setLoading(true)
 
         try {

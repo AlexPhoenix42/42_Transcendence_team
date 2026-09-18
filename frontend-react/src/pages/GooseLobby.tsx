@@ -47,6 +47,21 @@ export default function GooseLobby() {
     async function createGame(e: React.FormEvent) {
         e.preventDefault()
         setError("")
+
+		if (!name.trim()) {
+            setError("Game name is required")
+            return
+        }
+        if (name.trim().length > 50) {
+            setError("Game name must be under 50 characters")
+            return
+        }
+        const mp = parseInt(maxPlayers)
+        if (isNaN(mp) || mp < 2 || mp > 8) {
+            setError("Players must be between 2 and 8")
+            return
+        }
+
         try {
             const resp = await api("/api/goose/", {
                 method: "POST",

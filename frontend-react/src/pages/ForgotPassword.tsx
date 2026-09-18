@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { Link } from "react-router-dom"
+import { validateEmail } from '../utils/validate'
 
 export default function ForgotPassword() {
     const [email, setEmail] = useState("")
@@ -12,6 +13,13 @@ export default function ForgotPassword() {
 	async function handleSubmit(e: React.FormEvent) {
         e.preventDefault()
         setError("")
+
+		const err = validateEmail(email)
+        if (err) {
+            setError(err)
+            return
+        }
+
         setLoading(true)
 
         try {

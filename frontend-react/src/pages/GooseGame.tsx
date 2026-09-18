@@ -5,6 +5,7 @@ import { useParams, useNavigate } from "react-router-dom"
 import { api } from "../api/client.ts"
 import { useAuth } from "../context/AuthContext.tsx"
 import GooseBoard from "../components/GooseBoard.tsx"
+import { wsUrl } from '../ws/utils';
 
 interface PlayerData {
     username: string
@@ -81,9 +82,11 @@ export default function GooseGame() {
     // WebSocket connection
     useEffect(() => {
         if (!id) return
+		if (gameStatus == "FINISHED") return
 
-        const wsHost = window.location.hostname + ":9000"
-        const ws = new WebSocket(`ws://${wsHost}/ws/goose/${id}/`)
+        //const wsHost = window.location.hostname + ":9000"
+        //const ws = new WebSocket(`ws://${wsHost}/ws/goose/${id}/`)
+		const ws = new WebSocket(wsUrl(`/ws/goose/${id}/`))
 
         ws.onmessage = (event) => {
             const data = JSON.parse(event.data)
@@ -135,7 +138,7 @@ export default function GooseGame() {
         wsRef.current = ws
 
         return () => { ws.close() }
-    }, [id, applyGameState])
+    }, [id, applyGameState, gameStatus])
 
     // Polling fallback
     useEffect(() => {
@@ -197,8 +200,8 @@ export default function GooseGame() {
                     >
                         {showRules ? "Hide Rules" : "How to Play"}
                     </button>
-                    <button
-                        onClick={() => navigate("/goose")}
+					<button
+                        onClick={() => window.history.length > 1 ? navigate(-1) : navigate("/goose")}
                         className="px-3 py-1.5 md:px-4 md:py-2 bg-gray-700 text-white rounded hover:bg-gray-600 text-sm"
                     >
                         Back

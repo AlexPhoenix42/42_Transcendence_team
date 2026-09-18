@@ -106,6 +106,10 @@ chmod 750 "$PROMETHEUS_DATA_DIR" "$GRAFANA_DATA_DIR"
 #DECRYPTED_SEC_FILE="$DECRYPTED_SEC_ENV" \
 #docker compose -f docker-compose-dep.yml --env-file "$PLAIN_ENV" up -d --build "$@"
 
+# Start Tailscale port forward for mobile access
+pkill -f "socat TCP-LISTEN:4444" 2>/dev/null || true
+socat TCP-LISTEN:4444,fork,bind=100.103.253.101 TCP:127.0.0.1:4443 &
+
 # the above line was edited here for Grafapha!
 DECRYPTED_SEC_FILE="$DECRYPTED_SEC_ENV" \
     docker compose \

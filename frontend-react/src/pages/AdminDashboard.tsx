@@ -139,6 +139,17 @@ export default function AdminDashboard() {
         setSuccess("")
         setLoading(true)
 
+		if (!name.trim()) {
+            setError("Tournament name is required")
+            setLoading(false)
+            return
+        }
+        if (name.trim().length > 50) {
+            setError("Tournament name must be under 50 characters")
+            setLoading(false)
+            return
+        }
+
         const maxP = parseInt(maxPlayers)
         const aiC = parseInt(aiCount)
 

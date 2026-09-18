@@ -75,7 +75,7 @@ class FinalTest(TestCase):
             headers = [(b"cookie", f"sessionid={cookie}".encode())]
 
             comm = DebugCommunicator(
-                self.app, f"/ws/game/{self.game.pk}/", headers=headers
+                self.app, f"/ws/chess/{self.game.pk}/", headers=headers
             )
             connected, code = await comm.connect()
 

@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { useNavigate, useSearchParams, Link } from "react-router-dom"
 import { useAuth } from "../context/AuthContext.tsx"
+import { validate2FACode } from '../utils/validate'
 
 export default function Verify2FA() {
     const navigate = useNavigate()
@@ -27,6 +28,13 @@ export default function Verify2FA() {
 	async function handleSubmit(e: React.FormEvent) {
         e.preventDefault()
         setError("")
+
+		const err = validate2FACode(code)
+        if (err) {
+            setError(err)
+            return
+        }
+
         setLoading(true)
 
         try {

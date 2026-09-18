@@ -86,7 +86,7 @@ class AIConsumerTests(TestCase):
         cookie = self.client.cookies["sessionid"].value
         headers = [(b"cookie", f"sessionid={cookie}".encode())]
         communicator = WebsocketCommunicator(
-            self.app, f"/ws/game/{game_id}/", headers=headers
+            self.app, f"/ws/chess/{game_id}/", headers=headers
         )
         try:
             connected, code = await communicator.connect()

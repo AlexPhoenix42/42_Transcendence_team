@@ -6,6 +6,7 @@ import { useAuth } from "../context/AuthContext.tsx"
 import { ChatSocket, ChatMessage } from "../ws/chat.ts"
 import { useNavigate } from "react-router-dom"
 
+import { debug } from '../utils/debug'
 
 type Tab = "global" | "dm"
 
@@ -109,7 +110,7 @@ export default function Chat() {
             const resp = await api(`/api/chat/rooms/${roomId}/read-status/`)
             if (resp.ok) {
                 const data = await resp.json()
-                console.log("fetchReadStatus response:", data)
+                debug("fetchReadStatus response:", data)
                 if (data.length > 0) {
                     setOtherReadAt(data[0].last_read_at)
                 }
@@ -139,6 +140,7 @@ export default function Chat() {
             await loadHistory(id)
             connectWebSocket(id)
         } catch {
+			debug("global char error:", e)
             setError("Failed to connect to global chat")
         }
     }
@@ -204,17 +206,17 @@ export default function Chat() {
     //}
 
 	async function loadHistory(id: number) {
-        console.log("loadHistory called with room:", id)
+        debug("loadHistory called with room:", id)
         try {
             const resp = await api(`/api/chat/rooms/${id}/messages/`)
-            console.log("loadHistory response:", resp.status)
+            debug("loadHistory response:", resp.status)
             if (resp.ok) {
                 const data = await resp.json()
-                console.log("loadHistory data:", data)
+                debug("loadHistory data:", data)
 				setMessages(Array.isArray(data) ? data : data.results || [])
             }
         } catch (e) {
-            console.log("loadHistory error:", e)
+            debug("loadHistory error:", e)
         }
     }
 
@@ -248,7 +250,7 @@ export default function Chat() {
                 typingTimeoutRef.current = setTimeout(() => setTypingUser(null), 3000)
             },
 			(readAt) => {
-				console.log("read_receipt received:", readAt)
+				debug("read_receipt received:", readAt)
 				setOtherReadAt(readAt)
 			},
 			(inviteId, fromUsername) => {

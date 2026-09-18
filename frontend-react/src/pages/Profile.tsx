@@ -5,6 +5,7 @@ import { useAuth } from "../context/AuthContext.tsx"
 import { api, getAccessToken, mediaUrl } from "../api/client.ts"
 import { useNavigate } from "react-router-dom"
 import Achievements from "../components/Achievements.tsx"
+import { validateMaxLength } from '../utils/validate'
 
 interface ProfileData {
     username: string
@@ -76,6 +77,13 @@ export default function Profile() {
         setError("")
         setSuccess("")
 
+		const err = validateMaxLength(dispname, 50, "Display name")
+            || validateMaxLength(bio, 500, "Bio")
+        if (err) {
+            setError(err)
+            return
+        }
+
         try {
             const resp = await api("/api/profile/", {
                 method: "PATCH",
@@ -99,6 +107,16 @@ export default function Profile() {
     async function handleAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
         const file = e.target.files?.[0]
         if (!file) return
+
+		const allowedTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"]
+        if (!allowedTypes.includes(file.type)) {
+            setError("Avatar must be JPEG, PNG, GIF, or WebP")
+            return
+        }
+        if (file.size > 5 * 1024 * 1024) {
+            setError("Avatar must be under 5MB")
+            return
+        }
 
         const formData = new FormData()
         formData.append("avatar", file)
@@ -149,6 +167,12 @@ export default function Profile() {
     async function handleConfirm2FA(e: React.FormEvent) {
         e.preventDefault()
         setError("")
+
+		const err = validate2FACode(confirmCode)
+        if (err) {
+            setError(err)
+            return
+        }
 
         try {
             const resp = await api("/api/auth/2fa/confirm-enable/", {

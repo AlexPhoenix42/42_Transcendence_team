@@ -5,6 +5,7 @@ from channels.db                            import database_sync_to_async
 
 from django.core.cache                      import cache
 from asgiref.sync                           import sync_to_async
+from .utils                                 import validate_fen
 
 from chess_game.models                      import Game, GameStatus, GameResultReason
 
@@ -637,6 +638,12 @@ class GameConsumer(AsyncWebsocketConsumer):
             return
 
         fen         = fen.strip()
+
+        # Validate FEN format
+        err = validate_fen(fen)
+        if  err:
+            await self._send_error("INVALID_FEN")
+            return
 
         state["fen"]            = fen
         state["check"]          = False

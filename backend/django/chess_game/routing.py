@@ -5,6 +5,6 @@ from .                      import consumers
 
 
 websocket_urlpatterns = [
-    path('ws/game/<int:game_id>/', consumers.GameConsumer.as_asgi()),
+    path('ws/chess/<int:game_id>/', consumers.GameConsumer.as_asgi()),
 ]
 

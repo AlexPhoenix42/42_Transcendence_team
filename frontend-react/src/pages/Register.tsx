@@ -2,6 +2,8 @@
 
 import { useState } from "react"
 import { useNavigate, Link } from "react-router-dom"
+import { validateUsername, validateEmail, validatePassword, validatePasswordMatch } from '../utils/validate'
+
 
 export default function Register() {
     const navigate = useNavigate()
@@ -17,8 +19,12 @@ export default function Register() {
         e.preventDefault()
         setError("")
 
-        if (password !== password2) {
-            setError("Passwords do not match")
+        const err = validateUsername(username)
+            || validateEmail(email)
+            || validatePassword(password)
+            || validatePasswordMatch(password, password2)
+        if (err) {
+            setError(err)
             return
         }
 

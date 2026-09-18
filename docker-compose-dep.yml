@@ -1,3 +1,5 @@
+# docker-compose-dep.yml
+
 services:
   postgres:
     build:
@@ -239,6 +241,7 @@ services:
       VAULT_URL:    ${VAULT_URL}
       VAULT_AUTH_METHOD:  approle
       VAULT_CACERT: /vault/certs/ca-cert.pem
+      BEHIND_PROXY:   "true"
       PYTHONUNBUFFERED: "1"
     ports:
       - "9000:9000"
@@ -320,15 +323,19 @@ services:
     restart:        unless-stopped
     ports:
       #- "3000:80"
-      - "443:443"
-      - "80:80"
+      - "4443:4443"
+      - "8000:8000"
     volumes:
       - ./frontend/logs/modsecurity:/var/log/modsecurity
-      #- ./frontend/dist:/usr/share/nginx/html:ro   # this for dep
+      - ./frontend-react/dist:/usr/share/nginx/html:ro   # this for dep
       #- ./frontend-Alex/public:/usr/share/nginx/html:ro  # this for dev
       - ./vault/certs:/vault/certs:ro
       #- ./frontend/docker_conf/nginx.conf:/etc/nginx/nginx.conf:ro
       #- ./frontend/docker_conf/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./frontend/docker_conf/nginx-dep.conf:/etc/nginx/templates/nginx.conf.template:ro
+      - ./frontend/docker_conf/modsecurity/modsecurity-override.conf:/etc/nginx/templates/modsecurity.d/modsecurity-override.conf.template:ro
+      - ./frontend/docker_conf/modsecurity/exclusions.conf:/etc/modsecurity.d/owasp-crs/rules/RESPONSE-999-EXCLUSION-RULES-AFTER-CRS.conf:ro
+      - ./backend/django/media:/usr/share/nginx/media:ro
     depends_on:
       backend_django:
         condition:  service_healthy
@@ -340,7 +347,8 @@ services:
       - trans_net
     healthcheck:
       #test: ["CMD-SHELL", "wget --quiet --tries=1 --spider $${FRONTEND_URL}/health || exit 1"]
-      test: ["CMD-SHELL", "wget --no-check-certificate --quiet --tries=1 --spider https://127.0.0.1/health || exit 1"]
+      #test: ["CMD-SHELL", "wget --no-check-certificate --quiet --tries=1 --spider https://127.0.0.1/health || exit 1"]
+      test: ["CMD-SHELL", "wget --no-check-certificate --quiet --tries=1 --spider https://127.0.0.1:4443/health || exit 1"]
       interval:     30s
       timeout:      10s
       retries:      3
@@ -381,33 +389,7 @@ services:
       - trans_net
 
 
-# Monitoring overlay for Transcendence.
-#
-# Run it alongside your main stack, e.g.:
-#   docker compose -f docker-compose-dep.yml -f monitoring/docker-compose.monitoring.yml up -d
-#
-# It assumes your existing services live on the "trans_net" network and are
-# named trans_backend_django, trans_db_server, trans_redis, trans_frontend_nginx.
-#
-# ---------------------------------------------------------------------------
-# IMPORTANT — the Django network alias.
-# Django rejects Host headers containing underscores (DisallowedHost, HTTP 400),
-# so Prometheus can never scrape "trans_backend_django:9000" directly. Give the
-# Django service a hyphen-only alias so Prometheus can reach it as
-# "backend-django:9000". Add this block to your Django service in your MAIN
-# compose file (docker-compose-dep.yml), not here:
-#
-#   backend_django:
-#     ...
-#     networks:
-#       trans_net:
-#         aliases:
-#           - backend-django
-#
-# and add "backend-django" to ALLOWED_HOSTS in .env.dep (NO leading space —
-# a stray space becomes part of the hostname and Django won't match it):
-#   ALLOWED_HOSTS=localhost,127.0.0.1,mi-r1-p4,10.3.1.4,10.3.1.4.nip.io,trans_backend_django,backend-django
-# ---------------------------------------------------------------------------
+# ── Monitoring: prometheus, grafana, exporters ──
   prometheus:
     image: prom/prometheus:latest
     container_name: trans_prometheus
@@ -438,11 +420,12 @@ services:
     user: "472:472"
     environment:
       GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
-      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?set GRAFANA_ADMIN_PASSWORD in .env}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
+      #GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?set GRAFANA_ADMIN_PASSWORD in .env}
       # Served behind nginx under /grafana/ (see nginx snippet). These two make
       # Grafana generate correct links/redirects under the subpath.
-      #GF_SERVER_ROOT_URL: "%(protocol)s://%(domain)s:%(http_port)s/grafana/"
-      #GF_SERVER_SERVE_FROM_SUB_PATH: "true"
+      GF_SERVER_ROOT_URL: "%(protocol)s://%(domain)s:%(http_port)s/grafana/"
+      GF_SERVER_SERVE_FROM_SUB_PATH: "true"
       # No sign-up, no anonymous access.
       GF_USERS_ALLOW_SIGN_UP: "false"
     volumes:
@@ -464,18 +447,22 @@ services:
     container_name: trans_nginx_exporter
     restart: unless-stopped
     command:
-      - "--nginx.scrape-uri=http://trans_frontend_nginx:8080/stub_status"
+      - "--nginx.scrape-uri=http://trans_frontend_nginx:8081/stub_status"
     networks:
       - trans_net
 
   # Read-only Postgres metrics via the dedicated prometheus_monitor user
-  # (created by monitoring/postgres/init_monitoring_user.sql).
+  # created by the Postgres entrypoint from Vault (secret/monitoring)
+  # (created by monitoring/postgres/init_monitoring_user.sql). <= this is deprecated
   postgres-exporter:
     image: prometheuscommunity/postgres-exporter:latest
     container_name: trans_postgres_exporter
     restart: unless-stopped
     environment:
-      DATA_SOURCE_NAME: "postgresql://prometheus_monitor:${MONITOR_PASS}@trans_db_server:5432/${DB_SERVER_DB}?sslmode=disable"
+      #DATA_SOURCE_NAME: "postgresql://prometheus_monitor:${MONITOR_PASS}@trans_db_server:5432/${DB_SERVER_DB}?sslmode=disable"  # cause malformed password in the url because of the password containing special characters.
+      DATA_SOURCE_URI: "trans_db_server:5432/${DB_SERVER_DB}?sslmode=disable"
+      DATA_SOURCE_USER: "prometheus_monitor"
+      DATA_SOURCE_PASS: "${MONITOR_PASS}"
     depends_on:
       - prometheus
     networks:

@@ -49,7 +49,7 @@ class Command(BaseCommand):
 
         app = AuthMiddlewareStack(URLRouter(websocket_urlpatterns))
         communicator = WebsocketCommunicator(
-            app, f"/ws/game/{game_id}/",
+            app, f"/ws/chess/{game_id}/",
             headers=[(b"cookie", f"sessionid={session_cookie}".encode())]
         )
 

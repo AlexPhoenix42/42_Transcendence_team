@@ -87,7 +87,7 @@ class GameConsumerEdgeTests(TestCase):
         cookie = await self._get_cookie(user)
         headers = [(b"cookie", f"sessionid={cookie}".encode())]
         communicator = WebsocketCommunicator(
-            self.app, f"/ws/game/{game_id}/", headers=headers
+            self.app, f"/ws/chess/{game_id}/", headers=headers
         )
         try:
             connected, code = await communicator.connect()

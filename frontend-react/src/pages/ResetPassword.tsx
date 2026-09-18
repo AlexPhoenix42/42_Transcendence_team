@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { Link, useSearchParams } from "react-router-dom"
+import { validatePassword, validatePasswordMatch } from '../utils/validate'
 
 export default function ResetPassword() {
     const [searchParams] = useSearchParams()
@@ -33,8 +34,10 @@ export default function ResetPassword() {
         e.preventDefault()
         setError("")
 
-        if (password !== password2) {
-            setError("Passwords do not match")
+		const err = validatePassword(password)
+            || validatePasswordMatch(password, password2)
+        if (err) {
+            setError(err)
             return
         }
 

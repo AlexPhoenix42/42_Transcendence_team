@@ -4,7 +4,7 @@ from rest_framework.views                       import APIView
 from rest_framework.response                    import Response
 from rest_framework.request                     import Request
 
-from rest_framework                             import status
+from rest_framework                             import serializers, status
 
 from rest_framework                             import generics
 
@@ -32,7 +32,7 @@ import time
 
 from .models                                    import Game, GameResultReason, GameStatus
 from .serializers                               import GameSerializer
-
+from .utils                                     import validate_fen
 
 
 # ===========================================================================
@@ -107,6 +107,35 @@ class GameListCreateView(generics.ListCreateAPIView):
 
         #def serializer.save(**kwargs)
 
+    #def perform_create(self, serializer):
+        #def fen = self.request.data.get("fen")
+        #def is_practice = bool(self.request.data.get("is_practice", False))
+        #def kwargs      = {"created_by": self.request.user, "player1": self.request.user}
+        #def if  fen:
+        #def     err = validate_fen(fen)
+        #def     if  err:
+        #def         raise serializers.ValidationError({"fen": f"Invalid FEN: {err}"})
+        #def     kwargs["board_state"] = fen
+
+        #def serializer.save(**kwargs)
+
+        #def #Store practice flag for later use by GameJoinView
+        #def if  is_practice:
+        #def     cache.set(f"practice_flag:{serializer.instance.pk}", True, timeout=86400)
+    
+
+    def create(self, request, *args, **kwargs):
+        # Validate FEN before DRF's create flow starts
+        fen = request.data.get("fen")
+        if  fen:
+            err = validate_fen(fen)
+            if  err:
+                return Response(
+                    {"error": f"Invalid FEN: {err}"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+        return super().create(request, *args, **kwargs)
+
     def perform_create(self, serializer):
         fen = self.request.data.get("fen")
         is_practice = bool(self.request.data.get("is_practice", False))
@@ -116,7 +145,6 @@ class GameListCreateView(generics.ListCreateAPIView):
 
         serializer.save(**kwargs)
 
-        #Store practice flag for later use by GameJoinView
         if  is_practice:
             cache.set(f"practice_flag:{serializer.instance.pk}", True, timeout=86400)
 # ===========================================================================
@@ -144,6 +172,15 @@ class GameCreateAIView(APIView):
 
         custom_fen      = request.data.get("fen")
         initial_fen     = custom_fen if custom_fen else Game.INITIAL_FEN
+
+        # Validate FEN format
+        if  custom_fen:
+            err = validate_fen(custom_fen)
+            if  err:
+                return Response(
+                    {"error": f"Invalid FEN: {err}"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
         ai_user = get_user_model().objects.filter(username="stockfish_ai").first()
 

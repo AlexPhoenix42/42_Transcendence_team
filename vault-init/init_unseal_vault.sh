@@ -166,6 +166,13 @@ else
     echo "  ⚠️  DB credentials not set, skipping secret/database."
 fi
 
+if [ -n "${MONITOR_PASS:-}" ]; then
+    vlt kv put secret/monitoring pg_monitor_password="$MONITOR_PASS"
+    echo "  ✅ secret/monitoring written."
+else
+    echo "  ⚠️  MONITOR_PASS not set, skipping secret/monitoring."
+fi
+
 if [ -n "${RESTIC_PASSWORD:-}" ]; then
     vlt kv put secret/backup restic_password="$RESTIC_PASSWORD"
     echo "  ✅ secret/backup written."
@@ -202,7 +209,8 @@ fi
 if ! vlt policy read postgres-policy > /dev/null 2>&1; then
     echo "  Creating postgres-policy policy..."
     vlt policy write postgres-policy - <<EOF
-path "secret/data/database" { capabilities = ["read"] }
+path "secret/data/database"		{ capabilities = ["read"] }
+path "secret/data/monitoring"	{ capabilities = ["read"] }
 EOF
 else
     echo "  Postgres policy already exists."
