@@ -6,6 +6,7 @@ import Status from "./pages/Status.tsx"
 
 import AuthLayout from "./layouts/AuthLayout.tsx"
 import AppLayout from "./layouts/AppLayout.tsx"
+import LegalLayout from "./layouts/LegalLayout.tsx"
 import ProtectedRoute from "./components/ProtectedRoute.tsx"
 
 import Login from "./pages/Login.tsx"
@@ -52,6 +53,14 @@ export const router = createBrowserRouter([
 
 	{ path: "/status", element: <Status /> },
 
+	{
+		element: <LegalLayout />,
+		children: [
+			{ path: "/privacy-policy", element: <PrivacyPolicy /> },
+			{ path: "/terms-of-service", element: <TermsOfService /> },
+		],
+	},	
+
     {
         element: <ProtectedRoute />,
         children: [
@@ -78,8 +87,6 @@ export const router = createBrowserRouter([
 					{ path: "/goose", element: <GooseLobby /> },
                     { path: "/goose/:id", element: <GooseGame /> },
 
-					{ path: "/privacy-policy", element: <PrivacyPolicy /> },
-					{ path: "/terms-of-service", element: <TermsOfService /> },
                 ],
             },
         ],

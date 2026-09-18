@@ -10,7 +10,7 @@ import { execSync }			from 'child_process'
 //        host: '0.0.0.0',
 //        port: 3000,
 //        allowedHosts: [
-//            "10.3.1.4.nip.io",
+//            "10.3.1.6.nip.io",
 //            ".nip.io",
 //            "mi-r1-p4",
 //            "localhost",
@@ -36,7 +36,7 @@ import { execSync }			from 'child_process'
 
 //const IP = execSync("hostname -I | awk '{print $1}'").toString().trim()
 //const DOMAIN = `${IP}.nip.io`
-const DOMAIN = "10.3.1.4.nip.io"
+const DOMAIN = "10.3.1.6.nip.io"
 
 export default defineConfig({
     plugins: [react(), tailwindcss()],
@@ -45,10 +45,10 @@ export default defineConfig({
         port: 3000,
         //allowedHosts: ["all"],
 		allowedHosts: [
-			"10.3.1.4.nip.io",
+			"10.3.1.6.nip.io",
 			".nip.io",  // This allows all subdomains of nip.io
 			"mi-r1-p4",
-			"100.103.253.101",
+			"mi-r1-p6",
 			"localhost",
 			"127.0.0.1"
 		],

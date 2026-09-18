@@ -81,6 +81,7 @@ export default function TermsOfService() {
 						Service, Providers of the Service, or the User, shall be subjected to Belgian
 						Law.
 					</p>
+					<br></br>
 					<p>
 						The Providers of the Service reserve the right to modify any part of the
 						Service at any time, for any reasons.
