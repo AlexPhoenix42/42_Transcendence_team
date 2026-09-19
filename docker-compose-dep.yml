@@ -420,7 +420,7 @@ services:
     user: "472:472"
     environment:
       GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
-      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-}
       #GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?set GRAFANA_ADMIN_PASSWORD in .env}
       # Served behind nginx under /grafana/ (see nginx snippet). These two make
       # Grafana generate correct links/redirects under the subpath.
@@ -462,7 +462,7 @@ services:
       #DATA_SOURCE_NAME: "postgresql://prometheus_monitor:${MONITOR_PASS}@trans_db_server:5432/${DB_SERVER_DB}?sslmode=disable"  # cause malformed password in the url because of the password containing special characters.
       DATA_SOURCE_URI: "trans_db_server:5432/${DB_SERVER_DB}?sslmode=disable"
       DATA_SOURCE_USER: "prometheus_monitor"
-      DATA_SOURCE_PASS: "${MONITOR_PASS}"
+      DATA_SOURCE_PASS: "${MONITOR_PASS:-}"
     depends_on:
       - prometheus
     networks:

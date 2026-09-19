@@ -53,6 +53,9 @@ chown -R 100:100 "$BACKUP_DATA_DIR"
 chmod 750 "$BACKUP_DATA_DIR"
 chmod 700 "$BACKUP_DATA_DIR/restic-repo"
 
+# Reset Vault health state (sealed after reboot, vault-init didn't restart)
+docker compose -f docker-compose-dep.yml restart vault 2>/dev/null || true
+
 # 9. Run docker compose (no --build)
 DECRYPTED_SEC_FILE="$DECRYPTED_SEC_ENV" \
 #docker compose -f docker-compose-dep.yml --env-file "$PLAIN_ENV" up -d "$@"

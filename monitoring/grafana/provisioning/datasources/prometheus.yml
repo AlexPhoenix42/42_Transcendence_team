@@ -1,0 +1,15 @@
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    # Grafana talks to Prometheus over the shared docker network by
+    # container name. This is server-side (access: proxy), so it does
+    # NOT need to be reachable from your browser.
+    url: http://trans_prometheus:9090
+    isDefault: true
+    editable: true
+    jsonData:
+      timeInterval: "15s"
+

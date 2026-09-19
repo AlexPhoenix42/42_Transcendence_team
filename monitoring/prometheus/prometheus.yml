@@ -1,0 +1,43 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+# NOTE: the key is "rule_files" (NO trailing 's' on "rule").
+# "rules_files" makes Prometheus refuse to start with:
+#   field rules_files not found in type config.plain
+rule_files:
+  - "alert_rules.yml"
+
+scrape_configs:
+  # --- Prometheus itself ---
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  # --- Django (via django-prometheus) ---
+  # IMPORTANT: target uses the hyphenated network alias "backend-django",
+  # NOT "trans_backend_django". Django rejects Host headers containing
+  # underscores (RFC 1034/1035) with DisallowedHost -> HTTP 400, so the
+  # container name with underscores can never be scraped directly.
+  # The alias is added on the Django service in docker-compose (see that file)
+  # and "backend-django" must also be listed in ALLOWED_HOSTS.
+  - job_name: "django"
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["backend-django:9000"]
+
+  # --- PostgreSQL ---
+  - job_name: "postgres"
+    static_configs:
+      - targets: ["trans_postgres_exporter:9187"]
+
+  # --- Redis ---
+  - job_name: "redis"
+    static_configs:
+      - targets: ["trans_redis_exporter:9121"]
+
+  # --- Nginx / WAF ---
+  - job_name: "nginx"
+    static_configs:
+      - targets: ["trans_nginx_exporter:9113"]
+

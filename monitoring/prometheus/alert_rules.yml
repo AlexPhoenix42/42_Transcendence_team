@@ -1,0 +1,71 @@
+groups:
+  - name: transcendence-availability
+    rules:
+      # Any scrape target has been unreachable for 1 minute.
+      - alert: TargetDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Target {{ $labels.job }} is down"
+          description: "{{ $labels.instance }} (job {{ $labels.job }}) has been unreachable for over 1 minute."
+
+      # Django is up but returning a high rate of 5xx responses.
+      - alert: DjangoHighErrorRate
+        expr: |
+          sum(rate(django_http_responses_total_by_status_total{status=~"5.."}[5m]))
+            /
+          sum(rate(django_http_responses_total_by_status_total[5m])) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Django 5xx error rate above 5%"
+          description: "More than 5% of Django responses have been 5xx for the last 5 minutes."
+
+  - name: transcendence-performance
+    rules:
+      # 95th-percentile request latency above 1s for 10 minutes.
+      - alert: DjangoHighLatency
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum(rate(django_http_requests_latency_seconds_by_view_method_bucket[5m])) by (le)
+          ) > 1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Django p95 latency above 1s"
+          description: "95th percentile request latency has exceeded 1 second for 10 minutes."
+
+  - name: transcendence-datastores
+    rules:
+      - alert: PostgresDown
+        expr: pg_up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Postgres exporter cannot reach the database"
+          description: "pg_up is 0 — the postgres-exporter can't connect to Postgres."
+
+      - alert: PostgresTooManyConnections
+        expr: sum(pg_stat_database_numbackends) > 90
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Postgres connection count high"
+          description: "More than 90 active Postgres backends for 5 minutes."
+
+      - alert: RedisDown
+        expr: redis_up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Redis exporter cannot reach Redis"
+          description: "redis_up is 0 — the redis-exporter can't connect to Redis."
+

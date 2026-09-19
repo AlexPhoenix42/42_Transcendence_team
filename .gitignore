@@ -38,5 +38,3 @@ vault/approle/
 vault/certs/
 vault/secrets/
 
-monitoring/
-

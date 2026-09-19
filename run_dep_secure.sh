@@ -6,24 +6,7 @@ PLAIN_ENV=".env.dep"
 ENCRYPTED_SEC_ENV=".env.secrets.enc"
 DECRYPTED_SEC_ENV="/dev/shm/trans.env"
 
-#COMPOSE_FILE="docker-compose-dep.yml"
-#
-## Get the command name of the parent process
-#parent=$(ps -p "$PPID" -o comm= 2>/dev/null)
-#
-## Fallback for Linux systems with /proc
-#if	[ -z "$parent" ] && [ -f "/proc/$PPID/comm" ]; then
-#	parent=$(cat "/proc/$PPID/comm")
-#fi
-#
-#if	[[ "$parent" == *bash* || "$parent" == *zsh* ]]; then
-#	export COMPOSE_FILE 
-#elif [[ "$parent" == *fish* ]]; then
-#	set -gx COMPOSE_FILE $COMPOSE_FILE
-#else
-#	echo "Please use Bash or Fish."
-#	exit 1
-#fi
+export COMPOSE_FILE="docker-compose-dep.yml"
 
 # 1. Prompt for the passphrase once
 read -s -p "Vault bootstrap passphrase: " PASSPHRASE
