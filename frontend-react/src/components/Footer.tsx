@@ -10,7 +10,7 @@ export default function Footer({ openInNewTab = false }: FooterProps) {
 	const year = new Date().getFullYear()
 
 	return (
-		<footer className="bg-gray-800 py-6 text-center">
+		<footer className="bg-gray-800 py-3 text-center">
 			<div className="flex justify-center gap-6 mb-3">
 				<Link to="/privacy-policy" 
 						className="text-gray-300 hover:text-white"

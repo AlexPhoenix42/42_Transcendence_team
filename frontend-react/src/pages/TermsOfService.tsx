@@ -8,7 +8,7 @@ export default function TermsOfService() {
 				<p><i>Updated as of 09 September 2026</i></p>
 				<p>
 					The General Terms of Service, hereafter referred to as GTS, apply to the use of
-					[Project Name] hereafter referred to as the Service. GTS applies to any user who
+					Born2Transcend, hereafter referred to as the Service. GTS applies to any user who
 					uses the Service for any purpose. The GTS can be amended or updated at any time,
 					and if the user wishes to no longer comply, they must stop using the service. For
 					all enquires relating to the use of the Service, you may contact the Data Protection
