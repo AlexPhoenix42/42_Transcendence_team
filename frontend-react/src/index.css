@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-/* Tell browsers this is a dark site — don't apply forced dark mode */
+/* Tell browsers this is a dark site -- don't apply forced dark mode */
 :root {
     color-scheme: dark only;
 }
@@ -17,3 +17,111 @@ img[src*="/pieces/"] {
     forced-color-adjust: none !important;
 }
 
+
+/* =======================================================================
+   Arabic typography
+   =======================================================================
+
+   Deliberately a SYSTEM font stack, not a webfont from a CDN.
+
+   frontend/docker_conf/nginx-dep.conf sets, in production:
+       default-src 'self'; ... font-src 'self' data:;
+   There is no external host in font-src, and no style-src at all (so it
+   inherits default-src 'self'). A Google Fonts <link> would therefore load
+   fine under the vite dev server and be silently blocked in production —
+   the worst kind of bug, because it only appears at the demo.
+
+   Every mainstream platform ships a usable Arabic face, so the stack below
+   needs no network at all. To guarantee one identical face everywhere,
+   self-host instead (npm i @fontsource/noto-sans-arabic) — that serves from
+   'self' and satisfies the CSP unchanged. See the note at the end of this
+   block before deciding.
+
+   Keyed on :lang(ar) rather than [dir="rtl"] on purpose: the typeface
+   follows the LANGUAGE. A future RTL language (Hebrew, Farsi) wants its own
+   face, not Arabic's, and content pinned back to dir="ltr" — the chessboard,
+   move notation — must keep the Arabic face while its layout stays LTR. */
+
+:root:lang(ar),
+:root:lang(ar) body {
+    font-family:
+        "Noto Sans Arabic",        /* Linux, and Android         */
+        "Noto Naskh Arabic",       /* better for long-form text  */
+        "SF Arabic",               /* macOS 13+ / iOS 16+        */
+        "Geeza Pro",               /* older macOS                */
+        "Segoe UI",                /* Windows — good Arabic      */
+        Tahoma,                    /* Windows fallback, reliable */
+        system-ui,
+        sans-serif;
+
+    /* Arabic needs more vertical room than Latin. Diacritics sit above the
+       line and descenders below it, so at Latin leading they collide with
+       the rows above and below. 1.5 -> 1.8 is the usual correction. */
+    line-height: 1.8;
+}
+
+/* Tailwind's leading-* utilities are tuned for Latin. Where a tight leading
+   is set explicitly, relax it for Arabic rather than letting glyphs clip. */
+:lang(ar) .leading-none  { line-height: 1.35 }
+:lang(ar) .leading-tight { line-height: 1.55 }
+:lang(ar) .leading-snug  { line-height: 1.65 }
+
+/* Arabic has no capital letters. uppercase does nothing to Arabic glyphs but
+   DOES apply to any Latin mixed in (usernames, "AI", move notation), which
+   looks arbitrary. Tracking is likewise a Latin device — applied to Arabic it
+   breaks the cursive joins between letters, which is a genuine legibility bug
+   rather than a stylistic one. */
+:lang(ar) .uppercase { text-transform: none }
+
+/* Letter-spacing is a Latin device. Applied to Arabic it forces apart letters
+   that are supposed to JOIN — Arabic is cursive, so tracking does not merely
+   look loose, it breaks words into disconnected glyphs. That is a legibility
+   bug, not a style preference.
+
+   But :not(input) matters. Verify2FA.tsx:62 and Profile.tsx:404/442 put
+   tracking-widest on 2FA code inputs, where the wide spacing is deliberate
+   and correct: it makes a six-digit code readable, and digits are not
+   cursive. A blanket rule here would strip that and make the code HARDER to
+   read in Arabic — fixing nothing and breaking something real. */
+:lang(ar) :is(.tracking-wide, .tracking-wider, .tracking-widest):not(input):not(textarea) {
+    letter-spacing: normal;
+}
+
+/* =======================================================================
+   Hebrew typography
+   =======================================================================
+
+   Hebrew is RTL like Arabic, and this block is why the Arabic rules above
+   are keyed on :lang(ar) and not [dir="rtl"]. The two share a direction and
+   almost nothing else:
+
+     · Hebrew is NOT cursive. Letters stand apart, so letter-spacing is
+       harmless — no equivalent of the Arabic tracking rule belongs here.
+     · No mandatory diacritics. Nikud is optional and usually absent, so
+       Hebrew needs less extra leading than Arabic: 1.65 rather than 1.8.
+     · Different fonts entirely. An Arabic face has no Hebrew glyphs.
+
+   Had the Arabic block been written as [dir="rtl"], adding Hebrew would have
+   silently applied an Arabic font stack and Arabic leading to Hebrew text. */
+
+:root:lang(he),
+:root:lang(he) body {
+    font-family:
+        "Noto Sans Hebrew",        /* Linux, Android              */
+        "Arial Hebrew",            /* macOS                       */
+        "Segoe UI",                /* Windows — full Hebrew cover */
+        Tahoma,                    /* reliable Windows fallback   */
+        David,                     /* older Windows               */
+        system-ui,
+        sans-serif;
+
+    line-height: 1.65;
+}
+
+/* Hebrew has no capital letters either, so uppercase does nothing to Hebrew
+   glyphs but still shouts any Latin mixed in — usernames, "AI", notation. */
+:lang(he) .uppercase { text-transform: none }
+
+/* Note what is deliberately ABSENT: no tracking override. Hebrew letters do
+   not join, so .tracking-wider on a Hebrew label is a normal stylistic
+   choice rather than a legibility bug. */

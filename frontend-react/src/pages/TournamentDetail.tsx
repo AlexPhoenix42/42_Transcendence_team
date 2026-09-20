@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react"
 import { useParams, useNavigate } from "react-router-dom"
 import { api } from "../api/client.ts"
 import { useAuth } from "../context/AuthContext.tsx"
+import { useI18n } from "../i18n/I18nProvider.tsx"
 import TournamentBracket from "../components/TournamentBracket.tsx"
 import { ChatSocket, ChatMessage } from "../ws/chat.ts"
 
@@ -36,6 +37,7 @@ interface MatchData {
 }
 
 export default function TournamentDetail() {
+    const { t, ts } = useI18n()
     const { id } = useParams()
     const { user } = useAuth()
     const navigate = useNavigate()
@@ -131,10 +133,10 @@ export default function TournamentDetail() {
                 const data = await resp.json()
                 setTournament(data)
             } else {
-                setError("Tournament not found")
+                setError(t("tdetail.error.notFound"))
             }
         } catch {
-            setError("Failed to load tournament")
+            setError(t("tdetail.error.load"))
         }
     }
 
@@ -174,14 +176,14 @@ export default function TournamentDetail() {
             })
 
             if (resp.ok) {
-                setSuccess("Joined tournament!")
+                setSuccess(t("tournaments.msg.joined"))
                 fetchParticipants()
             } else {
                 const data = await resp.json()
-                setError(data.error || "Failed to join")
+                setError(ts(data.error, "tournaments.error.join"))
             }
         } catch {
-            setError("Network error. Please try again.")
+            setError(t("common.error.network"))
         }
     }
 
@@ -195,14 +197,14 @@ export default function TournamentDetail() {
             })
 
             if (resp.ok) {
-                setSuccess("Left tournament")
+                setSuccess(t("tournaments.msg.left"))
                 fetchParticipants()
             } else {
                 const data = await resp.json()
-                setError(data.error || "Failed to leave")
+                setError(ts(data.error, "tournaments.error.leave"))
             }
         } catch {
-            setError("Network error. Please try again.")
+            setError(t("common.error.network"))
         }
     }
 
@@ -216,15 +218,15 @@ export default function TournamentDetail() {
             })
 
             if (resp.ok) {
-                setSuccess("Forfeited from tournament")
+                setSuccess(t("tdetail.msg.forfeited"))
                 fetchParticipants()
                 fetchMatches()
             } else {
                 const data = await resp.json()
-                setError(data.error || "Failed to forfeit")
+                setError(ts(data.error, "tdetail.error.forfeit"))
             }
         } catch {
-            setError("Network error. Please try again.")
+            setError(t("common.error.network"))
         }
     }
 
@@ -238,14 +240,14 @@ export default function TournamentDetail() {
             })
 
             if (resp.ok) {
-                setSuccess("Tournament cancelled")
+                setSuccess(t("tdetail.msg.cancelled"))
                 fetchTournament()
             } else {
                 const data = await resp.json()
-                setError(data.error || "Failed to cancel")
+                setError(ts(data.error, "tdetail.error.cancel"))
             }
         } catch {
-            setError("Network error. Please try again.")
+            setError(t("common.error.network"))
         }
     }
 
@@ -261,10 +263,10 @@ export default function TournamentDetail() {
                 navigate("/tournaments")
             } else {
                 const data = await resp.json()
-                setError(data.error || "Failed to delete")
+                setError(ts(data.error, "tdetail.error.delete"))
             }
         } catch {
-            setError("Network error. Please try again.")
+            setError(t("common.error.network"))
         }
     }
 
@@ -278,15 +280,15 @@ export default function TournamentDetail() {
             })
 
             if (resp.ok) {
-                setSuccess("Tournament started!")
+                setSuccess(t("tdetail.msg.started"))
                 fetchTournament()
                 fetchMatches()
             } else {
                 const data = await resp.json()
-                setError(data.error || "Failed to start tournament")
+                setError(ts(data.error, "tdetail.error.start"))
             }
         } catch {
-            setError("Network error. Please try again.")
+            setError(t("common.error.network"))
         }
     }
 
@@ -303,15 +305,15 @@ export default function TournamentDetail() {
                 navigate(`/chess/${data.id}`)
             } else {
                 const data = await resp.json()
-                setError(data.error || "Failed to start match")
+                setError(ts(data.error, "tdetail.error.startMatch"))
             }
         } catch {
-            setError("Network error. Please try again.")
+            setError(t("common.error.network"))
         }
     }
 
     function formatTimer(timer: string | null): string {
-        if (!timer) return "Unlimited"
+        if (!timer) return t("tournaments.unlimited")
         const parts = timer.split("+")
         return `${parts[0]} min + ${parts[1]} sec`
     }
@@ -336,7 +338,7 @@ export default function TournamentDetail() {
     }
 
     if (!tournament) {
-        return <p className="text-gray-400 text-center mt-10">Loading...</p>
+        return <p className="text-gray-400 text-center mt-10">{t("common.loading")}</p>
     }
 
     // Group matches by round
@@ -372,14 +374,14 @@ export default function TournamentDetail() {
                                 onClick={leaveTournament}
                                 className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
                             >
-                                Leave
+                                {t("tournaments.leave")}
                             </button>
                         ) : (
                             <button
                                 onClick={joinTournament}
                                 className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
                             >
-                                Join
+                                {t("tournaments.join")}
                             </button>
                         )
                     )}
@@ -388,7 +390,7 @@ export default function TournamentDetail() {
                             onClick={forfeitTournament}
                             className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
                         >
-                            Forfeit
+                            {t("tdetail.forfeit")}
                         </button>
                     )}
 					{tournament.status === "OPEN" && user?.is_staff && (
@@ -396,7 +398,7 @@ export default function TournamentDetail() {
                             onClick={startTournament}
                             className="px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700"
                         >
-                            Start Tournament
+                            {t("tdetail.start")}
                         </button>
                     )}
 					{(tournament.status === "OPEN" || tournament.status === "ONGOING") && user?.is_staff && (
@@ -404,7 +406,7 @@ export default function TournamentDetail() {
                             onClick={cancelTournament}
                             className="px-4 py-2 bg-red-800 text-white rounded hover:bg-red-900"
                         >
-                            Cancel Tournament
+                            {t("tdetail.cancel")}
                         </button>
                     )}
 					{(tournament.status === "CANCELLED" || tournament.status === "FINISHED") && user?.is_staff && (
@@ -412,14 +414,14 @@ export default function TournamentDetail() {
                             onClick={deleteTournament}
                             className="px-4 py-2 bg-gray-800 text-red-400 border border-red-800 rounded hover:bg-red-900 hover:text-white"
                         >
-                            Delete
+                            {t("tdetail.delete")}
                         </button>
                     )}
                     <button
                         onClick={() => navigate("/tournaments")}
                         className="px-4 py-2 bg-gray-700 text-white rounded hover:bg-gray-600"
                     >
-                        Back
+                        {t("common.back")}
                     </button>
                 </div>
             </div>
@@ -441,7 +443,7 @@ export default function TournamentDetail() {
 
             {/* Participants */}
             <div className="bg-gray-800 rounded-lg border border-gray-700 p-5 mb-6">
-                <h2 className="text-xl font-semibold text-white mb-3">Participants</h2>
+                <h2 className="text-xl font-semibold text-white mb-3">{t("tdetail.participants")}</h2>
                 {participants.length === 0 ? (
                     <p className="text-gray-400">No participants yet.</p>
                 ) : (
@@ -466,7 +468,7 @@ export default function TournamentDetail() {
 			{/*
             {matches.length > 0 && (
                 <div className="bg-gray-800 rounded-lg border border-gray-700 p-5">
-                    <h2 className="text-xl font-semibold text-white mb-4">Bracket</h2>
+                    <h2 className="text-xl font-semibold text-white mb-4">{t("tdetail.bracket")}</h2>
                     {roundNumbers.map((roundNb) => (
                         <div key={roundNb} className="mb-6">
                             <h3 className="text-lg font-semibold text-gray-300 mb-3">
@@ -515,7 +517,7 @@ export default function TournamentDetail() {
                                                     onClick={() => startMatch(match.id)}
                                                     className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
                                                 >
-                                                    Start
+                                                    {t("bracket.start")}
                                                 </button>
                                             )}
 											{match.game && (
@@ -541,7 +543,7 @@ export default function TournamentDetail() {
 			{/* Bracket */}
             {matches.length > 0 && (
                 <div className="bg-gray-800 rounded-lg border border-gray-700 p-5">
-                    <h2 className="text-xl font-semibold text-white mb-4">Bracket</h2>
+                    <h2 className="text-xl font-semibold text-white mb-4">{t("tdetail.bracket")}</h2>
                     <TournamentBracket
                         matches={matches}
                         currentUser={user?.username}
@@ -558,7 +560,7 @@ export default function TournamentDetail() {
                     onClick={() => setChatOpen(!chatOpen)}
                 >
                     <div className="flex items-center gap-2">
-                        <span className="text-white font-semibold">Tournament Chat</span>
+                        <span className="text-white font-semibold">{t("tdetail.chat")}</span>
                         <span className={`w-2 h-2 rounded-full ${chatConnected ? "bg-green-500" : "bg-red-500"}`}></span>
                         {chatMessages.filter(m => m.sender === "system").length > 0 && !chatOpen && (
                             <span className="text-xs bg-yellow-600 text-white px-1.5 py-0.5 rounded">
@@ -573,7 +575,7 @@ export default function TournamentDetail() {
                     <>
 						<div className="border-t border-gray-700 p-3 h-48 md:h-64 overflow-y-auto space-y-2">
                             {chatMessages.length === 0 && (
-                                <p className="text-gray-500 text-xs text-center">No messages yet</p>
+                                <p className="text-gray-500 text-xs text-center">{t("chat.noMessages")}</p>
                             )}
                             {chatMessages.map((msg) => (
                                 <div key={msg.id} className={`text-sm ${
@@ -612,7 +614,7 @@ export default function TournamentDetail() {
                                 onChange={(e) => {
 									setChatInput(e.target.value)
 								}}
-                                placeholder="Chat..."
+                                placeholder={t("chat.short")}
                                 className="flex-1 px-2 py-1 bg-gray-900 text-white border border-gray-700 rounded text-sm focus:outline-none focus:border-blue-500"
                                 maxLength={2000}
                             />
@@ -620,7 +622,7 @@ export default function TournamentDetail() {
                                 type="submit"
                                 className="px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
                             >
-                                Send
+                                {t("common.send")}
                             </button>
                         </form>
                     </>

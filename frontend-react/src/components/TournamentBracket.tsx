@@ -1,6 +1,7 @@
 // frontend-react/src/components/TournamentBracket.tsx
 
 import { useNavigate } from "react-router-dom"
+import { useT } from "../i18n/I18nProvider.tsx"
 
 interface MatchData {
     id: number
@@ -25,6 +26,7 @@ const GAP = 16      // gap between matches in px
 const CONN_W = 32   // connector width in px
 
 export default function TournamentBracket({ matches, currentUser, isStaff, onStartMatch }: Props) {
+    const t = useT()
     const navigate = useNavigate()
 
     if (matches.length === 0) return null
@@ -39,11 +41,11 @@ export default function TournamentBracket({ matches, currentUser, isStaff, onSta
 
     function roundLabel(roundNb: number): string {
         const idx = roundNumbers.indexOf(roundNb)
-        if (totalRounds === 1) return "Final"
-        if (idx === totalRounds - 1) return "Final"
-        if (idx === totalRounds - 2) return "Semi-Finals"
-        if (idx === totalRounds - 3) return "Quarter-Finals"
-        return `Round ${roundNb}`
+        if (totalRounds === 1) return t("bracket.final")
+        if (idx === totalRounds - 1) return t("bracket.final")
+        if (idx === totalRounds - 2) return t("bracket.semiFinals")
+        if (idx === totalRounds - 3) return t("bracket.quarterFinals")
+        return t("bracket.round", { n: roundNb })
     }
 
     function playerClass(match: MatchData, player: string | null): string {
@@ -58,10 +60,10 @@ export default function TournamentBracket({ matches, currentUser, isStaff, onSta
 
     function statusBadge(match: MatchData) {
         if (match.status === "FINISHED")
-            return <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-900/50 text-green-400">Done</span>
+            return <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-900/50 text-green-400">{t("bracket.done")}</span>
         if (match.status === "IN_PROGRESS")
-            return <span className="text-[10px] px-1.5 py-0.5 rounded bg-yellow-900/50 text-yellow-400 animate-pulse">Live</span>
-        return <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-700 text-gray-400">Pending</span>
+            return <span className="text-[10px] px-1.5 py-0.5 rounded bg-yellow-900/50 text-yellow-400 animate-pulse">{t("bracket.live")}</span>
+        return <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-700 text-gray-400">{t("bracket.pending")}</span>
     }
 
     function matchActions(match: MatchData) {
@@ -71,7 +73,7 @@ export default function TournamentBracket({ matches, currentUser, isStaff, onSta
             return (
                 <button onClick={() => onStartMatch(match.id)}
                     className="text-[10px] px-2 py-0.5 bg-blue-600 text-white rounded hover:bg-blue-700">
-                    Start
+                    {t("bracket.start")}
                 </button>
             )
 
@@ -79,7 +81,7 @@ export default function TournamentBracket({ matches, currentUser, isStaff, onSta
             return (
                 <button onClick={() => navigate(`/chess/${match.game}`)}
                     className="text-[10px] px-2 py-0.5 bg-gray-700 text-gray-300 rounded hover:bg-gray-600">
-                    {match.status === "IN_PROGRESS" && isPlayer ? "Play" : match.status === "IN_PROGRESS" ? "Watch" : "View"}
+                    {match.status === "IN_PROGRESS" && isPlayer ? t("bracket.play") : match.status === "IN_PROGRESS" ? t("bracket.watch") : t("bracket.view")}
                 </button>
             )
 
@@ -102,7 +104,7 @@ export default function TournamentBracket({ matches, currentUser, isStaff, onSta
                     <div className="flex items-center gap-2 min-w-0">
                         {match.winner === match.player1 && <span className="text-green-400 text-xs">▶</span>}
                         <span className={`text-sm truncate ${playerClass(match, match.player1)}`}>
-                            {match.player1 || "TBD"}
+                            <bdi>{match.player1 || t("bracket.tbd")}</bdi>
                         </span>
                     </div>
                 </div>
@@ -114,7 +116,7 @@ export default function TournamentBracket({ matches, currentUser, isStaff, onSta
                     <div className="flex items-center gap-2 min-w-0">
                         {match.winner === match.player2 && <span className="text-green-400 text-xs">▶</span>}
                         <span className={`text-sm truncate ${playerClass(match, match.player2)}`}>
-                            {match.player2 || "TBD"}
+                            <bdi>{match.player2 || t("bracket.tbd")}</bdi>
                         </span>
                     </div>
                 </div>
@@ -253,7 +255,13 @@ export default function TournamentBracket({ matches, currentUser, isStaff, onSta
     }
 
     return (
-        <div className="overflow-x-auto">
+        // dir="ltr": brackets genuinely DO flow right-to-left in RTL
+        // publications, so mirroring would arguably be more correct — but this
+        // is 280 lines of nested flex and connector geometry, and a correct
+        // LTR bracket beats a half-mirrored one. Revisit only with time to
+        // spare. Until then this pin keeps the connectors attached to the
+        // right matches.
+        <div dir="ltr" className="overflow-x-auto">
             {renderRound(0)}
 
             {/* Champion banner */}
@@ -264,10 +272,10 @@ export default function TournamentBracket({ matches, currentUser, isStaff, onSta
                         <div className="mt-6 text-center">
                             <div className="inline-block bg-yellow-900/30 border border-yellow-600 rounded-lg px-6 py-3">
                                 <span className="text-yellow-400 text-lg">🏆</span>
-                                <span className="text-yellow-300 font-bold text-lg ml-2">
-                                    {finalMatch.winner}
+                                <span className="text-yellow-300 font-bold text-lg ms-2">
+                                    <bdi>{finalMatch.winner}</bdi>
                                 </span>
-                                <span className="text-yellow-400 text-lg ml-2">🏆</span>
+                                <span className="text-yellow-400 text-lg ms-2">🏆</span>
                             </div>
                         </div>
                     )

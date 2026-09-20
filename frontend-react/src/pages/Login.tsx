@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react"
 import { useNavigate, Link, useSearchParams } from "react-router-dom"
 import { useAuth } from "../context/AuthContext.tsx"
+import { useI18n } from "../i18n/I18nProvider.tsx"
 import { validateRequired } from '../utils/validate'
 
 export default function Login() {
@@ -15,6 +16,7 @@ export default function Login() {
     const [error, setError] = useState("")
     const [success, setSuccess] = useState("")
     const [loading, setLoading] = useState(false)
+    const { t, ts } = useI18n()
     const [showResend, setShowResend] = useState(false)
     const [resendEmail, setResendEmail] = useState("")
 
@@ -40,17 +42,17 @@ export default function Login() {
 
         if (status === "verified") {
             setError("")
-            setSuccess("Email verified! You can now log in.")
+            setSuccess(t("login.msg.emailVerified"))
         } else if (status === "verify_error") {
             const reason = searchParams.get("reason")
             if (reason === "invalid_or_expired") {
-                setError("Verification link is invalid or expired.")
+                setError(t("login.error.verifyExpired"))
             } else {
-                setError("Email verification failed.")
+                setError(t("login.error.verifyFailed"))
             }
         } else if (status === "email_conflict") {
             const linkToken = searchParams.get("link_token")
-            setError("This email is already registered. Please log in to link your account.")
+            setError(t("login.msg.alreadyRegistered"))
             if (linkToken) {
                 setPendingLinkToken(linkToken)
                 pendingLinkRef.current = linkToken
@@ -79,7 +81,7 @@ export default function Login() {
             } else if (result.requires2FA) {
                 navigate(`/2fa?token=${result.tmpToken}`)
             } else {
-                const errMsg = result.error || "OAuth login failed"
+                const errMsg = result.error || t("login.error.oauth")
                 setError(errMsg)
                 if (errMsg.toLowerCase().includes("frozen") || errMsg.toLowerCase().includes("verify")) {
                     setShowResend(true)
@@ -118,7 +120,7 @@ export default function Login() {
             } else if (result.requires2FA) {
                 navigate(`/2fa?token=${result.tmpToken}`)
             } else {
-                const errMsg = result.error || "Login failed"
+                const errMsg = result.error || t("login.error.failed")
                 setError(errMsg)
                 if (errMsg.toLowerCase().includes("frozen") || errMsg.toLowerCase().includes("verify")) {
                     setShowResend(true)
@@ -142,16 +144,16 @@ export default function Login() {
             })
 
             if (resp.ok) {
-                setSuccess("Account linked successfully!")
+                setSuccess(t("login.msg.accountLinked"))
                 setPendingLinkToken(null)
                 pendingLinkRef.current = null
                 window.history.replaceState({}, "", "/login")
             } else {
                 const data = await resp.json()
-                setError(data.error || "Failed to link account")
+                setError(ts(data.error, "login.error.linkFailed"))
             }
         } catch {
-            setError("Failed to link account. You can try again from your profile.")
+            setError(t("login.error.linkFailedRetry"))
         }
     }
 
@@ -186,13 +188,13 @@ export default function Login() {
                 } else if (result.requires2FA) {
                     navigate(`/2fa?token=${result.tmpToken}`)
                 } else {
-                    setError(result.error || "Login failed after username resolve")
+                    setError(result.error || t("login.error.afterResolve"))
                 }
             } else {
-                setError(data.error || "Username is taken. Try another one.")
+                setError(ts(data.error, "login.error.usernameTaken"))
             }
         } catch {
-            setError("Network error. Please try again.")
+            setError(t("common.error.network"))
         } finally {
             setLoading(false)
         }
@@ -211,14 +213,14 @@ export default function Login() {
             })
 
             if (resp.ok) {
-                setSuccess("Verification email sent. Check your inbox.")
+                setSuccess(t("login.msg.verificationSent"))
                 setShowResend(false)
             } else {
                 const data = await resp.json()
-                setError(data.error || "Failed to resend")
+                setError(ts(data.error, "login.error.resendFailed"))
             }
         } catch {
-            setError("Network error. Please try again.")
+            setError(t("common.error.network"))
         }
     }
 
@@ -231,22 +233,22 @@ export default function Login() {
             {/* Username Conflict Dialog */}
             {showUsernameConflict && (
                 <div className="bg-yellow-900/30 border border-yellow-600 rounded p-4 mb-4 space-y-3">
-                    <p className="text-yellow-300 font-semibold">Username Conflict</p>
+                    <p className="text-yellow-300 font-semibold">{t("login.conflict.title")}</p>
                     <p className="text-gray-300 text-sm">
-                        The username "{conflictUsername}" is already taken.
+                        {t("login.conflict.taken", { name: conflictUsername })}
                     </p>
                     <div className="flex gap-2">
                         <button
                             onClick={() => { setShowNewUsernameInput(true); setShowLoginToLink(false) }}
                             className="flex-1 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
                         >
-                            Choose new username
+                            {t("login.conflict.chooseNew")}
                         </button>
                         <button
                             onClick={() => { setShowLoginToLink(true); setShowNewUsernameInput(false) }}
                             className="flex-1 py-2 bg-gray-700 text-white rounded hover:bg-gray-600 text-sm"
                         >
-                            Log in to link
+                            {t("login.conflict.logInToLink")}
                         </button>
                     </div>
 
@@ -254,7 +256,7 @@ export default function Login() {
                         <form onSubmit={handleResolveUsername} className="space-y-2">
                             <input
                                 type="text"
-                                placeholder="Choose a new username"
+                                placeholder={t("login.conflict.newPlaceholder")}
                                 value={newUsername}
                                 onChange={(e) => setNewUsername(e.target.value)}
                                 className="w-full px-4 py-2 bg-gray-800 text-white border border-gray-700 rounded focus:outline-none focus:border-blue-500"
@@ -265,14 +267,14 @@ export default function Login() {
                                 disabled={loading}
                                 className="w-full py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
                             >
-                                {loading ? "Submitting..." : "Submit"}
+                                {loading ? t("common.submitting") : t("common.submit")}
                             </button>
                         </form>
                     )}
 
                     {showLoginToLink && (
                         <p className="text-gray-400 text-sm">
-                            Log in with your existing account below. Your OAuth account will be linked automatically.
+                            {t("login.conflict.linkHint")}
                         </p>
                     )}
                 </div>
@@ -292,10 +294,10 @@ export default function Login() {
 
                 {showResend && (
                     <div className="space-y-2 bg-yellow-900/30 border border-yellow-600 rounded p-3">
-                        <p className="text-gray-300 text-sm">Enter your email to receive a new verification link:</p>
+                        <p className="text-gray-300 text-sm">{t("login.resend.prompt")}</p>
                         <input
                             type="email"
-                            placeholder="Your email"
+                            placeholder={t("login.emailPlaceholder")}
                             value={resendEmail}
                             onChange={(e) => setResendEmail(e.target.value)}
                             className="w-full px-4 py-2 bg-gray-800 text-white border border-gray-700 rounded focus:outline-none focus:border-blue-500"
@@ -306,7 +308,7 @@ export default function Login() {
                             onClick={handleResend}
                             className="w-full py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700"
                         >
-                            Resend Verification Email
+                            {t("login.resend.button")}
                         </button>
                     </div>
                 )}
@@ -314,14 +316,14 @@ export default function Login() {
                 {pendingLinkToken && !showUsernameConflict && (
                     <div className="bg-blue-900/30 border border-blue-600 rounded p-3">
                         <p className="text-blue-300 text-sm">
-                            Log in with your existing account to link your OAuth provider.
+                            {t("login.link.prompt")}
                         </p>
                     </div>
                 )}
 
                 <input
                     type="text"
-                    placeholder="Username"
+                    placeholder={t("field.username")}
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     className="w-full px-4 py-2 bg-gray-800 text-white border border-gray-700 rounded focus:outline-none focus:border-blue-500"
@@ -330,7 +332,7 @@ export default function Login() {
 
                 <input
                     type="password"
-                    placeholder="Password"
+                    placeholder={t("field.password")}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="w-full px-4 py-2 bg-gray-800 text-white border border-gray-700 rounded focus:outline-none focus:border-blue-500"
@@ -342,35 +344,35 @@ export default function Login() {
                     disabled={loading}
                     className="w-full py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
                 >
-                    {loading ? "Logging in..." : "Login"}
+                    {loading ? t("login.submitting") : t("login.submit")}
                 </button>
             </form>
 
             <div className="my-6 flex items-center gap-4">
                 <div className="flex-1 border-t border-gray-700"></div>
-                <span className="text-gray-500 text-sm">or</span>
+                <span className="text-gray-500 text-sm">{t("common.or")}</span>
                 <div className="flex-1 border-t border-gray-700"></div>
             </div>
 
             <div className="space-y-3">
                 <a href="/api/auth/google/login/" className="w-full py-2 px-4 bg-white text-gray-800 rounded hover:bg-gray-200 flex items-center justify-center gap-2 font-medium">
-                    Continue with Google
+                    {t("login.continueGoogle")}
                 </a>
                 <a href="/api/auth/42/login/" className="w-full py-2 px-4 bg-gray-700 text-white rounded hover:bg-gray-600 flex items-center justify-center gap-2 font-medium">
-                    Continue with 42
+                    {t("login.continue42")}
                 </a>
             </div>
 
             <div className="text-center mt-4 space-y-2">
                 <p className="text-gray-400">
-                    Don't have an account?{" "}
+                    {t("login.noAccount")}{" "}
                     <Link to="/register" className="text-blue-400 hover:underline">
-                        Register
+                        {t("login.registerLink")}
                     </Link>
                 </p>
                 <p>
                     <Link to="/forgot-password" className="text-gray-500 hover:text-gray-300 text-sm">
-                        Forgot password?
+                        {t("login.forgotPassword")}
                     </Link>
                 </p>
             </div>

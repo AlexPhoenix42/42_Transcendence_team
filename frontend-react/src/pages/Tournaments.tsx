@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { api } from "../api/client.ts"
 import { useAuth } from "../context/AuthContext.tsx"
+import { useI18n } from "../i18n/I18nProvider.tsx"
 
 interface TournamentData {
     id: number
@@ -23,6 +24,7 @@ interface Participant {
 }
 
 export default function Tournaments() {
+    const { t, ts } = useI18n()
     const { user } = useAuth()
     const navigate = useNavigate()
 
@@ -50,7 +52,7 @@ export default function Tournaments() {
                 }
             }
         } catch {
-            setError("Failed to load tournaments")
+            setError(t("tournaments.error.load"))
         }
     }
 
@@ -79,15 +81,15 @@ export default function Tournaments() {
             })
 
             if (resp.ok) {
-                setSuccess("Joined tournament!")
+                setSuccess(t("tournaments.msg.joined"))
                 setJoinedMap((prev) => ({ ...prev, [tournamentId]: true }))
                 fetchParticipants(tournamentId)
             } else {
                 const data = await resp.json()
-                setError(data.error || "Failed to join")
+                setError(ts(data.error, "tournaments.error.join"))
             }
         } catch {
-            setError("Network error. Please try again.")
+            setError(t("common.error.network"))
         }
     }
 
@@ -101,20 +103,20 @@ export default function Tournaments() {
             })
 
             if (resp.ok) {
-                setSuccess("Left tournament")
+                setSuccess(t("tournaments.msg.left"))
                 setJoinedMap((prev) => ({ ...prev, [tournamentId]: false }))
                 fetchParticipants(tournamentId)
             } else {
                 const data = await resp.json()
-                setError(data.error || "Failed to leave")
+                setError(ts(data.error, "tournaments.error.leave"))
             }
         } catch {
-            setError("Network error. Please try again.")
+            setError(t("common.error.network"))
         }
     }
 
     function formatTimer(timer: string | null): string {
-        if (!timer) return "Unlimited"
+        if (!timer) return t("tournaments.unlimited")
         const parts = timer.split("+")
         return `${parts[0]} min + ${parts[1]} sec`
     }
@@ -131,7 +133,7 @@ export default function Tournaments() {
 
     return (
         <div className="max-w-4xl mx-auto">
-            <h1 className="text-3xl font-bold text-white mb-6">Tournaments</h1>
+            <h1 className="text-3xl font-bold text-white mb-6">{t("tournaments.title")}</h1>
 
             {error && (
                 <div className="bg-red-900/50 border border-red-500 text-red-300 px-4 py-2 rounded mb-4">
@@ -145,51 +147,51 @@ export default function Tournaments() {
             )}
 
             {tournaments.length === 0 && (
-                <p className="text-gray-400">No tournaments available.</p>
+                <p className="text-gray-400">{t("tournaments.empty")}</p>
             )}
 
             <div className="space-y-3">
-                {tournaments.map((t) => (
-                    <div key={t.id} className="bg-gray-800 p-5 rounded-lg border border-gray-700">
+                {tournaments.map((tour) => (
+                    <div key={tour.id} className="bg-gray-800 p-5 rounded-lg border border-gray-700">
                         <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center gap-3">
-                                <h2 className="text-xl font-semibold text-white">{t.name}</h2>
-                                <span className={`text-sm font-semibold ${statusColor(t.status)}`}>
-                                    {t.status}
+                                <h2 className="text-xl font-semibold text-white">{tour.name}</h2>
+                                <span className={`text-sm font-semibold ${statusColor(tour.status)}`}>
+                                    {tour.status}
                                 </span>
                             </div>
                             <div className="flex items-center gap-2">
-                                {t.status === "OPEN" && (
-                                    joinedMap[t.id] ? (
+                                {tour.status === "OPEN" && (
+                                    joinedMap[tour.id] ? (
                                         <button
-                                            onClick={() => leaveTournament(t.id)}
+                                            onClick={() => leaveTournament(tour.id)}
                                             className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 text-sm"
                                         >
-                                            Leave
+                                            {t("tournaments.leave")}
                                         </button>
                                     ) : (
                                         <button
-                                            onClick={() => joinTournament(t.id)}
+                                            onClick={() => joinTournament(tour.id)}
                                             className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 text-sm"
                                         >
-                                            Join
+                                            {t("tournaments.join")}
                                         </button>
                                     )
                                 )}
                                 <button
-                                    onClick={() => navigate(`/tournaments/${t.id}`)}
+                                    onClick={() => navigate(`/tournaments/${tour.id}`)}
                                     className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
                                 >
-                                    View
+                                    {t("tournaments.view")}
                                 </button>
                             </div>
                         </div>
                         <div className="flex gap-4 text-sm text-gray-400">
-                            <span>Players: {participantCounts[t.id] || 0}/{t.max_players}</span>
-                            <span>Time: {formatTimer(t.timer)}</span>
+                            <span>Players: {participantCounts[tour.id] || 0}/{tour.max_players}</span>
+                            <span>Time: {formatTimer(tour.timer)}</span>
                         </div>
-                        {t.description && (
-                            <p className="text-gray-400 text-sm mt-2">{t.description}</p>
+                        {tour.description && (
+                            <p className="text-gray-400 text-sm mt-2">{tour.description}</p>
                         )}
                     </div>
                 ))}

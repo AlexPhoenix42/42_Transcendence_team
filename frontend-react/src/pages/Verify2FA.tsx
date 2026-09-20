@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { useNavigate, useSearchParams, Link } from "react-router-dom"
 import { useAuth } from "../context/AuthContext.tsx"
+import { useT } from "../i18n/I18nProvider.tsx"
 import { validate2FACode } from '../utils/validate'
 
 export default function Verify2FA() {
@@ -14,13 +15,14 @@ export default function Verify2FA() {
     const [code, setCode] = useState("")
     const [error, setError] = useState("")
     const [loading, setLoading] = useState(false)
+    const t = useT()
 
     if (!tmpToken) {
         return (
             <div className="w-full max-w-sm text-center">
-                <h1 className="text-2xl font-bold text-red-400 mb-4">Invalid 2FA Request</h1>
-                <p className="text-gray-400 mb-6">No temporary token found.</p>
-                <Link to="/login" className="text-blue-400 hover:underline">Back to login</Link>
+                <h1 className="text-2xl font-bold text-red-400 mb-4">{t("twofa.invalid.title")}</h1>
+                <p className="text-gray-400 mb-6">{t("twofa.invalid.body")}</p>
+                <Link to="/login" className="text-blue-400 hover:underline">{t("common.backToLogin")}</Link>
             </div>
         )
     }
@@ -43,7 +45,7 @@ export default function Verify2FA() {
             if (result.success) {
                 navigate("/")
             } else {
-                setError(result.error || "Invalid code")
+                setError(result.error || t("twofa.error.invalidCode"))
             }
         } finally {
             setLoading(false)
@@ -52,8 +54,8 @@ export default function Verify2FA() {
 
     return (
         <div className="w-full max-w-sm">
-            <h1 className="text-2xl font-bold text-white text-center mb-2">Two-Factor Authentication</h1>
-            <p className="text-gray-400 text-center mb-6">Enter the code from your authenticator app</p>
+            <h1 className="text-2xl font-bold text-white text-center mb-2">{t("twofa.title")}</h1>
+            <p className="text-gray-400 text-center mb-6">{t("twofa.prompt")}</p>
 
             <form onSubmit={handleSubmit} className="space-y-4">
                 {error && (
@@ -64,7 +66,7 @@ export default function Verify2FA() {
 
                 <input
                     type="text"
-                    placeholder="6-digit code"
+                    placeholder={t("twofa.placeholder")}
                     value={code}
                     onChange={(e) => setCode(e.target.value)}
                     className="w-full px-4 py-2 bg-gray-800 text-white border border-gray-700 rounded focus:outline-none focus:border-blue-500 text-center text-2xl tracking-widest"
@@ -78,17 +80,17 @@ export default function Verify2FA() {
                     disabled={loading}
                     className="w-full py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
                 >
-                    {loading ? "Verifying..." : "Verify"}
+                    {loading ? t("twofa.submitting") : t("twofa.submit")}
                 </button>
             </form>
 
             <p className="text-gray-500 text-center mt-4 text-sm">
-                You can also use a recovery code
+                {t("twofa.recoveryHint")}
             </p>
 
             <p className="text-center mt-2">
                 <Link to="/login" className="text-gray-500 hover:text-gray-300 text-sm">
-                    Back to login
+                    {t("common.backToLogin")}
                 </Link>
             </p>
         </div>

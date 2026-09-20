@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { useParams, useNavigate } from "react-router-dom"
 import { api, mediaUrl } from "../api/client.ts"
+import { useI18n } from "../i18n/I18nProvider.tsx"
 
 import Achievements from "../components/Achievements.tsx"
 
@@ -22,6 +23,7 @@ interface PublicProfileData {
 }
 
 export default function PublicProfile() {
+    const { t, n } = useI18n()
     const { username } = useParams()
     const navigate = useNavigate()
     const [profile, setProfile] = useState<PublicProfileData | null>(null)
@@ -36,10 +38,10 @@ export default function PublicProfile() {
                     const data = await resp.json()
                     setProfile(data)
                 } else {
-                    setError("User not found")
+                    setError(t("publicProfile.error.notFound"))
                 }
             } catch {
-                setError("Failed to load profile")
+                setError(t("profile.error.load"))
             }
         }
         fetchProfile()
@@ -77,7 +79,7 @@ export default function PublicProfile() {
     }
 
     if (!profile) {
-        return <p className="text-gray-400 text-center mt-10">Loading...</p>
+        return <p className="text-gray-400 text-center mt-10">{t("common.loading")}</p>
     }
 
     return (
@@ -94,40 +96,40 @@ export default function PublicProfile() {
                         <div className="flex items-center gap-2">
 							<h1 className="text-2xl text-white font-bold">{profile.dispname || profile.username}</h1>
                             {profile.role === "admin" && (
-                                <span className="px-2 py-0.5 rounded text-xs font-bold bg-red-900/50 text-red-400">Admin</span>
+                                <span className="px-2 py-0.5 rounded text-xs font-bold bg-red-900/50 text-red-400">{t("role.admin")}</span>
                             )}
                             {profile.role === "moderator" && (
-                                <span className="px-2 py-0.5 rounded text-xs font-bold bg-yellow-900/50 text-yellow-400">Mod</span>
+                                <span className="px-2 py-0.5 rounded text-xs font-bold bg-yellow-900/50 text-yellow-400">{t("role.mod")}</span>
                             )}
                             <span className={`w-2.5 h-2.5 rounded-full ${profile.is_online ? "bg-green-500" : "bg-gray-600"}`}></span>
                         </div>
-                        <p className="text-gray-400">@{profile.username}</p>
+                        <p className="text-gray-400">@<bdi>{profile.username}</bdi></p>
                     </div>
                 </div>
 
                 {profile.bio && (
                     <div className="mb-6">
-                        <p className="text-gray-400 text-sm">Bio</p>
+                        <p className="text-gray-400 text-sm">{t("common.bio")}</p>
                         <p className="text-white">{profile.bio}</p>
                     </div>
                 )}
 
                 <div className="grid grid-cols-4 gap-4 mb-4 text-center">
                     <div className="bg-gray-900 rounded p-3">
-                        <p className="text-2xl font-bold text-white">{profile.rating}</p>
-                        <p className="text-gray-400 text-sm">Rating</p>
+                        <p className="text-2xl font-bold text-white">{n(profile.rating, { useGrouping: false })}</p>
+                        <p className="text-gray-400 text-sm">{t("stats.rating")}</p>
                     </div>
                     <div className="bg-gray-900 rounded p-3">
-                        <p className="text-2xl font-bold text-green-400">{profile.wins}</p>
-                        <p className="text-gray-400 text-sm">Wins</p>
+                        <p className="text-2xl font-bold text-green-400">{n(profile.wins)}</p>
+                        <p className="text-gray-400 text-sm">{t("stats.wins")}</p>
                     </div>
                     <div className="bg-gray-900 rounded p-3">
-                        <p className="text-2xl font-bold text-red-400">{profile.loss}</p>
-                        <p className="text-gray-400 text-sm">Losses</p>
+                        <p className="text-2xl font-bold text-red-400">{n(profile.loss)}</p>
+                        <p className="text-gray-400 text-sm">{t("stats.losses")}</p>
                     </div>
                     <div className="bg-gray-900 rounded p-3">
                         <p className="text-2xl font-bold text-gray-400">{profile.draw}</p>
-                        <p className="text-gray-400 text-sm">Draws</p>
+                        <p className="text-gray-400 text-sm">{t("stats.draws")}</p>
                     </div>
                 </div>
 
@@ -139,7 +141,7 @@ export default function PublicProfile() {
                     onClick={() => navigate(`/history/${profile.username}`)}
                     className="mt-4 px-4 py-2 bg-gray-700 text-white rounded hover:bg-gray-600 text-sm w-full"
                 >
-                    View Match History
+                    {t("profile.viewHistory")}
                 </button>
                 <button
                     onClick={toggleBlock}
@@ -149,7 +151,7 @@ export default function PublicProfile() {
                             : "bg-red-800 text-red-300 hover:bg-red-700"
                     }`}
                 >
-                    {isBlocked ? "Unblock User" : "Block User"}
+                    {isBlocked ? t("publicProfile.unblock") : t("publicProfile.block")}
                 </button>
 				<div className="mt-4">
                     <Achievements username={profile.username} />

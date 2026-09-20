@@ -51,6 +51,7 @@ export function mediaUrl(url: string | null | undefined): string | null {
         const parsed = new URL(url)
         return `${window.location.protocol}//${window.location.host}${parsed.pathname}`
     } catch {
+        // Already a relative path
         if (url.startsWith("/")) {
             return `${window.location.protocol}//${window.location.host}${url}`
         }

@@ -5,6 +5,7 @@ import { api } from "../api/client.ts"
 import { useAuth } from "../context/AuthContext.tsx"
 import { ChatSocket, ChatMessage } from "../ws/chat.ts"
 import { useNavigate } from "react-router-dom"
+import { useI18n } from "../i18n/I18nProvider.tsx"
 
 import { debug } from '../utils/debug'
 
@@ -17,6 +18,7 @@ interface Friend {
 }
 
 export default function Chat() {
+    const { t, tn, d, ts } = useI18n()
     const { user } = useAuth()
 	const navigate = useNavigate()
     const [tab, setTab] = useState<Tab>("global")
@@ -110,6 +112,7 @@ export default function Chat() {
             const resp = await api(`/api/chat/rooms/${roomId}/read-status/`)
             if (resp.ok) {
                 const data = await resp.json()
+                console.log("fetchReadStatus response:", data)
                 debug("fetchReadStatus response:", data)
                 if (data.length > 0) {
                     setOtherReadAt(data[0].last_read_at)
@@ -130,7 +133,7 @@ export default function Chat() {
         try {
             const resp = await api("/api/chat/rooms/global/")
             if (!resp.ok) {
-                setError("Failed to resolve global chat room")
+                setError(t("chat.error.resolveRoom"))
                 return
             }
             const data = await resp.json()
@@ -140,8 +143,9 @@ export default function Chat() {
             await loadHistory(id)
             connectWebSocket(id)
         } catch {
+            setError(t("chat.error.connect"))
 			debug("global char error:", e)
-            setError("Failed to connect to global chat")
+            //setError("Failed to connect to global chat")	// why did you delete this?
         }
     }
 
@@ -160,7 +164,8 @@ export default function Chat() {
             })
             if (!resp.ok) {
                 const data = await resp.json()
-                setError(data.error || "Failed to open DM")
+                setError(ts(data.error))
+                //setError(data.error || "Failed to open DM")
                 return
             }
             const data = await resp.json()
@@ -172,7 +177,8 @@ export default function Chat() {
 			markAsRead(id)
 			fetchReadStatus(id)
         } catch {
-            setError("Failed to connect to DM")
+            setError(t("chat.error.connectDM"))
+            //setError("Failed to connect to DM")
         }
     }
 
@@ -206,16 +212,20 @@ export default function Chat() {
     //}
 
 	async function loadHistory(id: number) {
+        console.log("loadHistory called with room:", id)
         debug("loadHistory called with room:", id)
         try {
             const resp = await api(`/api/chat/rooms/${id}/messages/`)
+            console.log("loadHistory response:", resp.status)
             debug("loadHistory response:", resp.status)
             if (resp.ok) {
                 const data = await resp.json()
+                console.log("loadHistory data:", data)
                 debug("loadHistory data:", data)
 				setMessages(Array.isArray(data) ? data : data.results || [])
             }
         } catch (e) {
+            console.log("loadHistory error:", e)
             debug("loadHistory error:", e)
         }
     }
@@ -239,9 +249,11 @@ export default function Chat() {
 			(code) => {
                 setConnected(false)
                 if (code === 4001) {
-                    setError("Authentication failed. Please log in again.")
+                    setError(t("chat.error.auth"))
+                    //setError("Authentication failed. Please log in again.")
                 } else if (code === 4003) {
-                    setError("Access denied to this room.")
+                    setError(t("chat.error.denied"))
+                    //setError("Access denied to this room.")
                 }
             },
             (sender) => {
@@ -250,7 +262,8 @@ export default function Chat() {
                 typingTimeoutRef.current = setTimeout(() => setTypingUser(null), 3000)
             },
 			(readAt) => {
-				debug("read_receipt received:", readAt)
+				console.log("read_receipt received:", readAt)
+				//debug("read_receipt received:", readAt)
 				setOtherReadAt(readAt)
 			},
 			(inviteId, fromUsername) => {
@@ -277,7 +290,8 @@ export default function Chat() {
             socketRef.current.send(input.trim())
             setInput("")
         } else {
-            setError("Not connected. Please wait...")
+            setError(t("chat.error.notConnected"))
+            //setError("Not connected. Please wait...")
         }
     }
 
@@ -301,11 +315,13 @@ export default function Chat() {
                 navigate(`/chess/${data.id}`)
             } else {
                 const data = await resp.json()
-                setError(data.error || "Failed to accept invite")
+                setError(ts(data.error, "chat.error.invite"))
+                //setError(data.error || "Failed to accept invite")
                 setGameInvite(null)
             }
         } catch {
-            setError("Network error")
+            setError(t("common.error.networkShort"))
+            //setError("Network error")
         }
     }
 
@@ -344,7 +360,8 @@ export default function Chat() {
                 setMuteTarget(null)
             } else {
                 const data = await resp.json()
-                setError(data.error || "Failed to mute user")
+                setError(ts(data.error, "chat.error.mute"))
+                //setError(data.error || "Failed to mute user")
             }
         } catch {}
     }
@@ -376,24 +393,24 @@ export default function Chat() {
 			<div className="w-full md:w-48 bg-gray-800 rounded-lg border border-gray-700 p-3 flex flex-row md:flex-col gap-2 overflow-x-auto md:overflow-y-auto shrink-0">
                 <button
                     onClick={connectToGlobal}
-                    className={`text-left px-3 py-2 rounded ${tab === "global" && !dmTarget ? "bg-blue-600 text-white" : "text-gray-300 hover:bg-gray-700"}`}
+                    className={`text-start px-3 py-2 rounded ${tab === "global" && !dmTarget ? "bg-blue-600 text-white" : "text-gray-300 hover:bg-gray-700"}`}
                 >
-                    Global Chat
+                    {t("chat.global")}
                 </button>
 
                 <div className="border-t border-gray-700 mt-2 pt-2">
-                    <p className="text-gray-500 text-xs uppercase mb-2">Direct Messages</p>
+                    <p className="text-gray-500 text-xs uppercase mb-2">{t("chat.directMessages")}</p>
                     {friends.length === 0 && (
-                        <p className="text-gray-500 text-xs">No friends yet</p>
+                        <p className="text-gray-500 text-xs">{t("chat.noFriends")}</p>
                     )}
 					{friends.map((friend) => (
                         <button
                             key={friend.id}
                             onClick={() => connectToDM(friend)}
-                            className={`w-full text-left px-3 py-2 rounded text-sm flex items-center gap-2 ${dmTarget?.id === friend.id ? "bg-blue-600 text-white" : "text-gray-300 hover:bg-gray-700"}`}
+                            className={`w-full text-start px-3 py-2 rounded text-sm flex items-center gap-2 ${dmTarget?.id === friend.id ? "bg-blue-600 text-white" : "text-gray-300 hover:bg-gray-700"}`}
                         >
                             <span className={`w-2 h-2 rounded-full ${friend.is_online ? "bg-green-500" : "bg-gray-600"}`}></span>
-                            <span className="flex-1">{friend.username}</span>
+                            <span className="flex-1"><bdi>{friend.username}</bdi></span>
                             {unreadByUser[friend.id] && (
                                 <span className="bg-red-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
                                     {unreadByUser[friend.id]}
@@ -409,7 +426,7 @@ export default function Chat() {
                 {/* Header */}
 				<div className="p-4 border-b border-gray-700 flex items-center gap-2">
                     <h2 className="text-white font-semibold">
-                        {dmTarget ? `DM: ${dmTarget.username}` : "Global Chat"}
+                        {dmTarget ? t("chat.dmWith", { name: dmTarget.username }) : t("chat.global")}
                     </h2>
                     <span className={`w-2 h-2 rounded-full ${dmTarget ? (dmTarget.is_online ? "bg-green-500" : "bg-gray-600") : (connected ? "bg-green-500" : "bg-red-500")}`}></span>
                 </div>
@@ -424,7 +441,7 @@ export default function Chat() {
                 {/* Messages */}
 				<div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-3">
                     {messages.length === 0 && (
-                        <p className="text-gray-500 text-center mt-10">No messages yet</p>
+                        <p className="text-gray-500 text-center mt-10">{t("chat.noMessages")}</p>
                     )}
 					{messages.map((msg) => {
                         // Handle game invite messages
@@ -457,7 +474,7 @@ export default function Chat() {
                                                 : `⚔️ ${fromUser} invited you to play chess!`
                                             }
                                             {isExpired && !gameStartedAfter && (
-                                                <span className="ml-1 text-gray-500 text-xs">(expired)</span>
+                                                <span className="ms-1 text-gray-500 text-xs">(expired)</span>
                                             )}
                                         </p>
                                         {showButtons && (
@@ -466,13 +483,13 @@ export default function Chat() {
                                                     onClick={() => acceptGameInvite(inviteId)}
                                                     className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 text-sm"
                                                 >
-                                                    Accept
+                                                    {t("common.accept")}
                                                 </button>
                                                 <button
                                                     onClick={() => declineGameInvite(inviteId)}
                                                     className="px-3 py-1 bg-gray-700 text-white rounded hover:bg-gray-600 text-sm"
                                                 >
-                                                    Decline
+                                                    {t("common.decline")}
                                                 </button>
                                             </div>
                                         )}
@@ -489,7 +506,7 @@ export default function Chat() {
 
                             return (
                                 <div key={msg.id} className="flex justify-center my-1 gap-2 items-center">
-                                    <span className="text-yellow-400 text-xs italic">{msg.content}</span>
+                                    <span className="text-yellow-400 text-xs italic" dir="auto">{msg.content}</span>
                                     {mutedUsername && (user?.role === "admin" || user?.role === "moderator") && (
                                         <button
                                             onClick={async () => {
@@ -501,7 +518,7 @@ export default function Chat() {
                                             }}
                                             className="text-[10px] px-2 py-0.5 bg-green-800 text-green-300 rounded hover:bg-green-700"
                                         >
-                                            Unmute
+                                            {t("chat.unmute")}
                                         </button>
                                     )}
                                 </div>
@@ -522,17 +539,17 @@ export default function Chat() {
                                                 className="text-blue-400 cursor-pointer hover:underline"
                                                 onClick={() => navigate(`/profile/${msg.sender}`)}
                                             >
-                                                {msg.sender}
+                                                <bdi>{msg.sender}</bdi>
                                             </span>
                                             {msg.sender_role === "admin" && (
-                                                <span className="ml-1 px-1 py-0.5 rounded text-[10px] font-bold bg-red-900/50 text-red-400">Admin</span>
+                                                <span className="ms-1 px-1 py-0.5 rounded text-[10px] font-bold bg-red-900/50 text-red-400">{t("role.admin")}</span>
                                             )}
                                             {msg.sender_role === "moderator" && (
-                                                <span className="ml-1 px-1 py-0.5 rounded text-[10px] font-bold bg-yellow-900/50 text-yellow-400">Mod</span>
+                                                <span className="ms-1 px-1 py-0.5 rounded text-[10px] font-bold bg-yellow-900/50 text-yellow-400">{t("role.mod")}</span>
                                             )}
                                         </p>
                                     )}
-                                    <p>{msg.content}</p>
+                                    <p dir="auto">{msg.content}</p>
                                     {(user?.role === "admin" || user?.role === "moderator") && msg.sender !== "system" && (
                                         <div className="flex gap-1 mt-1">
                                             <button
@@ -553,9 +570,9 @@ export default function Chat() {
                                     )}
                                 </div>
                                 <p className="text-xs text-gray-500 mt-1">
-                                    {new Date(msg.created_at).toLocaleTimeString()}
+                                    {d(msg.created_at)}
                                     {tab === "dm" && msg.sender === user?.username && otherReadAt && new Date(otherReadAt) >= new Date(msg.created_at) && (
-                                        <span className="ml-2 text-blue-400">✓ Seen</span>
+                                        <span className="ms-2 text-blue-400">✓ Seen</span>
                                     )}
                                 </p>
                             </div>
@@ -567,7 +584,7 @@ export default function Chat() {
 				{/* Mute dialog */}
                 {muteTarget && (
                     <div className="px-4 py-3 border-t border-gray-700 bg-yellow-900/20">
-                        <p className="text-yellow-300 text-sm mb-2">Mute {muteTarget.username} for:</p>
+                        <p className="text-yellow-300 text-sm mb-2">{t("chat.mutePrompt", { name: muteTarget.username })}</p>
                         <div className="flex gap-2">
 							{[5, 10, 30, 60].map((mins) => (
                                 <button
@@ -575,14 +592,14 @@ export default function Chat() {
                                     onClick={() => muteUser(muteTarget.username, mins)}
                                     className="px-2 py-1 bg-yellow-800 text-yellow-200 rounded text-xs hover:bg-yellow-700"
                                 >
-                                    {mins}m
+                                    {tn("common.minutes", mins)}
                                 </button>
                             ))}
                             <button
                                 onClick={() => setMuteTarget(null)}
                                 className="px-2 py-1 bg-gray-700 text-gray-300 rounded text-xs hover:bg-gray-600"
                             >
-                                Cancel
+                                {t("common.cancel")}
                             </button>
                         </div>
                     </div>
@@ -608,13 +625,13 @@ export default function Chat() {
                                 onClick={acceptGameInvite}
                                 className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 text-sm"
                             >
-                                Accept
+                                {t("common.accept")}
                             </button>
                             <button
                                 onClick={() => setGameInvite(null)}
                                 className="px-3 py-1 bg-gray-700 text-white rounded hover:bg-gray-600 text-sm"
                             >
-                                Decline
+                                {t("common.decline")}
                             </button>
                         </div>
                     </div>
@@ -637,7 +654,7 @@ export default function Chat() {
 							setInput(e.target.value)
 							socketRef.current?.sendTyping()
 						}}
-                        placeholder="Type a message..."
+                        placeholder={t("chat.placeholder")}
                         className="flex-1 px-4 py-2 bg-gray-900 text-white border border-gray-700 rounded focus:outline-none focus:border-blue-500"
                         maxLength={2000}
                     />
@@ -646,7 +663,7 @@ export default function Chat() {
                             type="button"
                             onClick={sendGameInvite}
                             className="px-3 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700 text-sm"
-                            title="Invite to play chess"
+                            title={t("chat.inviteToChess")}
                         >
                             ⚔️
                         </button>
@@ -655,7 +672,7 @@ export default function Chat() {
                         type="submit"
                         className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
                     >
-                        Send
+                        {t("common.send")}
                     </button>*/}
 					<button
                         type="submit"

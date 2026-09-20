@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { api } from "../api/client.ts"
+import { useT } from "../i18n/I18nProvider.tsx"
 
 interface Achievement {
     id: string
@@ -24,6 +25,7 @@ interface Props {
 }
 
 export default function Achievements({ username }: Props) {
+    const t = useT()
     const [data, setData] = useState<AchievementsData | null>(null)
 
     useEffect(() => {
@@ -44,7 +46,8 @@ export default function Achievements({ username }: Props) {
     return (
         <div className="bg-gray-800 rounded-lg border border-gray-700 p-5">
             <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-white">Chess Achievements</h2>
+                <h2 className="text-lg font-semibold text-white">{t("achievements.title")}</h2>
+                //<h2 className="text-lg font-semibold text-white">Chess Achievements</h2>
                 <span className="text-sm text-gray-400">
                     {data.unlocked_count} / {data.total_count}
                 </span>

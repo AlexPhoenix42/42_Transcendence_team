@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react"
 import { useNavigate } from "react-router-dom"
+import { useI18n } from "../i18n/I18nProvider.tsx"
 import { api } from "../api/client.ts"
 import { useAuth } from "../context/AuthContext.tsx"
 
@@ -18,6 +19,7 @@ interface GameData {
 }
 
 export default function ChessLobby() {
+    const { t, ts } = useI18n()
     const { user } = useAuth()
     const navigate = useNavigate()
 
@@ -120,7 +122,7 @@ export default function ChessLobby() {
 
             if (resp.ok) {
                 const data = await resp.json()
-                setSuccess("Game created! Waiting for opponent...")
+                setSuccess(t("chessLobby.msg.created"))
                 setPvpTimer("")
                 setPvpFen("")
                 setShowCreate(false)
@@ -128,10 +130,10 @@ export default function ChessLobby() {
                 fetchAll()
             } else {
                 const data = await resp.json()
-                setError(data.error || "Failed to create game")
+                setError(ts(data.error, "chessLobby.error.create"))
             }
         } catch {
-            setError("Network error. Please try again.")
+            setError(t("common.error.network"))
         }
     }
 
@@ -156,10 +158,10 @@ export default function ChessLobby() {
                 navigate(`/chess/${data.id}`)
             } else {
                 const data = await resp.json()
-                setError(data.error || "Failed to create AI game")
+                setError(ts(data.error, "chessLobby.error.createAI"))
             }
         } catch {
-            setError("Network error. Please try again.")
+            setError(t("common.error.network"))
         }
     }
 
@@ -175,10 +177,10 @@ export default function ChessLobby() {
                 navigate(`/chess/${gameId}`)
             } else {
                 const data = await resp.json()
-                setError(data.error || "Failed to join game")
+                setError(ts(data.error, "chessLobby.error.join"))
             }
         } catch {
-            setError("Network error. Please try again.")
+            setError(t("common.error.network"))
         }
     }
 
@@ -196,10 +198,10 @@ export default function ChessLobby() {
                 fetchAll()
             } else {
                 const data = await resp.json()
-                setError(data.error || "Failed to cancel game")
+                setError(ts(data.error, "chessLobby.error.cancel"))
             }
         } catch {
-            setError("Network error. Please try again.")
+            setError(t("common.error.network"))
         }
     }
 
@@ -215,15 +217,15 @@ export default function ChessLobby() {
                 fetchAll()
             } else {
                 const data = await resp.json()
-                setError(data.error || "Failed to resign")
+                setError(ts(data.error, "chessLobby.error.resign"))
             }
         } catch {
-            setError("Network error. Please try again.")
+            setError(t("common.error.network"))
         }
     }
 
     function formatTimer(timer: string | null): string {
-        if (!timer) return "Unlimited"
+        if (!timer) return t("chessLobby.unlimited")
         const parts = timer.split("+")
         return `${parts[0]} min + ${parts[1]} sec`
     }
@@ -231,12 +233,12 @@ export default function ChessLobby() {
     return (
         <div className="max-w-4xl mx-auto">
             <div className="flex items-center justify-between mb-6">
-                <h1 className="text-3xl font-bold text-white">Chess Lobby</h1>
+                <h1 className="text-3xl font-bold text-white">{t("chessLobby.title")}</h1>
                 <button
                     onClick={() => setShowCreate(!showCreate)}
                     className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
                 >
-                    {showCreate ? "Close" : "New Game"}
+                    {showCreate ? t("chessLobby.close") : t("chessLobby.newGame")}
                 </button>
             </div>
 
@@ -255,28 +257,28 @@ export default function ChessLobby() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                     {/* PvP */}
                     <div className="bg-gray-800 p-6 rounded-lg border border-gray-700">
-                        <h2 className="text-lg font-semibold text-white mb-4">Play vs Human</h2>
+                        <h2 className="text-lg font-semibold text-white mb-4">{t("chessLobby.vsHuman")}</h2>
                         <form onSubmit={createPvP} className="space-y-3">
                             <div>
-                                <label className="text-gray-400 text-sm">Time Control</label>
+                                <label className="text-gray-400 text-sm">{t("chessLobby.timeControl")}</label>
                                 <select
                                     value={pvpTimer}
                                     onChange={(e) => setPvpTimer(e.target.value)}
                                     className="w-full px-4 py-2 bg-gray-900 text-white border border-gray-700 rounded focus:outline-none focus:border-blue-500"
                                 >
-                                    <option value="">Unlimited</option>
+                                    <option value="">{t("chessLobby.unlimited")}</option>
                                     <option value="3+2">3 min + 2 sec</option>
                                     <option value="5+0">5 min</option>
                                     <option value="10+5">10 min + 5 sec</option>
                                 </select>
                             </div>
                             <div>
-                                <label className="text-gray-400 text-sm">Custom FEN (optional)</label>
+                                <label className="text-gray-400 text-sm">{t("chessLobby.customFen")}</label>
                                 <input
                                     type="text"
                                     value={pvpFen}
                                     onChange={(e) => setPvpFen(e.target.value)}
-                                    placeholder="Paste FEN for testing"
+                                    placeholder={t("chessLobby.fenPlaceholder")}
                                     className="w-full px-4 py-2 bg-gray-900 text-white border border-gray-700 rounded focus:outline-none focus:border-blue-500 text-xs"
                                 />
 								<label className="flex items-center gap-2 text-gray-400 text-sm">
@@ -290,47 +292,47 @@ export default function ChessLobby() {
 								</label>
                             </div>
                             <button type="submit" className="w-full py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
-                                Create Game
+                                {t("chessLobby.createGame")}
                             </button>
                         </form>
                     </div>
 
                     {/* AI */}
                     <div className="bg-gray-800 p-6 rounded-lg border border-gray-700">
-                        <h2 className="text-lg font-semibold text-white mb-4">Play vs AI</h2>
+                        <h2 className="text-lg font-semibold text-white mb-4">{t("chessLobby.vsAI")}</h2>
                         <form onSubmit={createAI} className="space-y-3">
                             <div>
-                                <label className="text-gray-400 text-sm">Difficulty</label>
+                                <label className="text-gray-400 text-sm">{t("chessLobby.difficulty")}</label>
                                 <select
                                     value={aiDifficulty}
                                     onChange={(e) => setAiDifficulty(e.target.value)}
                                     className="w-full px-4 py-2 bg-gray-900 text-white border border-gray-700 rounded focus:outline-none focus:border-blue-500"
                                 >
-                                    <option value="easy">Easy</option>
-                                    <option value="medium">Medium</option>
-                                    <option value="hard">Hard</option>
+                                    <option value="easy">{t("chessLobby.easy")}</option>
+                                    <option value="medium">{t("chessLobby.medium")}</option>
+                                    <option value="hard">{t("chessLobby.hard")}</option>
                                 </select>
                             </div>
                             <div>
-                                <label className="text-gray-400 text-sm">Time Control</label>
+                                <label className="text-gray-400 text-sm">{t("chessLobby.timeControl")}</label>
                                 <select
                                     value={aiTimer}
                                     onChange={(e) => setAiTimer(e.target.value)}
                                     className="w-full px-4 py-2 bg-gray-900 text-white border border-gray-700 rounded focus:outline-none focus:border-blue-500"
                                 >
-                                    <option value="">Unlimited</option>
+                                    <option value="">{t("chessLobby.unlimited")}</option>
                                     <option value="3+2">3 min + 2 sec</option>
                                     <option value="5+0">5 min</option>
                                     <option value="10+5">10 min + 5 sec</option>
                                 </select>
                             </div>
                             <div>
-                                <label className="text-gray-400 text-sm">Custom FEN (optional)</label>
+                                <label className="text-gray-400 text-sm">{t("chessLobby.customFen")}</label>
                                 <input
                                     type="text"
                                     value={aiFen}
                                     onChange={(e) => setAiFen(e.target.value)}
-                                    placeholder="Paste FEN for testing"
+                                    placeholder={t("chessLobby.fenPlaceholder")}
                                     className="w-full px-4 py-2 bg-gray-900 text-white border border-gray-700 rounded focus:outline-none focus:border-blue-500 text-xs"
                                 />
 								<label className="flex items-center gap-2 text-gray-400 text-sm">
@@ -344,7 +346,7 @@ export default function ChessLobby() {
 								</label>
                             </div>
                             <button type="submit" className="w-full py-2 bg-green-600 text-white rounded hover:bg-green-700">
-                                Play vs AI
+                                {t("chessLobby.vsAI")}
                             </button>
                         </form>
                     </div>
@@ -353,7 +355,7 @@ export default function ChessLobby() {
 
             {myGames.length > 0 && (
                 <div className="mb-6">
-                    <h2 className="text-xl font-semibold text-white mb-3">Your Active Games</h2>
+                    <h2 className="text-xl font-semibold text-white mb-3">{t("chessLobby.activeGames")}</h2>
                     <div className="space-y-2">
                         {myGames.map((game) => (
                             <div key={game.id} className="bg-gray-800 p-4 rounded-lg border border-gray-700 flex items-center gap-3">
@@ -365,13 +367,13 @@ export default function ChessLobby() {
                                     onClick={() => navigate(`/chess/${game.id}`)}
                                     className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
                                 >
-                                    Resume
+                                    {t("chessLobby.resume")}
                                 </button>
 								<button
                                     onClick={() => resignGame(game.id)}
                                     className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 text-sm"
                                 >
-                                    Resign
+                                    {t("chess.resign")}
                                 </button>
                             </div>
                         ))}
@@ -380,10 +382,10 @@ export default function ChessLobby() {
             )}
 
             <div className="mb-6">
-                <h2 className="text-xl font-semibold text-white mb-3">Open Games</h2>
+                <h2 className="text-xl font-semibold text-white mb-3">{t("chessLobby.openGames")}</h2>
                 <div className="space-y-2">
                     {openGames.length === 0 && (
-                        <p className="text-gray-400">No open games. Create one above.</p>
+                        <p className="text-gray-400">{t("chessLobby.noOpenGames")}</p>
                     )}
                     {openGames.map((game) => (
                         <div key={game.id} className="bg-gray-800 p-4 rounded-lg border border-gray-700 flex items-center gap-3">
@@ -395,14 +397,14 @@ export default function ChessLobby() {
                                     onClick={() => cancelGame(game.id)}
                                     className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 text-sm"
                                 >
-                                    Cancel
+                                    {t("common.cancel")}
                                 </button>
                             ) : (
                                 <button
                                     onClick={() => joinGame(game.id)}
                                     className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 text-sm"
                                 >
-                                    Join
+                                    {t("chessLobby.join")}
                                 </button>
                             )}
                         </div>
@@ -411,10 +413,10 @@ export default function ChessLobby() {
             </div>
 
             <div className="mb-6">
-                <h2 className="text-xl font-semibold text-white mb-3">Live Games</h2>
+                <h2 className="text-xl font-semibold text-white mb-3">{t("chessLobby.liveGames")}</h2>
                 <div className="space-y-2">
                     {liveGames.length === 0 && (
-                        <p className="text-gray-400">No live games to spectate.</p>
+                        <p className="text-gray-400">{t("chessLobby.noLiveGames")}</p>
                     )}
                     {liveGames.map((game) => (
                         <div key={game.id} className="bg-gray-800 p-4 rounded-lg border border-gray-700 flex items-center gap-3">
@@ -425,7 +427,7 @@ export default function ChessLobby() {
                                 onClick={() => navigate(`/chess/${game.id}`)}
                                 className="px-3 py-1 bg-yellow-600 text-white rounded hover:bg-yellow-700 text-sm"
                             >
-                                Watch
+                                {t("chessLobby.watch")}
                             </button>
                         </div>
                     ))}

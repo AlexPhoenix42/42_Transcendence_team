@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { api } from "../api/client.ts"
 import { Link } from "react-router-dom"
+import { useI18n } from "../i18n/I18nProvider.tsx"
 
 interface Friend {
     id: number
@@ -20,6 +21,7 @@ interface FriendRequest {
 }
 
 export default function Friends() {
+    const { t, ts } = useI18n()
     const [friends, setFriends] = useState<Friend[]>([])
     const [requests, setRequests] = useState<FriendRequest[]>([])
     const [sentRequests, setSentRequests] = useState<FriendRequest[]>([])
@@ -90,16 +92,16 @@ export default function Friends() {
             })
 
             if (resp.ok) {
-                setSuccess("Friend request sent")
+                setSuccess(t("friends.msg.sent"))
                 setUsername("")
                 fetchRequests()
                 fetchSentRequests()
             } else {
                 const data = await resp.json()
-                setError(data.error || "Failed to send request")
+                setError(ts(data.error, "friends.error.send"))
             }
         } catch {
-            setError("Network error. Please try again.")
+            setError(t("common.error.network"))
         }
     }
 
@@ -115,7 +117,7 @@ export default function Friends() {
                 fetchRequests()
             }
         } catch {
-            setError("Network error. Please try again.")
+            setError(t("common.error.network"))
         }
     }
 
@@ -129,7 +131,7 @@ export default function Friends() {
                 fetchSentRequests()
             }
         } catch {
-            setError("Network error. Please try again.")
+            setError(t("common.error.network"))
         }
     }
 
@@ -143,25 +145,25 @@ export default function Friends() {
                 fetchFriends()
             }
         } catch {
-            setError("Network error. Please try again.")
+            setError(t("common.error.network"))
         }
     }
 
     return (
         <div className="max-w-2xl mx-auto">
-            <h1 className="text-3xl font-bold text-white mb-6">Friends</h1>
+            <h1 className="text-3xl font-bold text-white mb-6">{t("friends.title")}</h1>
 
             <form onSubmit={sendRequest} className="flex gap-2 mb-6">
                 <input
                     type="text"
-                    placeholder="Add friend by username"
+                    placeholder={t("friends.addPlaceholder")}
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     className="flex-1 px-4 py-2 bg-gray-800 text-white border border-gray-700 rounded focus:outline-none focus:border-blue-500"
                     required
                 />
                 <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
-                    Send
+                    {t("common.send")}
                 </button>
             </form>
 
@@ -181,26 +183,26 @@ export default function Friends() {
                     onClick={() => setTab("friends")}
                     className={`px-4 py-2 rounded ${tab === "friends" ? "bg-blue-600 text-white" : "bg-gray-800 text-gray-400"}`}
                 >
-                    Friends ({friends.length})
+                    {t("friends.tab.friends", { count: friends.length })}
                 </button>
                 <button
                     onClick={() => setTab("requests")}
                     className={`px-4 py-2 rounded ${tab === "requests" ? "bg-blue-600 text-white" : "bg-gray-800 text-gray-400"}`}
                 >
-                    Requests ({requests.length})
+                    {t("friends.tab.requests", { count: requests.length })}
                 </button>
                 <button
                     onClick={() => setTab("sent")}
                     className={`px-4 py-2 rounded ${tab === "sent" ? "bg-blue-600 text-white" : "bg-gray-800 text-gray-400"}`}
                 >
-                    Sent ({sentRequests.length})
+                    {t("friends.tab.sent", { count: sentRequests.length })}
                 </button>
             </div>
 
             {tab === "friends" && (
                 <div className="space-y-2">
                     {friends.length === 0 && (
-                        <p className="text-gray-400">No friends yet. Send a request above.</p>
+                        <p className="text-gray-400">{t("friends.empty")}</p>
                     )}
                     {friends.map((friend) => (
                         <div key={friend.id} className="bg-gray-800 p-4 rounded-lg border border-gray-700 flex items-center gap-3">
@@ -208,13 +210,13 @@ export default function Friends() {
                                 {friend.username[0].toUpperCase()}
                             </div>
                             <Link to={`/profile/${friend.username}`} className="text-white hover:text-blue-400 flex-1">
-                                {friend.username}
+                                <bdi>{friend.username}</bdi>
                             </Link>
                             <button
                                 onClick={() => removeFriend(friend.id)}
 								className="px-3 py-1 bg-red-900/50 text-red-400 hover:bg-red-800 hover:text-white rounded text-sm"
                             >
-                                Remove
+                                {t("common.remove")}
                             </button>
                         </div>
                     ))}
@@ -224,7 +226,7 @@ export default function Friends() {
             {tab === "requests" && (
                 <div className="space-y-2">
                     {requests.length === 0 && (
-                        <p className="text-gray-400">No pending requests.</p>
+                        <p className="text-gray-400">{t("friends.noRequests")}</p>
                     )}
                     {requests.map((req) => (
                         <div key={req.id} className="bg-gray-800 p-4 rounded-lg border border-gray-700 flex items-center gap-3">
@@ -235,13 +237,13 @@ export default function Friends() {
                                 onClick={() => respondRequest(req.id, "accept")}
                                 className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 text-sm"
                             >
-                                Accept
+                                {t("common.accept")}
                             </button>
                             <button
                                 onClick={() => respondRequest(req.id, "decline")}
                                 className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 text-sm"
                             >
-                                Decline
+                                {t("common.decline")}
                             </button>
                         </div>
                     ))}
@@ -251,7 +253,7 @@ export default function Friends() {
             {tab === "sent" && (
                 <div className="space-y-2">
                     {sentRequests.length === 0 && (
-                        <p className="text-gray-400">No sent requests.</p>
+                        <p className="text-gray-400">{t("friends.noSent")}</p>
                     )}
                     {sentRequests.map((req) => (
                         <div key={req.id} className="bg-gray-800 p-4 rounded-lg border border-gray-700 flex items-center gap-3">
@@ -262,7 +264,7 @@ export default function Friends() {
                                 onClick={() => cancelRequest(req.id)}
                                 className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 text-sm"
                             >
-                                Cancel
+                                {t("common.cancel")}
                             </button>
                         </div>
                     ))}

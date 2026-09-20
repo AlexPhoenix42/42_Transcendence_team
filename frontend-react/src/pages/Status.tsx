@@ -1,6 +1,7 @@
 // frontend-react/src/pages/Status.tsx
 
 import { useState, useEffect, useCallback, useRef } from "react"
+import { useI18n } from "../i18n/I18nProvider.tsx"
 
 const POLL_INTERVAL = 15_000
 
@@ -20,9 +21,9 @@ interface HealthData {
 }
 
 const STATUS_CONFIG = {
-    healthy:   { dot: "bg-green-500",  badge: "bg-green-500/15 text-green-400", label: "All systems operational" },
-    degraded:  { dot: "bg-yellow-500", badge: "bg-yellow-500/15 text-yellow-400", label: "Some systems degraded" },
-    unhealthy: { dot: "bg-red-500",    badge: "bg-red-500/15 text-red-400", label: "System outage detected" },
+    healthy:   { dot: "bg-green-500",  badge: "bg-green-500/15 text-green-400", labelKey: "status.ok" },
+    degraded:  { dot: "bg-yellow-500", badge: "bg-yellow-500/15 text-yellow-400", labelKey: "status.degraded" },
+    unhealthy: { dot: "bg-red-500",    badge: "bg-red-500/15 text-red-400", labelKey: "status.outage" },
 } as const
 
 const KIND_ICONS: Record<string, string> = {
@@ -37,6 +38,7 @@ const KIND_ICONS: Record<string, string> = {
 const HISTORY_MAX = 60
 
 export default function Status() {
+    const { t, n, d } = useI18n()
     const [data, setData] = useState<HealthData | null>(null)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(false)
@@ -79,23 +81,23 @@ export default function Status() {
     return (
 		<div className="min-h-screen bg-gray-900">
 			<div className="max-w-2xl mx-auto py-10 px-4">
-				<h1 className="text-2xl font-bold text-white mb-1">System Status</h1>
+				<h1 className="text-2xl font-bold text-white mb-1">{t("status.title")}</h1>
 				<p className="text-sm text-gray-500 mb-8">
 					{data
 						? `${Object.keys(data.services).length} services monitored · checked in ${data.total_time_ms} ms`
-						: "Checking services…"}
+						: t("status.checking")}
 				</p>
 
 				{/* Overall banner */}
 				{loading ? (
 					<div className="rounded-lg border border-gray-700 bg-gray-800 px-5 py-4 mb-8 flex items-center gap-3">
 						<span className="w-2.5 h-2.5 rounded-full bg-gray-500 animate-pulse" />
-						<span className="text-gray-400 font-medium">Loading…</span>
+						<span className="text-gray-400 font-medium">{t("status.loading")}</span>
 					</div>
 				) : error ? (
 					<div className="rounded-lg border border-red-500/40 bg-red-500/10 px-5 py-4 mb-8 flex items-center gap-3">
 						<span className="w-2.5 h-2.5 rounded-full bg-red-500" />
-						<span className="text-red-400 font-medium">Cannot reach health API</span>
+						<span className="text-red-400 font-medium">{t("status.unreachable")}</span>
 					</div>
 				) : data && (
 					<div className={`rounded-lg border px-5 py-4 mb-8 flex items-center gap-3
@@ -108,7 +110,7 @@ export default function Status() {
 							data.status === "healthy" ? "text-green-400" :
 							data.status === "degraded" ? "text-yellow-400" : "text-red-400"
 						}`}>
-							{STATUS_CONFIG[data.status].label}
+							{t(STATUS_CONFIG[data.status].labelKey as never)}
 						</span>
 					</div>
 				)}
@@ -132,7 +134,7 @@ export default function Status() {
 								<span className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${cfg.badge}`}>
 									{svc.status}
 								</span>
-								<span className="text-xs text-gray-500 w-14 text-right tabular-nums">
+								<span className="text-xs text-gray-500 w-14 text-end tabular-nums">
 									{svc.response_time_ms} ms
 								</span>
 							</div>
@@ -144,7 +146,7 @@ export default function Status() {
 				{history.length > 1 && (
 					<div className="mt-8">
 						<p className="text-xs text-gray-500 mb-2">
-							Last {history.length} checks
+							Last {t("status.checks", { count: n(history.length) })}
 						</p>
 						<div className="flex gap-0.5 items-end">
 							{history.map((s, i) => (
@@ -165,7 +167,7 @@ export default function Status() {
 				<div className="mt-8 pt-4 border-t border-gray-700 flex justify-between items-center">
 					<span className="text-xs text-gray-500">
 						{data
-							? `Last updated ${new Date(data.timestamp).toLocaleTimeString()}`
+							? t("status.lastUpdated", { time: d(data.timestamp) })
 							: "—"}
 					</span>
 					<button

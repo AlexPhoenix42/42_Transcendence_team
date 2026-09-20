@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useNavigate, useParams } from "react-router-dom"
+import { useI18n } from "../i18n/I18nProvider.tsx"
 import { api } from "../api/client.ts"
 import { useAuth } from "../context/AuthContext.tsx"
 
@@ -18,6 +19,7 @@ interface MatchEntry {
 }
 
 export default function MatchHistory() {
+    const { t, tn, d } = useI18n()
     const { user } = useAuth()
     const { username } = useParams()
     const navigate = useNavigate()
@@ -42,41 +44,40 @@ export default function MatchHistory() {
                 const data = await resp.json()
                 setMatches(data)
             } else {
-                setError("Failed to load match history")
+                setError(t("history.error.load"))
             }
         } catch {
-            setError("Network error")
+            setError(t("common.error.networkShort"))
         }
     }
 
     function resultBadge(result: string) {
         if (result === "win")
-            return <span className="px-2 py-0.5 rounded text-xs font-bold bg-green-900/50 text-green-400">WIN</span>
+            return <span className="px-2 py-0.5 rounded text-xs font-bold bg-green-900/50 text-green-400">{t("history.result.win")}</span>
         if (result === "loss")
-            return <span className="px-2 py-0.5 rounded text-xs font-bold bg-red-900/50 text-red-400">LOSS</span>
-        return <span className="px-2 py-0.5 rounded text-xs font-bold bg-gray-700 text-gray-400">DRAW</span>
+            return <span className="px-2 py-0.5 rounded text-xs font-bold bg-red-900/50 text-red-400">{t("history.result.loss")}</span>
+        return <span className="px-2 py-0.5 rounded text-xs font-bold bg-gray-700 text-gray-400">{t("history.result.draw")}</span>
     }
 
     function reasonLabel(reason: string): string {
         const labels: Record<string, string> = {
-            CHECKMATE: "Checkmate",
-            RESIGNATION: "Resignation",
-            TIMEOUT: "Timeout",
-            STALEMATE: "Stalemate",
-            REPETITION: "Repetition",
-            "50_MOVES": "50-move rule",
-            INSUFFICIENT_MATERIAL: "Insufficient material",
-            DRAW: "Draw",
-            DRAW_REPETITION: "Draw (repetition)",
-            DRAW_50_MOVES: "Draw (50-move)",
-            DRAW_INSUFFICIENT: "Draw (insufficient material)",
+            CHECKMATE: t("reason.checkmate"),
+            RESIGNATION: t("reason.resignation"),
+            TIMEOUT: t("reason.timeout"),
+            STALEMATE: t("reason.stalemate"),
+            REPETITION: t("reason.repetition"),
+            "50_MOVES": t("reason.fiftyMoves"),
+            INSUFFICIENT_MATERIAL: t("reason.insufficient"),
+            DRAW: t("reason.draw"),
+            DRAW_REPETITION: t("reason.drawRepetition"),
+            DRAW_50_MOVES: t("reason.draw50"),
+            DRAW_INSUFFICIENT: t("reason.drawInsufficient"),
         }
         return labels[reason] || reason || ""
     }
 
     function formatDate(iso: string): string {
-        const d = new Date(iso)
-        return d.toLocaleDateString(undefined, {
+        return d(iso, {
             month: "short",
             day: "numeric",
             year: "numeric",
@@ -94,13 +95,13 @@ export default function MatchHistory() {
         <div className="max-w-3xl mx-auto">
             <div className="flex items-center justify-between mb-6">
                 <h1 className="text-3xl font-bold text-white">
-                    {isOwnHistory ? "Match History" : `${viewingUser}'s Matches`}
+                    {isOwnHistory ? t("history.title") : t("history.titleOther", { name: viewingUser ?? "" })}
                 </h1>
                 <button
                     onClick={() => navigate(-1)}
                     className="px-4 py-2 bg-gray-700 text-white rounded hover:bg-gray-600"
                 >
-                    Back
+                    {t("common.back")}
                 </button>
             </div>
 
@@ -114,26 +115,26 @@ export default function MatchHistory() {
             <div className="grid grid-cols-4 gap-4 mb-6">
                 <div className="bg-gray-800 rounded-lg border border-gray-700 p-4 text-center">
                     <p className="text-2xl font-bold text-white">{matches.length}</p>
-                    <p className="text-gray-400 text-sm">Games</p>
+                    <p className="text-gray-400 text-sm">{t("stats.games")}</p>
                 </div>
                 <div className="bg-gray-800 rounded-lg border border-gray-700 p-4 text-center">
                     <p className="text-2xl font-bold text-green-400">{wins}</p>
-                    <p className="text-gray-400 text-sm">Wins</p>
+                    <p className="text-gray-400 text-sm">{t("stats.wins")}</p>
                 </div>
                 <div className="bg-gray-800 rounded-lg border border-gray-700 p-4 text-center">
                     <p className="text-2xl font-bold text-red-400">{losses}</p>
-                    <p className="text-gray-400 text-sm">Losses</p>
+                    <p className="text-gray-400 text-sm">{t("stats.losses")}</p>
                 </div>
                 <div className="bg-gray-800 rounded-lg border border-gray-700 p-4 text-center">
                     <p className="text-2xl font-bold text-gray-400">{draws}</p>
-                    <p className="text-gray-400 text-sm">Draws</p>
+                    <p className="text-gray-400 text-sm">{t("stats.draws")}</p>
                 </div>
             </div>
 
             {/* Match list */}
 			<div className="bg-gray-800 rounded-lg border border-gray-700 overflow-x-auto">
                 {matches.length === 0 && (
-                    <p className="text-gray-400 text-center py-6">No matches played yet</p>
+                    <p className="text-gray-400 text-center py-6">{t("history.empty")}</p>
                 )}
 
                 {matches.map((match) => (
@@ -163,7 +164,7 @@ export default function MatchHistory() {
                             <div className="min-w-0">
                                 <span className="text-white text-sm font-semibold truncate block">{match.opponent}</span>
                                 {match.player2_is_ai && (
-                                    <span className="text-yellow-400 text-xs">(AI)</span>
+                                    <span className="text-yellow-400 text-xs">{t("history.ai")}</span>
                                 )}
                             </div>
                         </div>
@@ -178,17 +179,17 @@ export default function MatchHistory() {
                         </div>
 
                         {/* Reason */}
-                        <div className="text-right">
+                        <div className="text-end">
                             <span className="text-gray-400 text-xs">{reasonLabel(match.result_reason)}</span>
                         </div>
 
                         {/* Moves */}
-                        <div className="text-right">
-                            <span className="text-gray-500 text-xs">{match.moves_count} moves</span>
+                        <div className="text-end">
+                            <span className="text-gray-500 text-xs">{tn("history.moves", match.moves_count)}</span>
                         </div>
 
                         {/* Date */}
-                        <div className="text-right">
+                        <div className="text-end">
                             <span className="text-gray-500 text-xs">{formatDate(match.date)}</span>
                         </div>
                     </div>

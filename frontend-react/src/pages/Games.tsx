@@ -1,35 +1,37 @@
 // frontend-react/src/pages/Games.tsx
 
 import { Link } from "react-router-dom"
+import { useT } from "../i18n/I18nProvider.tsx"
 
 export default function Games() {
+    const t = useT()
     return (
         <div className="max-w-4xl mx-auto">
-            <h1 className="text-3xl font-bold text-white mb-6">Games</h1>
+            <h1 className="text-3xl font-bold text-white mb-6">{t("games.title")}</h1>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Link to="/chess" className="bg-gray-800 p-8 rounded-lg border border-gray-700 hover:border-blue-500 transition text-center">
                     <span className="text-4xl block mb-3">♟</span>
-                    <h2 className="text-xl font-semibold text-white mb-2">Chess</h2>
-                    <p className="text-gray-400">Classic chess — play online or vs AI</p>
+                    <h2 className="text-xl font-semibold text-white mb-2">{t("games.chess.title")}</h2>
+                    <p className="text-gray-400">{t("games.chess.body")}</p>
                 </Link>
 
 				<Link to="/coach" className="bg-gray-800 p-8 rounded-lg border border-gray-700 hover:border-blue-500 transition text-center">
                     <span className="text-4xl block mb-3">🎓</span>
-                    <h2 className="text-xl font-semibold text-white mb-2">Chess Coach</h2>
-                    <p className="text-gray-400">Ask an AI coach about chess</p>
+                    <h2 className="text-xl font-semibold text-white mb-2">{t("games.coach.title")}</h2>
+                    <p className="text-gray-400">{t("games.coach.body")}</p>
                 </Link>
 
 				<Link to="/goose" className="bg-gray-800 p-8 rounded-lg border border-gray-700 hover:border-green-500 transition text-center">
                     <span className="text-4xl block mb-3">🪿</span>
-                    <h2 className="text-xl font-semibold text-white mb-2">Game of the Goose</h2>
-                    <p className="text-gray-400">Classic board game — 2-6 players</p>
+                    <h2 className="text-xl font-semibold text-white mb-2">{t("games.goose.title")}</h2>
+                    <p className="text-gray-400">{t("games.goose.body")}</p>
                 </Link>
 
                 <div className="bg-gray-800 p-8 rounded-lg border border-gray-700 text-center opacity-50">
                     <span className="text-4xl block mb-3">👾</span>
-                    <h2 className="text-xl font-semibold text-white mb-2">Pacman</h2>
-                    <p className="text-gray-400">Coming soon</p>
+                    <h2 className="text-xl font-semibold text-white mb-2">{t("games.pacman.title")}</h2>
+                    <p className="text-gray-400">{t("games.pacman.body")}</p>
                 </div>
             </div>
         </div>

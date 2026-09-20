@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { useAuth } from "../context/AuthContext.tsx"
 import { api, getAccessToken, mediaUrl } from "../api/client.ts"
 import { useNavigate } from "react-router-dom"
+import { useI18n } from "../i18n/I18nProvider.tsx"
 import Achievements from "../components/Achievements.tsx"
 import { validateMaxLength } from '../utils/validate'
 
@@ -21,6 +22,7 @@ interface ProfileData {
 }
 
 export default function Profile() {
+    const { t, n, ts } = useI18n()
     const { user } = useAuth()
 	const navigate = useNavigate()
     const [profile, setProfile] = useState<ProfileData | null>(null)
@@ -56,7 +58,7 @@ export default function Profile() {
                 setBio(data.bio || "")
             }
         } catch {
-            setError("Failed to load profile")
+            setError(t("profile.error.load"))
         }
     }
 
@@ -94,13 +96,13 @@ export default function Profile() {
                 const data = await resp.json()
                 setProfile(data)
                 setEditing(false)
-                setSuccess("Profile updated")
+                setSuccess(t("profile.msg.updated"))
             } else {
                 const data = await resp.json()
-                setError(data.error || "Update failed")
+                setError(ts(data.error, "profile.error.update"))
             }
         } catch {
-            setError("Network error. Please try again.")
+            setError(t("common.error.network"))
         }
     }
 
@@ -134,12 +136,12 @@ export default function Profile() {
             if (resp.ok) {
                 const data = await resp.json()
                 setProfile(data)
-                setSuccess("Avatar updated")
+                setSuccess(t("profile.msg.avatarUpdated"))
             } else {
-                setError("Avatar upload failed")
+                setError(t("profile.error.avatar"))
             }
         } catch {
-            setError("Network error. Please try again.")
+            setError(t("common.error.network"))
         }
     }
 
@@ -157,10 +159,10 @@ export default function Profile() {
                 setTotpSecret(data.secret)
                 setEnabling2FA(true)
             } else {
-                setError(data.error || "Failed to enable 2FA")
+                setError(ts(data.error, "profile.2fa.error.enable"))
             }
         } catch {
-            setError("Network error. Please try again.")
+            setError(t("common.error.network"))
         }
     }
 
@@ -191,10 +193,10 @@ export default function Profile() {
                 setRecoveryCodes(data.recovery_codes || [])
                 setSuccess("2FA enabled successfully!")
             } else {
-                setError(data.error || "Invalid code")
+                setError(ts(data.error, "twofa.error.invalidCode"))
             }
         } catch {
-            setError("Network error. Please try again.")
+            setError(t("common.error.network"))
         }
     }
 
@@ -215,10 +217,10 @@ export default function Profile() {
     //            setSuccess("2FA disabled")
     //        } else {
     //            const data = await resp.json()
-    //            setError(data.error || "Failed to disable 2FA")
+    //            setError(ts(data.error))
     //        }
     //    } catch {
-    //        setError("Network error. Please try again.")
+    //        setError(t("common.error.network"))
     //    }
     //}
 
@@ -227,7 +229,7 @@ export default function Profile() {
         setError("")
 
         if (!disablePassword && !disableCode) {
-            setError("Enter your password or a 2FA code")
+            setError(t("profile.2fa.error.needCredential"))
             return
         }
 
@@ -249,20 +251,20 @@ export default function Profile() {
                 setSuccess("2FA disabled")
             } else {
                 const data = await resp.json()
-                setError(data.error || "Failed to disable 2FA")
+                setError(ts(data.error))
             }
         } catch {
-            setError("Network error. Please try again.")
+            setError(t("common.error.network"))
         }
     }
 
     if (!profile) {
-        return <p className="text-gray-400">Loading profile...</p>
+        return <p className="text-gray-400">{t("profile.loading")}</p>
     }
 
     return (
         <div className="max-w-2xl mx-auto">
-            <h1 className="text-3xl font-bold text-white mb-6">Profile</h1>
+            <h1 className="text-3xl font-bold text-white mb-6">{t("profile.title")}</h1>
 
             {success && (
                 <div className="bg-green-900/50 border border-green-500 text-green-300 px-4 py-2 rounded mb-4">
@@ -278,7 +280,7 @@ export default function Profile() {
             {/* Recovery codes display */}
             {recoveryCodes.length > 0 && (
                 <div className="bg-yellow-900/50 border border-yellow-500 text-yellow-300 px-4 py-4 rounded mb-4">
-                    <p className="font-bold mb-2">Save your recovery codes! They won't be shown again.</p>
+                    <p className="font-bold mb-2">{t("profile.2fa.recoveryWarning")}</p>
                     <div className="grid grid-cols-2 gap-2 font-mono text-sm">
                         {recoveryCodes.map((code, i) => (
                             <span key={i} className="bg-gray-900 px-2 py-1 rounded">{code}</span>
@@ -297,7 +299,7 @@ export default function Profile() {
                             }
                         </div>
                         <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
-                            <span className="text-white text-xs">Change</span>
+                            <span className="text-white text-xs">{t("profile.change")}</span>
                         </div>
                         <input
                             type="file"
@@ -308,12 +310,12 @@ export default function Profile() {
                     </label>
 					<div>
                         <div className="flex items-center gap-2">
-                            <h2 className="text-xl text-white font-semibold">{profile.username}</h2>
+                            <h2 className="text-xl text-white font-semibold"><bdi>{profile.username}</bdi></h2>
                             {profile.role === "admin" && (
-                                <span className="px-2 py-0.5 rounded text-xs font-bold bg-red-900/50 text-red-400">Admin</span>
+                                <span className="px-2 py-0.5 rounded text-xs font-bold bg-red-900/50 text-red-400">{t("role.admin")}</span>
                             )}
                             {profile.role === "moderator" && (
-                                <span className="px-2 py-0.5 rounded text-xs font-bold bg-yellow-900/50 text-yellow-400">Mod</span>
+                                <span className="px-2 py-0.5 rounded text-xs font-bold bg-yellow-900/50 text-yellow-400">{t("role.mod")}</span>
                             )}
                         </div>
                         <p className="text-gray-400">{profile.email}</p>
@@ -322,36 +324,36 @@ export default function Profile() {
 
                 <div className="grid grid-cols-3 gap-4 mb-6 text-center">
                     <div className="bg-gray-900 rounded p-3">
-                        <p className="text-2xl font-bold text-green-400">{profile.wins}</p>
-                        <p className="text-gray-400 text-sm">Wins</p>
+                        <p className="text-2xl font-bold text-green-400">{n(profile.wins)}</p>
+                        <p className="text-gray-400 text-sm">{t("stats.wins")}</p>
                     </div>
                     <div className="bg-gray-900 rounded p-3">
-                        <p className="text-2xl font-bold text-red-400">{profile.loss}</p>
-                        <p className="text-gray-400 text-sm">Losses</p>
+                        <p className="text-2xl font-bold text-red-400">{n(profile.loss)}</p>
+                        <p className="text-gray-400 text-sm">{t("stats.losses")}</p>
                     </div>
                     <div className="bg-gray-900 rounded p-3">
                         <p className="text-2xl font-bold text-gray-400">{profile.draw}</p>
-                        <p className="text-gray-400 text-sm">Draws</p>
+                        <p className="text-gray-400 text-sm">{t("stats.draws")}</p>
                     </div>
                 </div>
 
                 <div className="mb-4">
-                    <p className="text-gray-400 text-sm">Rating</p>
-                    <p className="text-white text-lg font-semibold">{profile.rating}</p>
+                    <p className="text-gray-400 text-sm">{t("stats.rating")}</p>
+                    <p className="text-white text-lg font-semibold">{n(profile.rating, { useGrouping: false })}</p>
                 </div>
 
 				<button
                     onClick={() => navigate("/history")}
                     className="mb-4 px-4 py-2 bg-gray-700 text-white rounded hover:bg-gray-600 text-sm w-full"
                 >
-                    View Match History
+                    {t("profile.viewHistory")}
                 </button>
 
 				<button
                     onClick={() => navigate("/analytics")}
                     className="mb-4 px-4 py-2 bg-gray-700 text-white rounded hover:bg-gray-600 text-sm w-full"
                 >
-                    View Analytics
+                    {t("profile.viewAnalytics")}
                 </button>
 
 				<Achievements />
@@ -359,7 +361,7 @@ export default function Profile() {
                 {editing ? (
                     <form onSubmit={handleSave} className="space-y-4">
                         <div>
-                            <label className="text-gray-400 text-sm">Display Name</label>
+                            <label className="text-gray-400 text-sm">{t("profile.displayName")}</label>
                             <input
                                 type="text"
                                 value={dispname}
@@ -368,7 +370,7 @@ export default function Profile() {
                             />
                         </div>
                         <div>
-                            <label className="text-gray-400 text-sm">Bio</label>
+                            <label className="text-gray-400 text-sm">{t("common.bio")}</label>
                             <textarea
                                 value={bio}
                                 onChange={(e) => setBio(e.target.value)}
@@ -378,25 +380,25 @@ export default function Profile() {
                         </div>
                         <div className="flex gap-2">
                             <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
-                                Save
+                                {t("common.save")}
                             </button>
                             <button type="button" onClick={() => setEditing(false)} className="px-4 py-2 bg-gray-700 text-white rounded hover:bg-gray-600">
-                                Cancel
+                                {t("common.cancel")}
                             </button>
                         </div>
                     </form>
                 ) : (
                     <div>
                         <div className="mb-4">
-                            <p className="text-gray-400 text-sm">Display Name</p>
-                            <p className="text-white">{profile.dispname || "Not set"}</p>
+                            <p className="text-gray-400 text-sm">{t("profile.displayName")}</p>
+                            <p className="text-white">{profile.dispname || t("profile.notSet")}</p>
                         </div>
                         <div className="mb-4">
-                            <p className="text-gray-400 text-sm">Bio</p>
-                            <p className="text-white">{profile.bio || "No bio yet"}</p>
+                            <p className="text-gray-400 text-sm">{t("common.bio")}</p>
+                            <p className="text-white">{profile.bio || t("profile.noBio")}</p>
                         </div>
                         <button onClick={() => setEditing(true)} className="px-4 py-2 bg-gray-700 text-white rounded hover:bg-gray-600">
-                            Edit Profile
+                            {t("profile.edit")}
                         </button>
                     </div>
                 )}
@@ -404,25 +406,25 @@ export default function Profile() {
 
             {/* 2FA Section */}
             <div className="bg-gray-800 rounded-lg p-6 border border-gray-700 mt-6">
-                <h2 className="text-xl text-white font-semibold mb-4">Two-Factor Authentication</h2>
+                <h2 className="text-xl text-white font-semibold mb-4">{t("profile.2fa.title")}</h2>
 
                 {enabling2FA ? (
                     <div className="space-y-4">
                         <p className="text-gray-400">Scan this QR code with your authenticator app, or enter the secret manually:</p>
 
                         <div className="bg-white p-4 rounded inline-block">
-                            <img src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrUri)}`} alt="QR Code" />
+                            <img src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrUri)}`} alt={t("profile.2fa.qrAlt")} />
                         </div>
 
                         <div>
-                            <p className="text-gray-400 text-sm">Manual entry secret:</p>
+                            <p className="text-gray-400 text-sm">{t("profile.2fa.manualEntry")}</p>
                             <code className="text-green-400 bg-gray-900 px-3 py-1 rounded text-sm block mt-1 break-all">{totpSecret}</code>
                         </div>
 
                         <form onSubmit={handleConfirm2FA} className="space-y-3">
                             <input
                                 type="text"
-                                placeholder="Enter 6-digit code to confirm"
+                                placeholder={t("profile.2fa.confirmPlaceholder")}
                                 value={confirmCode}
                                 onChange={(e) => setConfirmCode(e.target.value)}
                                 className="w-full px-4 py-2 bg-gray-900 text-white border border-gray-700 rounded focus:outline-none focus:border-blue-500 text-center text-xl tracking-widest"
@@ -431,10 +433,10 @@ export default function Profile() {
                             />
                             <div className="flex gap-2">
                                 <button type="submit" className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
-                                    Confirm
+                                    {t("common.confirm")}
                                 </button>
                                 <button type="button" onClick={() => setEnabling2FA(false)} className="px-4 py-2 bg-gray-700 text-white rounded hover:bg-gray-600">
-                                    Cancel
+                                    {t("common.cancel")}
                                 </button>
                             </div>
                         </form>
@@ -445,22 +447,22 @@ export default function Profile() {
 
                         {showDisable ? (
                             <form onSubmit={handleDisable2FA} className="space-y-3">
-                                <p className="text-gray-400 text-sm">Enter your password or a 2FA code to confirm:</p>
+                                <p className="text-gray-400 text-sm">{t("profile.2fa.confirmPrompt")}</p>
                                 <input
                                     type="password"
-                                    placeholder="Password"
+                                    placeholder={t("field.password")}
                                     value={disablePassword}
                                     onChange={(e) => { setDisablePassword(e.target.value); setDisableCode("") }}
                                     className="w-full px-4 py-2 bg-gray-900 text-white border border-gray-700 rounded focus:outline-none focus:border-blue-500"
                                 />
                                 <div className="flex items-center gap-2">
                                     <div className="flex-1 border-t border-gray-700"></div>
-                                    <span className="text-gray-500 text-sm">or</span>
+                                    <span className="text-gray-500 text-sm">{t("common.or")}</span>
                                     <div className="flex-1 border-t border-gray-700"></div>
                                 </div>
                                 <input
                                     type="text"
-                                    placeholder="2FA code"
+                                    placeholder={t("profile.2fa.codePlaceholder")}
                                     value={disableCode}
                                     onChange={(e) => { setDisableCode(e.target.value); setDisablePassword("") }}
                                     className="w-full px-4 py-2 bg-gray-900 text-white border border-gray-700 rounded focus:outline-none focus:border-blue-500 text-center tracking-widest"
@@ -468,24 +470,24 @@ export default function Profile() {
                                 />
                                 <div className="flex gap-2">
                                     <button type="submit" className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">
-                                        Disable 2FA
+                                        {t("profile.2fa.disable")}
                                     </button>
                                     <button type="button" onClick={() => setShowDisable(false)} className="px-4 py-2 bg-gray-700 text-white rounded hover:bg-gray-600">
-                                        Cancel
+                                        {t("common.cancel")}
                                     </button>
                                 </div>
                             </form>
                         ) : (
                             <button onClick={() => setShowDisable(true)} className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">
-                                Disable 2FA
+                                {t("profile.2fa.disable")}
                             </button>
                         )}
                     </div>
                 ) : (
                     <div>
-                        <p className="text-gray-400 mb-4">Add an extra layer of security to your account.</p>
+                        <p className="text-gray-400 mb-4">{t("profile.2fa.blurb")}</p>
                         <button onClick={handleEnable2FA} className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
-                            Enable 2FA
+                            {t("profile.2fa.enable")}
                         </button>
                     </div>
                 )}
