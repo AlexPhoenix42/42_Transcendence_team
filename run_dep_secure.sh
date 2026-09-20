@@ -28,7 +28,7 @@ chmod 600 "$DECRYPTED_SEC_ENV"
 chown 100:100 "$DECRYPTED_SEC_ENV"
 
 # 5. Cleanup on exit
-cleanup() { 
+cleanup() {
 	rm -f "$DECRYPTED_SEC_ENV"
 }
 trap cleanup EXIT
@@ -83,23 +83,29 @@ chown -R 65534:65534 "$PROMETHEUS_DATA_DIR"   # prometheus runs as UID 65534
 chown -R 472:472     "$GRAFANA_DATA_DIR"       # grafana runs as UID 472
 chmod 750 "$PROMETHEUS_DATA_DIR" "$GRAFANA_DATA_DIR"
 
-# XX. Run docker compose with inline env var, no export
-# only vault-init gets DECRYPTED_SEC_ENV via compose env.
-# All services use plain .env for non-secrets.
-#DECRYPTED_SEC_FILE="$DECRYPTED_SEC_ENV" \
-#docker compose -f docker-compose-dep.yml --env-file "$PLAIN_ENV" up -d --build "$@"
+# 12. Prepare white-board
+mkdir -p whiteboard/data
+chown -R 1000:1000 whiteboard/data
+chmod 750 whiteboard/data
 
-# Start Tailscale port forward for mobile access
-pkill -f "socat TCP-LISTEN:4444" 2>/dev/null || true
-socat TCP-LISTEN:4444,fork,bind=100.103.253.101 TCP:127.0.0.1:4443 &
+# frontend-react/dist/ must be rebuild since it is already in .gitignore
+cd frontend-react && npm run build && cd ..
 
-# the above line was edited here for Grafapha!
+# Build images in batches to avoid timeout
+docker compose -f docker-compose-dep.yml --env-file "$PLAIN_ENV" --env-file "$DECRYPTED_SEC_ENV" \
+    build postgres vault vault-init
+
+docker compose -f docker-compose-dep.yml --env-file "$PLAIN_ENV" --env-file "$DECRYPTED_SEC_ENV" \
+    build backend_django chess_engine stockfish_ai
+
+docker compose -f docker-compose-dep.yml --env-file "$PLAIN_ENV" --env-file "$DECRYPTED_SEC_ENV" \
+    build frontend_nginx timeout_checker backup
+
+# Start everything
 DECRYPTED_SEC_FILE="$DECRYPTED_SEC_ENV" \
     docker compose \
     -f docker-compose-dep.yml \
     --env-file "$PLAIN_ENV" \
     --env-file "$DECRYPTED_SEC_ENV" \
-    up -d --build "$@"
-
-#    -f monitoring/docker-compose.monitoring.yml \
+    up -d "$@"
 

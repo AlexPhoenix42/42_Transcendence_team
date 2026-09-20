@@ -25,7 +25,7 @@ chmod 600 "$DECRYPTED_SEC_ENV"
 chown 100:100 "$DECRYPTED_SEC_ENV"
 
 # 5. Cleanup on exit
-cleanup() { 
+cleanup() {
 	rm -f "$DECRYPTED_SEC_ENV"
 }
 trap cleanup EXIT
@@ -53,8 +53,13 @@ chown -R 100:100 "$BACKUP_DATA_DIR"
 chmod 750 "$BACKUP_DATA_DIR"
 chmod 700 "$BACKUP_DATA_DIR/restic-repo"
 
-# Reset Vault health state (sealed after reboot, vault-init didn't restart)
-docker compose -f docker-compose-dep.yml restart vault 2>/dev/null || true
+# This doesnt really work! we need to bring the containers down before bringing
+# them up! replaced by the next instruction.
+# Reset health state for services that may be stale after reboot
+#docker compose -f docker-compose-dep.yml restart vault postgres redis backend_django frontend_nginx 2>/dev/null || true
+
+# Clean slate — stop any stale containers before bringing up fresh
+docker compose -f docker-compose-dep.yml down 2>/dev/null || true
 
 # 9. Run docker compose (no --build)
 DECRYPTED_SEC_FILE="$DECRYPTED_SEC_ENV" \
@@ -67,6 +72,4 @@ DECRYPTED_SEC_FILE="$DECRYPTED_SEC_ENV" \
     --env-file "$PLAIN_ENV" \
     --env-file "$DECRYPTED_SEC_ENV" \
     up -d "$@"
-
-#    -f monitoring/docker-compose.monitoring.yml \
 

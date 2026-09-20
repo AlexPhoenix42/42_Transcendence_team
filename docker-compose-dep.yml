@@ -389,6 +389,17 @@ services:
       - trans_net
 
 
+# ── WBO: white board for all ──
+  whiteboard:
+    image:                lovasoa/wbo:latest
+    container_name:       trans_whiteboard
+    restart:              unless-stopped
+    volumes:
+      - ./whiteboard/data:/opt/app/server-data
+    networks:
+      - trans_net
+
+
 # ── Monitoring: prometheus, grafana, exporters ──
   prometheus:
     image: prom/prometheus:latest
