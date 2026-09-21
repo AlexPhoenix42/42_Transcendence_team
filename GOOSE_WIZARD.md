@@ -10,9 +10,12 @@ Branche : `3D`. Rien n'est committé — voir tout en bas pour les commandes.
 
 ## Comment ça marche (règles du jeu)
 
-- Le magicien avance de **1 à 3 cases à chaque tour**, il choisit lui-même
-  la direction (avant ou arrière), et boucle indéfiniment sur les 64 cases
-  du plateau (0 à 63).
+- Le magicien avance de **3 à 6 cases à chaque tour**, toujours en direction
+  de sa cible actuelle par le chemin le plus court (avant ou arrière), et
+  boucle indéfiniment sur les 64 cases du plateau (0 à 63). Cette vitesse
+  garantit qu'il finit toujours par rattraper sa cible, même en partie à
+  2 joueurs où il ne bouge qu'une fois par tour de chacun (voir
+  `_compute_wizard_step` dans `consumers.py`).
 - S'il atterrit sur la case d'un joueur — **actif ou déjà éliminé** — il lui
   pose une question à 4 choix, générée par IA, jamais deux fois la même
   dans une partie.
@@ -20,8 +23,12 @@ Branche : `3D`. Rien n'est committé — voir tout en bas pour les commandes.
   sur toute la partie, le joueur est **éliminé** : il devient spectateur
   pour le reste de la partie (ne joue plus, mais reste visible sur le
   plateau).
-- **Joueur déjà éliminé, bonne réponse** → **10 % de chance** d'être
-  ressuscité : retour à la case 0, compteur de fautes remis à zéro.
+- **Joueur déjà éliminé, bonne réponse** → +1 au compteur de "bonnes
+  réponses en spectateur". À la **2ᵉ bonne réponse cumulée** depuis son
+  élimination, il est **réintégré** : retour à la case 0, compteur de
+  fautes ET ce compteur remis à zéro. Une mauvaise réponse en spectateur
+  ne fait rien perdre — le compteur ne repart à zéro qu'en cas de nouvelle
+  élimination (`GoosePlayer.wizard_revive_progress`, migration 0004).
 - Le joueur a **25 secondes** pour répondre ; pas de réponse = compté comme
   faux.
 - La popup de question ne s'affiche que pour le joueur ciblé ; les autres

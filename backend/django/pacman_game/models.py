@@ -61,6 +61,12 @@ class Game(models.Model):
         default=GameStatus.WAITING, db_index=True,
     )
     level       = models.PositiveSmallIntegerField(default=1)
+    # Laquelle des 3 cartes jouables (`maps/map-{1,2,3}.ts` côté front,
+    # `MAP_ROWS[n]` côté serveur pour les grains/murs/pathfinding du bot).
+    # Choisie à la création du salon, fixe pour toute sa durée de vie.
+    map_choice  = models.PositiveSmallIntegerField(
+        default=1, choices=[(1, "Carte 1"), (2, "Carte 2"), (3, "Carte 3")],
+    )
     winner      = models.CharField(
         max_length=10, choices=Winner.choices, null=True, blank=True,
     )

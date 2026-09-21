@@ -18,6 +18,22 @@ import type PacmanBaby from "../PacmanBaby.ts";
 import type Pacman from "../Pacman.ts";
 import type Tile from "../Tile.ts";
 import type GameModel from "../GameModel.ts";
+import map1 from "../maps/map-1.ts";
+import map2 from "../maps/map-2.ts";
+import map3 from "../maps/map-3.ts";
+
+/** The 3 maps players can pick from at room creation (see `PacmanLobby.tsx`),
+ * mirrored server-side in `pacman_game/services.py`'s `MAPS` dict — same
+ * numbering (1/2/3), same source files, kept in sync by hand (no code
+ * sharing possible across TS/Python). `maze` is the CSS theme class
+ * (`Game.ts`'s `makeLevel` uses it for wall color + dot sprite color) that
+ * would normally come from the solo level-progression table alongside each
+ * map; picked here to match since multiplayer doesn't use that table. */
+const MAP_BY_CHOICE: Record<number, { rows: string[]; maze: string }> = {
+    1: { rows: map1, maze: "maze-1" },
+    2: { rows: map2, maze: "maze-2" },
+    3: { rows: map3, maze: "maze-3" },
+};
 
 /** No-op for the character constructor hooks a remote player never needs. */
 const noop = () => {};
@@ -88,6 +104,10 @@ const ROLE_LOOK: Record<string, string> = {
     builder: "drop-shadow(0 0 4px #38d430)",
 };
 
+/** Frightened (power pellet) tint, same for every ghost/Builder on every
+ * screen - see `_updateFrightenedTint`/`_updateRemoteFrightenedTints`. */
+const FRIGHTENED_FILTER = "brightness(0.7) sepia(1) hue-rotate(200deg) saturate(4)";
+
 /** Halo blanc ajouté au perso local pour repérer « soi » d'un coup d'œil. */
 const SELF_GLOW = "drop-shadow(0 0 5px #fff) brightness(1.12)";
 
@@ -101,6 +121,9 @@ export interface MultiplayerGameOptions extends JsPacmanOptions {
     role?: string;
     /** Display name (from the lobby / account). */
     playerName?: string;
+    /** Which of the 3 maps this room uses (1/2/3, from `Game.map_choice`
+     * server-side). Defaults to 1. */
+    mapChoice?: number;
     /** Skip the splash and start at once (set by the lobby, which already had everyone press "ready"). */
     autoStart?: boolean;
     /** Manche terminée, tout le monde revient au salon d'attente (voir `_restartRound`). */
@@ -114,6 +137,11 @@ type RemoteCharacter = Character & {
     _netY?: number;
     _netDir?: Direction | null;
     _lastSeen?: number;
+    /** Mirrors `_wasScared`/`_suppressedFrightenedUntil`, but per remote
+     * ghost — everyone should see the same frightened tint on someone
+     * else's ghost, not just its own controller. */
+    _wasScared?: boolean;
+    _suppressedFrightenedUntil?: number;
 };
 
 interface PositionMsg {
@@ -160,6 +188,8 @@ class MultiplayerGame extends JsPacman {
     _name: string;
     /** Come from the lobby: leave the splash on our own. */
     _autoStart: boolean;
+    /** Which of the 3 maps this room uses — see `MAP_BY_CHOICE`. */
+    _mapChoice: number;
 
     /** Ghost/Builder sprite the local player drives (ghost/builder roles). */
     avatar: GhostClass | null = null;
@@ -189,6 +219,14 @@ class MultiplayerGame extends JsPacman {
     /** `Date.now()` until which Pac-Man can eat ghosts (0 = not frightened). */
     _frightenedUntil = 0;
     _wasScared = false;
+    /**
+     * `_frightenedUntil` value (not a boolean — the WINDOW's end timestamp,
+     * so a later, unrelated window isn't accidentally suppressed too) at the
+     * moment OUR avatar was last sent home. Lets the tint snap back to normal
+     * immediately on `ghosthome` instead of staying blue until the frightened
+     * timer it interrupted naturally expires.
+     */
+    _suppressedFrightenedUntil = 0;
     /** Debounce: last time we reported a ghost contact to the server. */
     _lastContactAt = 0;
 
@@ -234,6 +272,7 @@ class MultiplayerGame extends JsPacman {
         this._localIsPacman = !this._isSpectator && PACMAN_ROLES.indexOf(this.role) !== -1;
         this._name = String(options.playerName || "").slice(0, 20);
         this._autoStart = !!options.autoStart;
+        this._mapChoice = MAP_BY_CHOICE[options.mapChoice as number] ? (options.mapChoice as number) : 1;
 
         this.avatar = null;
 
@@ -275,6 +314,7 @@ class MultiplayerGame extends JsPacman {
 
         this._frightenedUntil = 0;
         this._wasScared = false;
+        this._suppressedFrightenedUntil = 0;
         this._lastContactAt = 0;
 
         this._lastPowerAt = 0;
@@ -290,6 +330,18 @@ class MultiplayerGame extends JsPacman {
         this._roundOver = false;
         this.onReturnToLobby = options.onReturnToLobby || null;
         this._returnedToLobby = false;
+
+        // `Game.ts`'s own constructor (already run via `super()` above) calls
+        // `this.makeLevel()` on line 231 - polymorphism means OUR override
+        // ran, but `this._mapChoice` didn't exist yet at that point (can't
+        // set instance fields before `super()` returns), so it silently fell
+        // back to map 1 regardless of `options.mapChoice`. `reset()` tears
+        // down that wrongly-built level (map/pacman/ghosts) and calls
+        // `makeLevel()` again - this time with `_mapChoice` actually set -
+        // fixing it before anything is ever shown. Must run before the
+        // avatar/Pac-Man sprite setup right below, so that setup lands on
+        // the correct, final map.
+        this.reset();
 
         // Runs every frame, even on the splash screen, independent of mainLoop.
         this.addCallback(() => {
@@ -448,7 +500,17 @@ class MultiplayerGame extends JsPacman {
         if (!pac || pac._dotsHooked) return;
         pac._dotsHooked = true;
         pac.on("item:eatdot", (tile: Tile) => this.net.sendEatDot(tile.col, tile.row));
-        pac.on("item:eatpill", (tile: Tile) => this.net.sendEatDot(tile.col, tile.row));
+        pac.on("item:eatpill", (tile: Tile) => {
+            this.net.sendEatDot(tile.col, tile.row);
+            // The base engine's own `item:eatpill` handler (registered before
+            // this one, during construction) just set `_pauseFrames = 2` — a
+            // 2-frame freeze on Pac-Man's own movement, a classic-arcade
+            // "chomp" beat that's barely visible solo but reads as a stutter
+            // here, since we keep broadcasting position every frame regardless
+            // and other players see us stall mid-corridor. Cancel it right
+            // back out; nothing else in multiplayer needs this specific pause.
+            this._pauseFrames = 0;
+        });
     }
 
     /**
@@ -1047,7 +1109,30 @@ class MultiplayerGame extends JsPacman {
      * solo round rarely triggers but a long multiplayer round reliably does.
      */
     makeLevel(): void {
-        super.makeLevel();
+        // Multiplayer never advances `this.model.level` (no per-round level
+        // progression like solo), so the base engine would always load
+        // level 1's map (map-1). Swap in the room's chosen map for the
+        // duration of this one call: `getSettings("game")` reads straight
+        // off the level-data table, so the cleanest override without
+        // touching `Game.ts`/`GameModel.ts` is to intercept that lookup.
+        const chosen = MAP_BY_CHOICE[this._mapChoice] || MAP_BY_CHOICE[1];
+        const model = this.model as GameModel & {
+            getSettings(key: string): Record<string, unknown>;
+        };
+        const originalGetSettings = model.getSettings.bind(model);
+        model.getSettings = (key: string) => {
+            const settings = originalGetSettings(key);
+            if (key === "game") {
+                settings.map = chosen.rows;
+                settings.maze = chosen.maze;
+            }
+            return settings;
+        };
+        try {
+            super.makeLevel();
+        } finally {
+            model.getSettings = originalGetSettings;
+        }
 
         // `Bonus.js` fires `item:destroy` with no argument once its fruit has
         // reached the target tile twice, but `Game.js`'s own listener expects
@@ -1080,6 +1165,7 @@ class MultiplayerGame extends JsPacman {
         this._wasImprisoned = false;
         this._frightenedUntil = 0;
         this._wasScared = false;
+        this._suppressedFrightenedUntil = 0;
         this._lastContactAt = 0;
         this._papaAteFruit = false;
         if (this._baby) {
@@ -1286,14 +1372,32 @@ class MultiplayerGame extends JsPacman {
      * @private
      */
     _onGhostSentHome(ghostId: string): void {
-        if (ghostId !== this._selfId || this._localIsPacman || !this.avatar) return;
-        const hc = this.map.houseCenter;
-        this.avatar.x = hc.x;
-        this.avatar.y = hc.y;
-        this.avatar.dir = null;
-        this.avatar._dir = null;
-        this.avatar._nextDir = null;
-        this._avatarInHouse = true;
+        if (ghostId === this._selfId) {
+            if (this._localIsPacman || !this.avatar) return;
+            const hc = this.map.houseCenter;
+            this.avatar.x = hc.x;
+            this.avatar.y = hc.y;
+            this.avatar.dir = null;
+            this.avatar._dir = null;
+            this.avatar._nextDir = null;
+            this._avatarInHouse = true;
+            // Snap the tint back to normal right away instead of leaving it
+            // blue until `_frightenedUntil` (the window THIS catch happened
+            // inside) naturally runs out - `_updateFrightenedTint` would
+            // otherwise just see "still frightened" and keep it tinted.
+            this._suppressedFrightenedUntil = this._frightenedUntil;
+            this._wasScared = false;
+            this.avatar.el.style.filter = this._localLook();
+            return;
+        }
+
+        // Same snap-back for a REMOTE ghost, visible to everyone (not just
+        // its own controller) - see `_updateRemoteFrightenedTints`.
+        const remote = this.remotes.get(ghostId);
+        if (!remote) return;
+        remote._suppressedFrightenedUntil = this._frightenedUntil;
+        remote._wasScared = false;
+        remote.el.style.filter = ROLE_LOOK[remote._role || ""] || "";
     }
 
     /**
@@ -1303,12 +1407,33 @@ class MultiplayerGame extends JsPacman {
      */
     _updateFrightenedTint(): void {
         if (this._localIsPacman || !this.avatar) return;
-        const scared = this._frightenedUntil > Date.now();
+        const scared = this._frightenedUntil > Date.now()
+            && this._frightenedUntil !== this._suppressedFrightenedUntil;
         if (scared === this._wasScared) return;
         this._wasScared = scared;
         this.avatar.el.style.filter = scared
-            ? "brightness(0.7) sepia(1) hue-rotate(200deg) saturate(4)"
+            ? FRIGHTENED_FILTER
             : this._localLook();
+    }
+
+    /**
+     * Same tint, applied to every remote ghost/Builder so the frightened
+     * state reads the same on everyone's screen - previously only the
+     * controlling player's own view turned blue, so nobody else could tell
+     * a given ghost was currently eatable.
+     * @private
+     */
+    _updateRemoteFrightenedTints(): void {
+        const now = Date.now();
+        this.remotes.forEach((remote) => {
+            const role = remote._role;
+            if (!role || PACMAN_ROLES.indexOf(role) !== -1) return; // pacman-team roles never tint
+            const scared = this._frightenedUntil > now
+                && this._frightenedUntil !== remote._suppressedFrightenedUntil;
+            if (scared === remote._wasScared) return;
+            remote._wasScared = scared;
+            remote.el.style.filter = scared ? FRIGHTENED_FILTER : (ROLE_LOOK[role] || "");
+        });
     }
 
     /**
@@ -1339,6 +1464,7 @@ class MultiplayerGame extends JsPacman {
         this._maybeDestroyWall();
         this._checkGhostCatch();
         this._updateFrightenedTint();
+        this._updateRemoteFrightenedTints();
         this._hookBonus();
         this._checkBabyBirth();
         this._updateBaby();

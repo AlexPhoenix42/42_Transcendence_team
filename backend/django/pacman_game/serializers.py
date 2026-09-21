@@ -52,6 +52,7 @@ class GameSerializer(serializers.ModelSerializer):
             "room_name",
             "status",
             "level",
+            "map_choice",
             "winner",
             "created_by",
             "created_at",
@@ -74,6 +75,11 @@ class GameSerializer(serializers.ModelSerializer):
             "players",
             "player_count",
         ]
+
+    def validate_map_choice(self, value: int) -> int:
+        if value not in (1, 2, 3):
+            raise serializers.ValidationError("Carte 1, 2 ou 3 uniquement.")
+        return value
 
     def validate_room_name(self, value: str) -> str:
         # Même contrainte que _valid_room() côté consumer : slug alphanumérique

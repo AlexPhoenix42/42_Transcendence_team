@@ -21,7 +21,8 @@ interface Props {
 }
 
 const PLAYER_TOKENS = ["🐸", "🦊", "🐻", "🐰", "🦉", "🐱"]
-const WIZARD_HOP_MS = 420 // slower than player moves so each hop is clearly visible
+export const PLAYER_HOP_MS = 260 // per-square hop duration, slowed down so moves are easy to follow
+export const WIZARD_HOP_MS = 420 // slower than player moves so each hop is clearly visible
 
 const SPECIAL_SQUARES: Record<number, { icon: string; label: string; bg: string; border: string }> = {
     5:  { icon: "🪿", label: "Goose",  bg: "#166534", border: "#22c55e" },
@@ -180,7 +181,7 @@ export default function GooseBoard({ players, lastMove, wizardPosition = 0, wiza
             const pos = positions[steps[stepIndex]]
             setAnimPos(pos)
             stepIndex++
-        }, 150)
+        }, PLAYER_HOP_MS)
 
         return () => clearInterval(interval)
     }, [lastMove, size])
@@ -337,7 +338,7 @@ export default function GooseBoard({ players, lastMove, wizardPosition = 0, wiza
                 const pos = wizardHopping && wizardAnimPos ? wizardAnimPos : positions[wizardPosition]
                 if (!pos) return null
 
-                const wizardSize = Math.max(42, circleSize * 2.6)
+                const wizardSize = Math.max(30, circleSize * 1.8)
 
                 return (
                     <div

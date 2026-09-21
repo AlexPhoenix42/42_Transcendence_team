@@ -35,13 +35,24 @@ from django.core.cache          import cache
 from django.utils               import timezone
 from asgiref.sync               import sync_to_async
 
-from .services                  import RoomState
+from .services                  import (
+    RoomState, PACMAN_ROLES, GHOST_SPRITE_ROLES,
+    BOT_PACMAN_ID, BOT_PACMAN_NAME, BOT_START_COL, BOT_START_ROW,
+    bot_next_step, tile_to_pixel, pixel_to_tile,
+)
 
 logger = logging.getLogger(__name__)
 
 STATE_TTL               = 86400
 SYNC_INTERVAL_SECONDS   = 2
 ACTIVE_ROOMS_KEY        = "pacman_active_rooms"
+
+# Cadence des pas du bot (une tuile par tick) et rayon de contact avec un
+# fantôme, aligné sur `_checkGhostCatch()` côté front (`< 18` px).
+BOT_TICK_SECONDS        = 0.22
+BOT_CONTACT_RADIUS_PX   = 18
+# Direction (mot complet, comme envoyé par un client réel) selon le pas.
+_DIRECTION_WORDS = {(0, -1): 'up', (0, 1): 'down', (-1, 0): 'left', (1, 0): 'right'}
 
 ALLOWED_ROLES = (
     'pacman', 'madame_pacman', 'baby', 'blocker', 'builder',
@@ -59,6 +70,20 @@ _sync_tasks = {}
 
 def _room_key(room_name: str) -> str:
     return f"pacman:{room_name}"
+
+
+# Dernière position connue de CHAQUE joueur (pas seulement les fantômes — pas
+# cher de tout garder, et ça évite d'avoir à interroger `RoomState` pour
+# filtrer par rôle à l'écriture). Clé PAR JOUEUR plutôt qu'un seul dict pour
+# tout le salon : chaque `position_update` (~20/s/joueur) fait alors un
+# `cache.set` isolé, sans lecture-modification-écriture ni verrou — même
+# esprit que `touch()`/`seen_ts` (auto-correcteur, pas d'exigence de
+# cohérence forte). Lu par `_bot_loop` pour savoir où sont les fantômes.
+_POSITION_TTL = 5
+
+
+def _pos_key(room_name: str, pid: str) -> str:
+    return f"pacman:{room_name}:pos:{pid}"
 
 
 # Un salon où personne ne lance la manche est fermé au bout de ça (le sujet
@@ -107,6 +132,49 @@ def _reset_game_to_waiting_sync(room_name):
         winner=None,
         last_active=timezone.now(),
     )
+
+
+@database_sync_to_async
+def _persist_result_sync(room_name, room):
+    """Enregistre le résultat de la manche en base. Prend `room_name` (pas
+    `game_id`) pour être appelable depuis `_bot_loop`, qui n'a pas de
+    consumer/self — un id de salon suffit, une ligne `Game` de plus à lire."""
+    result = room.match_result()
+    if not result:
+        return
+    from .models import Game, GamePlayer, GameStatus
+    game = Game.objects.filter(room_name=room_name).only('pk').first()
+    if not game:
+        return
+    updated = Game.objects.filter(pk=game.pk).update(
+        status=GameStatus.FINISHED,
+        winner=result['winner'],
+        level=result['level'],
+        finished_at=timezone.now(),
+        duration_seconds=result['duration'],
+    )
+    if not updated:
+        return
+    for p in result['players']:
+        uid = p.get('user_id')
+        if uid is None:
+            continue
+        GamePlayer.objects.update_or_create(
+            game_id=game.pk,
+            user_id=uid,
+            defaults={
+                'role':  p['role'],
+                'score': p['score'],
+                'lives': p['lives'],
+                'won':   p['won'],
+            },
+        )
+
+
+async def _finish_game(room_name, room):
+    await _persist_result_sync(room_name, room)
+    await sync_to_async(cache.delete)(_room_key(room_name))
+    await sync_to_async(_drop_active_sync)(room_name)
 
 
 def _lobby_idle_age_sync(room_name):
@@ -315,6 +383,219 @@ def _room_lock(room_name: str) -> _RedisRoomLock:
     return _RedisRoomLock(room_name)
 
 
+# --- Bot Pac-Man (aucun humain n'a pris un rôle PACMAN_ROLES) ---------------
+#
+# `handle_round_start` ajoute un joueur virtuel `BOT_PACMAN_ID` à `room.players`
+# si personne n'a de rôle `PACMAN_ROLES` au lancement, puis démarre cette
+# boucle. Elle avance le bot d'une case par tick (`bot_next_step`, BFS vers le
+# grain le plus proche en évitant les fantômes non effrayés), diffuse sa
+# position comme le ferait un vrai client (`broadcast_position`), et
+# appelle les MÊMES méthodes de `RoomState` que les handlers humains
+# (`eat_dot`, `resolve_contact`) pour que score/vies/fin de manche restent
+# une seule source de vérité. Ownership Redis par salon, même schéma que
+# `_sync_loop` : plusieurs workers Daphne peuvent appeler `_ensure_bot_task`
+# pour le même salon, un seul doit réellement faire avancer le bot.
+
+_bot_tasks = {}
+
+
+def _bot_owner_key(room_name: str) -> str:
+    return f"pacman_bot_owner:{room_name}"
+
+
+async def _broadcast_contact_outcome(channel_layer, room_name, group_name, pacman_id, ghost_id, outcome, room):
+    """Diffuse le résultat d'un `resolve_contact()` déjà appliqué et
+    sauvegardé. Partagé par `handle_contact` (joueur humain) et `_bot_loop`
+    (le bot est traité exactement comme un Pac-Man de plus)."""
+    if outcome['type'] == 'ghost_home':
+        await channel_layer.group_send(
+            group_name,
+            {'type': 'broadcast_ghost_home', 'ghost': ghost_id, 'by': pacman_id},
+        )
+        await channel_layer.group_send(
+            group_name, {'type': 'broadcast_state_sync', 'snapshot': room.snapshot()},
+        )
+        return
+
+    if outcome['type'] == 'pacman_imprisoned':
+        await channel_layer.group_send(
+            group_name,
+            {
+                'type': 'broadcast_player_imprisoned',
+                'pid': pacman_id,
+                'seconds': outcome['seconds'],
+            },
+        )
+        await channel_layer.group_send(
+            group_name, {'type': 'broadcast_state_sync', 'snapshot': room.snapshot()},
+        )
+        return
+
+    # pacman_caught
+    await channel_layer.group_send(
+        group_name,
+        {'type': 'broadcast_player_caught', 'pid': pacman_id, 'lives': outcome['lives']},
+    )
+    if outcome['over']:
+        await channel_layer.group_send(
+            group_name,
+            {'type': 'broadcast_round_over', 'player_id': pacman_id, 'winner': 'ghosts'},
+        )
+    await channel_layer.group_send(
+        group_name, {'type': 'broadcast_state_sync', 'snapshot': room.snapshot()},
+    )
+    if outcome['over']:
+        await _finish_game(room_name, room)
+
+
+async def _bot_move_and_eat(channel_layer, room_name, group_name, current_tile, room):
+    """Un pas du bot vers le grain atteignable le plus proche (en évitant les
+    fantômes non effrayés quand un chemin le permet), diffusion de sa
+    position, et prise en compte s'il atterrit sur un grain. Retourne la
+    tuile (col, row) après ce tick — inchangée si aucun coup n'est possible."""
+    now = time.time()
+    frightened = now < room.frightened_until
+
+    ghost_pids = [pid for pid, p in room.players.items() if p.get('role') in GHOST_SPRITE_ROLES]
+    positions = {}
+    if ghost_pids:
+        positions = await sync_to_async(cache.get_many, thread_sensitive=False)(
+            [_pos_key(room_name, pid) for pid in ghost_pids]
+        )
+
+    ghost_pixels = {}
+    blocked = set()
+    for pid in ghost_pids:
+        pos = positions.get(_pos_key(room_name, pid))
+        if not pos:
+            continue
+        ghost_pixels[pid] = (pos['x'], pos['y'])
+        if not frightened:
+            col, row = pixel_to_tile(pos['x'], pos['y'])
+            blocked.add((col, row))
+            for dcol, drow in ((0, -1), (0, 1), (-1, 0), (1, 0)):
+                blocked.add((col + dcol, row + drow))
+
+    next_tile = bot_next_step(current_tile, room.dots | room.pellets, blocked, map_choice=room.map_choice)
+    if next_tile is None:
+        return current_tile  # rien à manger d'atteignable ce tick
+
+    dcol = next_tile[0] - current_tile[0]
+    if abs(dcol) > 1:  # tuile de tunnel qui boucle d'un bord à l'autre
+        dcol = -1 if dcol > 0 else 1
+    drow = next_tile[1] - current_tile[1]
+    direction = _DIRECTION_WORDS.get((dcol, drow), 'right')
+    x, y = tile_to_pixel(*next_tile)
+
+    await sync_to_async(cache.set, thread_sensitive=False)(
+        _pos_key(room_name, BOT_PACMAN_ID),
+        {'x': x, 'y': y, 'direction': direction},
+        timeout=_POSITION_TTL,
+    )
+    await channel_layer.group_send(
+        group_name,
+        {
+            'type': 'broadcast_position',
+            'player_id': BOT_PACMAN_ID,
+            'position': {'x': float(x), 'y': float(y)},
+            'direction': direction,
+        },
+    )
+
+    col, row = next_tile
+    async with _room_lock(room_name):
+        fresh = await sync_to_async(_load_state_sync)(room_name)
+        if fresh is None:
+            return next_tile
+        kind = fresh.eat_dot(BOT_PACMAN_ID, col, row)
+        cleared = kind is not None and fresh.is_cleared() and fresh.status != 'over'
+        if cleared:
+            fresh.status = 'over'
+            fresh.winner = 'pacman'
+        if kind is not None:
+            await sync_to_async(_save_state_sync)(room_name, fresh)
+
+    if kind is not None:
+        bot_player = fresh.players.get(BOT_PACMAN_ID, {})
+        await channel_layer.group_send(
+            group_name,
+            {
+                'type': 'broadcast_dot_eaten',
+                'col': col, 'row': row,
+                'by': BOT_PACMAN_ID,
+                'kind': kind,
+                'score': bot_player.get('score', 0),
+            },
+        )
+        if cleared:
+            await channel_layer.group_send(
+                group_name,
+                {'type': 'broadcast_round_over', 'player_id': BOT_PACMAN_ID, 'winner': 'pacman'},
+            )
+            await channel_layer.group_send(
+                group_name, {'type': 'broadcast_state_sync', 'snapshot': fresh.snapshot()},
+            )
+            await _finish_game(room_name, fresh)
+            return next_tile
+
+    # Contact avec un fantôme dont on connaît la position (pixels, même
+    # rayon que `_checkGhostCatch()` côté front).
+    for ghost_id, (gx, gy) in ghost_pixels.items():
+        if abs(x - gx) < BOT_CONTACT_RADIUS_PX and abs(y - gy) < BOT_CONTACT_RADIUS_PX:
+            async with _room_lock(room_name):
+                fresh2 = await sync_to_async(_load_state_sync)(room_name)
+                if fresh2 is None:
+                    break
+                outcome = fresh2.resolve_contact(BOT_PACMAN_ID, ghost_id, time.time())
+                if outcome is None:
+                    continue
+                await sync_to_async(_save_state_sync)(room_name, fresh2)
+            await _broadcast_contact_outcome(
+                channel_layer, room_name, group_name, BOT_PACMAN_ID, ghost_id, outcome, fresh2,
+            )
+            break
+
+    return next_tile
+
+
+async def _bot_loop(channel_layer, room_name, group_name):
+    owner_key = _bot_owner_key(room_name)
+    got_ownership = await sync_to_async(cache.add)(
+        owner_key, 1, timeout=BOT_TICK_SECONDS * 6,
+    )
+    if not got_ownership:
+        return
+
+    current_tile = (BOT_START_COL, BOT_START_ROW)
+    try:
+        while True:
+            await asyncio.sleep(BOT_TICK_SECONDS)
+            await sync_to_async(cache.set, thread_sensitive=False)(owner_key, 1, timeout=BOT_TICK_SECONDS * 6)
+
+            room = await sync_to_async(_load_state_sync, thread_sensitive=False)(room_name)
+            if room is None or room.status != 'playing' or BOT_PACMAN_ID not in room.players:
+                break
+
+            current_tile = await _bot_move_and_eat(
+                channel_layer, room_name, group_name, current_tile, room,
+            )
+    except asyncio.CancelledError:
+        pass
+    finally:
+        _bot_tasks.pop(room_name, None)
+        await sync_to_async(cache.delete)(owner_key)
+        await sync_to_async(cache.delete)(_pos_key(room_name, BOT_PACMAN_ID))
+
+
+def _ensure_bot_task(channel_layer, room_name, group_name):
+    task = _bot_tasks.get(room_name)
+    if task and not task.done():
+        return
+    _bot_tasks[room_name] = asyncio.ensure_future(
+        _bot_loop(channel_layer, room_name, group_name)
+    )
+
+
 class GameConsumer(AsyncWebsocketConsumer):
     """WebSocket du jeu Pac-Man multijoueur (temps réel, autoritaire serveur)."""
 
@@ -422,6 +703,9 @@ class GameConsumer(AsyncWebsocketConsumer):
                 task = _sync_tasks.pop(self.room_name, None)
                 if task:
                     task.cancel()
+                bot_task = _bot_tasks.pop(self.room_name, None)
+                if bot_task:
+                    bot_task.cancel()
             else:
                 await self._save_room(room)
 
@@ -524,8 +808,8 @@ class GameConsumer(AsyncWebsocketConsumer):
     @database_sync_to_async
     def _rehydrate_from_db(self) -> RoomState:
         from .models import Game, GameStatus
-        room = RoomState()
         game = Game.objects.filter(pk=self.game_id).first()
+        room = RoomState(map_choice=game.map_choice if game else 1)
         if game and game.status == GameStatus.IN_PROGRESS:
             room.status = 'playing'
             room.started_wall = (
@@ -546,39 +830,7 @@ class GameConsumer(AsyncWebsocketConsumer):
         )
 
     async def _finish_game(self, room: RoomState):
-        await self._persist_result(room)
-        await sync_to_async(cache.delete)(_room_key(self.room_name))
-        await sync_to_async(_drop_active_sync)(self.room_name)
-
-    @database_sync_to_async
-    def _persist_result(self, room: RoomState):
-        result = room.match_result()
-        if not result:
-            return
-        from .models import Game, GamePlayer, GameStatus
-        updated = Game.objects.filter(pk=self.game_id).update(
-            status=GameStatus.FINISHED,
-            winner=result['winner'],
-            level=result['level'],
-            finished_at=timezone.now(),
-            duration_seconds=result['duration'],
-        )
-        if not updated:
-            return
-        for p in result['players']:
-            uid = p.get('user_id')
-            if uid is None:
-                continue
-            GamePlayer.objects.update_or_create(
-                game_id=self.game_id,
-                user_id=uid,
-                defaults={
-                    'role':  p['role'],
-                    'score': p['score'],
-                    'lives': p['lives'],
-                    'won':   p['won'],
-                },
-            )
+        await _finish_game(self.room_name, room)
 
     def _display_name(self) -> str:
         name = getattr(self.user, 'dispname', '') or self.user.get_username()
@@ -623,12 +875,22 @@ class GameConsumer(AsyncWebsocketConsumer):
         )
 
     async def handle_round_start(self, data):
+        bot_needed = False
         async with _room_lock(self.room_name):
             room = await self._load_room()
             room.start()
+            bot_needed = not any(p.get('role') in PACMAN_ROLES for p in room.players.values())
+            if bot_needed:
+                # Personne n'a pris pacman/madame_pacman/blocker : sans ça,
+                # chaque client fige son Pac-Man local (`_setupLocalAvatar`)
+                # et la manche ne peut jamais se terminer — le bot joue à sa
+                # place (voir `_bot_loop`).
+                room.add_player(BOT_PACMAN_ID, role='pacman', name=BOT_PACMAN_NAME)
             await self._save_room(room)
         await self._mark_in_progress()
         _ensure_sync_task(self.channel_layer, self.room_name, self.room_group_name)
+        if bot_needed:
+            _ensure_bot_task(self.channel_layer, self.room_name, self.room_group_name)
         await self.channel_layer.group_send(
             self.room_group_name,
             {'type': 'broadcast_round_started', 'level': 1},
@@ -669,6 +931,14 @@ class GameConsumer(AsyncWebsocketConsumer):
             },
         )
 
+        if kind == 'pellet' and not cleared:
+            # `dot_eaten` ne porte pas `frightened_ms` - sans ce sync immédiat,
+            # les AUTRES joueurs n'apprenaient la fenêtre "effrayé" que via le
+            # prochain tick de `_sync_loop` (jusqu'à 2 s plus tard, sur une
+            # fenêtre de 6 s) - la teinte bleue d'un fantôme distant semblait
+            # ne jamais s'afficher côté observateurs.
+            await self._broadcast_sync(room)
+
         if cleared:
             await self.channel_layer.group_send(
                 self.room_group_name,
@@ -690,51 +960,10 @@ class GameConsumer(AsyncWebsocketConsumer):
                 return
             await self._save_room(room)
 
-        if outcome['type'] == 'ghost_home':
-            await self.channel_layer.group_send(
-                self.room_group_name,
-                {
-                    'type': 'broadcast_ghost_home',
-                    'ghost': ghost_id,
-                    'by': self.channel_name,
-                },
-            )
-            await self._broadcast_sync(room)
-            return
-
-        if outcome['type'] == 'pacman_imprisoned':
-            await self.channel_layer.group_send(
-                self.room_group_name,
-                {
-                    'type': 'broadcast_player_imprisoned',
-                    'pid': self.channel_name,
-                    'seconds': outcome['seconds'],
-                },
-            )
-            await self._broadcast_sync(room)
-            return
-
-        # pacman_caught
-        await self.channel_layer.group_send(
-            self.room_group_name,
-            {
-                'type': 'broadcast_player_caught',
-                'pid': self.channel_name,
-                'lives': outcome['lives'],
-            },
+        await _broadcast_contact_outcome(
+            self.channel_layer, self.room_name, self.room_group_name,
+            self.channel_name, ghost_id, outcome, room,
         )
-        if outcome['over']:
-            await self.channel_layer.group_send(
-                self.room_group_name,
-                {
-                    'type': 'broadcast_round_over',
-                    'player_id': self.channel_name,
-                    'winner': 'ghosts',
-                },
-            )
-        await self._broadcast_sync(room)
-        if outcome['over']:
-            await self._finish_game(room)
 
     async def handle_round_restart(self, data):
         # Ne rejoue PAS la manche en place : `_finish_game` a déjà supprimé
@@ -772,13 +1001,29 @@ class GameConsumer(AsyncWebsocketConsumer):
             return
         if x < 0 or x > 10000 or y < 0 or y > 10000:
             return
+        direction = data.get('direction', 'right')
+        # Pur relais vers les autres clients (comme avant) + une écriture
+        # best-effort, hors verrou, pour que `_bot_loop` sache où sont les
+        # fantômes (voir `_pos_key`). `thread_sensitive=False` est important
+        # ici : ce handler tourne à haute fréquence (~20/s/joueur) ; par
+        # défaut `sync_to_async` sérialise TOUT le code sync du process sur
+        # UN SEUL thread partagé (même piège déjà documenté sur le verrou de
+        # salon plus haut) — sans ça, ce `cache.set` en rafale suffit à
+        # saturer ce thread et fait déborder les files des groupes de
+        # diffusion ("N channels over capacity"), voire fait traîner
+        # l'authentification de nouvelles connexions WS jusqu'au rejet.
+        await sync_to_async(cache.set, thread_sensitive=False)(
+            _pos_key(self.room_name, self.channel_name),
+            {'x': float(x), 'y': float(y), 'direction': direction},
+            timeout=_POSITION_TTL,
+        )
         await self.channel_layer.group_send(
             self.room_group_name,
             {
                 'type': 'broadcast_position',
                 'player_id': self.channel_name,
                 'position': {'x': float(x), 'y': float(y)},
-                'direction': data.get('direction', 'right'),
+                'direction': direction,
             },
         )
 

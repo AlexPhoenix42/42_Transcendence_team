@@ -9,6 +9,7 @@ from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
 from asgiref.sync import sync_to_async
 from django.core.cache import cache
+from django.db.models import F
 
 from .models import GooseGame, GoosePlayer, GooseGameStatus
 from .wizard_service import generate_question
@@ -23,7 +24,278 @@ WIZARD_BOARD_SIZE      = 64  # squares 0..63
 WIZARD_ANSWER_SECONDS  = 25  # time given to answer before it counts as wrong
 WIZARD_CACHE_TTL       = WIZARD_ANSWER_SECONDS + 15  # buffer so the timeout task can still read the key
 WIZARD_MAX_STRIKES     = 3
-WIZARD_REVIVE_CHANCE   = 10  # 1 in 10
+# He advances once per player's roll_dice, so in a 2-player game he only
+# gets 2 moves per full round against the target's 1 move (avg ~7 via 2d6).
+# Average step must clear 3.5 (7 / 2) so he reliably closes ground even in
+# that worst case, instead of drifting backward forever.
+WIZARD_STEP_MIN        = 3
+WIZARD_STEP_MAX        = 6
+WIZARD_REVIVE_STREAK   = 2  # correct answers needed (while eliminated) to be reintegrated
+# Prisoners get an extra, unprompted revival question on this cadence, on top
+# of whatever they get from the wizard physically landing on their square —
+# waiting for that alone could take a long time. Never pauses the table.
+PRISON_QUESTION_INTERVAL_SECONDS = 60
+
+
+def _serialize_players(players):
+    return [
+        {
+            "username": p.user.username,
+            "position": p.position,
+            "turn_order": p.turn_order,
+            "skip_turns": p.skip_turns,
+            "is_active": p.is_active,
+            "wizard_strikes": p.wizard_strikes,
+            "color": PLAYER_COLORS[p.turn_order % len(PLAYER_COLORS)],
+        }
+        for p in players
+    ]
+
+
+# --- Grey Wizard mechanic ---
+#
+# Module-level (not consumer methods) because the prison-question loop below
+# needs to trigger encounters on its own schedule, independent of any single
+# WebSocket connection's lifetime — mirrors pacman_game's _sync_loop pattern.
+
+def _wizard_cache_key(game_id, username):
+    return f"goose:{game_id}:pending_question:{username}"
+
+
+@database_sync_to_async
+def _get_asked_questions(game_id):
+    game = GooseGame.objects.get(pk=game_id)
+    return list(game.wizard_questions_asked)
+
+
+@database_sync_to_async
+def _append_asked_question(game_id, question_text):
+    game = GooseGame.objects.get(pk=game_id)
+    asked = list(game.wizard_questions_asked)
+    asked.append(question_text)
+    game.wizard_questions_asked = asked
+    game.save(update_fields=["wizard_questions_asked"])
+
+
+@database_sync_to_async
+def _adjust_wizard_pending(game_id, delta):
+    GooseGame.objects.filter(pk=game_id).update(
+        wizard_pending_count=F("wizard_pending_count") + delta
+    )
+
+
+async def _start_wizard_encounter(channel_layer, game_group, game_id, username, is_active):
+    asked = await _get_asked_questions(game_id)
+    question = await generate_question(asked)
+    question["paused"] = is_active  # active-player encounters pause the table; prison ones don't
+
+    key = _wizard_cache_key(game_id, username)
+    added = await sync_to_async(cache.add)(key, question, timeout=WIZARD_CACHE_TTL)
+    if not added:
+        return  # this player already has a question pending
+
+    await _append_asked_question(game_id, question["question"])
+
+    if is_active:
+        await _adjust_wizard_pending(game_id, 1)
+
+    await channel_layer.group_send(
+        game_group,
+        {
+            "type": "broadcast_wizard_encounter",
+            "target": username,
+            "question": question["question"],
+            "choices": question["choices"],
+            "paused": is_active,
+        },
+    )
+
+    asyncio.create_task(_resolve_wizard_timeout(channel_layer, game_group, game_id, username))
+
+
+async def _resolve_wizard_timeout(channel_layer, game_group, game_id, username):
+    await asyncio.sleep(WIZARD_ANSWER_SECONDS)
+
+    key = _wizard_cache_key(game_id, username)
+    pending = await sync_to_async(cache.get)(key)
+    if not pending:
+        return  # already answered in time
+
+    await sync_to_async(cache.delete)(key)
+    await _resolve_wizard_answer(channel_layer, game_group, game_id, username, pending, choice_index=-1, timed_out=True)
+
+
+async def _resolve_wizard_answer(channel_layer, game_group, game_id, username, pending, choice_index, timed_out=False):
+    correct = (not timed_out) and (choice_index == pending["correct_index"])
+    paused = pending.get("paused", False)
+    outcome = await _apply_wizard_result(game_id, username, correct)
+    if outcome is None:
+        return
+
+    if paused:
+        await _adjust_wizard_pending(game_id, -1)
+
+    if outcome["wizard_wins"]:
+        message = f"☠️ Le magicien a éliminé {username} — plus personne n'est actif, le Magicien Gris gagne !"
+    elif outcome["eliminated"]:
+        message = f"☠️ Le magicien a éliminé {username} !"
+    elif outcome["revived"]:
+        message = f"✨ {username} a répondu juste {WIZARD_REVIVE_STREAK} fois et revient dans la partie !"
+    elif correct and not outcome["was_active"]:
+        message = (
+            f"✅ {username} a bien répondu au magicien "
+            f"({outcome['revive_progress']}/{WIZARD_REVIVE_STREAK} pour revenir)."
+        )
+    elif correct:
+        message = f"✅ {username} a bien répondu au magicien."
+    else:
+        message = f"❌ {username} s'est trompé face au magicien."
+
+    await channel_layer.group_send(
+        game_group,
+        {
+            "type": "broadcast_wizard_result",
+            "target": username,
+            "correct": correct,
+            "correct_index": pending["correct_index"],
+            "answered_index": None if timed_out else choice_index,
+            "paused": paused,
+            "eliminated": outcome["eliminated"],
+            "revived": outcome["revived"],
+            "strikes": outcome["strikes"],
+            "revive_progress": outcome["revive_progress"],
+            "players": outcome["players"],
+            "message": message,
+        },
+    )
+
+    if outcome["wizard_wins"]:
+        await channel_layer.group_send(
+            game_group,
+            {
+                "type": "broadcast_game_over",
+                "winner": None,
+                "wizard_wins": True,
+            },
+        )
+
+
+@database_sync_to_async
+def _apply_wizard_result(game_id, username, correct):
+    try:
+        player = GoosePlayer.objects.select_related("user").get(
+            game_id=game_id, user__username=username
+        )
+    except GoosePlayer.DoesNotExist:
+        return None
+
+    eliminated = False
+    revived = False
+    was_active = player.is_active
+
+    if player.is_active:
+        if not correct:
+            player.wizard_strikes += 1
+            if player.wizard_strikes >= WIZARD_MAX_STRIKES:
+                player.is_active = False
+                player.wizard_revive_progress = 0  # fresh count for this spectator stint
+                eliminated = True
+            player.save(update_fields=["wizard_strikes", "is_active", "wizard_revive_progress"])
+    else:
+        if correct:
+            player.wizard_revive_progress += 1
+            if player.wizard_revive_progress >= WIZARD_REVIVE_STREAK:
+                player.is_active = True
+                player.position = 0
+                player.wizard_strikes = 0
+                player.wizard_revive_progress = 0
+                revived = True
+            player.save(update_fields=["is_active", "position", "wizard_strikes", "wizard_revive_progress"])
+
+    game = GooseGame.objects.get(pk=game_id)
+    all_players = list(game.players.select_related("user").order_by("turn_order"))
+
+    wizard_wins = False
+    if eliminated and all(not p.is_active for p in all_players) and game.status == GooseGameStatus.IN_PROGRESS:
+        game.status = GooseGameStatus.FINISHED
+        game.save(update_fields=["status", "updated_at"])
+        wizard_wins = True
+
+    return {
+        "eliminated": eliminated,
+        "revived": revived,
+        "was_active": was_active,
+        "revive_progress": player.wizard_revive_progress,
+        "strikes": player.wizard_strikes,
+        "players": _serialize_players(all_players),
+        "wizard_wins": wizard_wins,
+    }
+
+
+# --- Prison question loop ---
+#
+# Runs once per in-progress game, independent of any single connection.
+# Multiple Daphne workers can call _ensure_prison_loop for the same game
+# (its players don't all land on the same worker) — cache.add (Redis SET NX)
+# lets only one worker actually own the loop, same guard as pacman's
+# _sync_owner_key. Self-terminates once the game is no longer IN_PROGRESS.
+
+_prison_tasks = {}
+
+
+def _prison_owner_key(game_id):
+    return f"goose_prison_owner:{game_id}"
+
+
+@database_sync_to_async
+def _game_status_and_prisoners(game_id):
+    try:
+        game = GooseGame.objects.get(pk=game_id)
+    except GooseGame.DoesNotExist:
+        return None, []
+    if game.status != GooseGameStatus.IN_PROGRESS:
+        return game.status, []
+    prisoners = list(
+        game.players.filter(is_active=False).values_list("user__username", flat=True)
+    )
+    return game.status, prisoners
+
+
+async def _prison_loop(channel_layer, game_group, game_id):
+    owner_key = _prison_owner_key(game_id)
+    got_ownership = await sync_to_async(cache.add)(
+        owner_key, 1, timeout=PRISON_QUESTION_INTERVAL_SECONDS * 3,
+    )
+    if not got_ownership:
+        return
+
+    try:
+        while True:
+            await asyncio.sleep(PRISON_QUESTION_INTERVAL_SECONDS)
+            await sync_to_async(cache.set)(
+                owner_key, 1, timeout=PRISON_QUESTION_INTERVAL_SECONDS * 3,
+            )
+
+            status, prisoners = await _game_status_and_prisoners(game_id)
+            if status != GooseGameStatus.IN_PROGRESS:
+                break
+
+            for username in prisoners:
+                await _start_wizard_encounter(channel_layer, game_group, game_id, username, is_active=False)
+    except asyncio.CancelledError:
+        pass
+    finally:
+        _prison_tasks.pop(game_id, None)
+        await sync_to_async(cache.delete)(owner_key)
+
+
+def _ensure_prison_loop(channel_layer, game_group, game_id):
+    task = _prison_tasks.get(game_id)
+    if task and not task.done():
+        return
+    _prison_tasks[game_id] = asyncio.ensure_future(
+        _prison_loop(channel_layer, game_group, game_id)
+    )
 
 
 class GooseGameConsumer(AsyncWebsocketConsumer):
@@ -38,6 +310,8 @@ class GooseGameConsumer(AsyncWebsocketConsumer):
 
         await self.channel_layer.group_add(self.game_group, self.channel_name)
         await self.accept()
+
+        _ensure_prison_loop(self.channel_layer, self.game_group, self.game_id)
 
         # Send current game state
         state = await self._get_game_state()
@@ -90,14 +364,34 @@ class GooseGameConsumer(AsyncWebsocketConsumer):
                 )
                 return
 
+            players_by_username = {p["username"]: p for p in result.get("players", [])}
             for username in result.get("wizard_targets", []):
-                await self._start_wizard_encounter(username)
+                is_active = players_by_username.get(username, {}).get("is_active", True)
+                await _start_wizard_encounter(self.channel_layer, self.game_group, self.game_id, username, is_active)
+
+    async def _handle_wizard_answer(self, choice_index):
+        if not isinstance(choice_index, int):
+            return
+
+        username = self.user.username
+        key = _wizard_cache_key(self.game_id, username)
+        pending = await sync_to_async(cache.get)(key)
+        if not pending:
+            return  # expired, already answered, or never asked
+
+        await sync_to_async(cache.delete)(key)
+        await _resolve_wizard_answer(self.channel_layer, self.game_group, self.game_id, username, pending, choice_index)
 
     @database_sync_to_async
     def _process_turn(self):
         game = GooseGame.objects.prefetch_related("players__user").get(pk=self.game_id)
 
         if game.status != GooseGameStatus.IN_PROGRESS:
+            return None
+
+        # The whole table pauses while an active player is being interrogated
+        # by the wizard — everyone watches, only the target answers.
+        if game.wizard_pending_count > 0:
             return None
 
         all_players = list(game.players.order_by("turn_order"))
@@ -138,7 +432,7 @@ class GooseGameConsumer(AsyncWebsocketConsumer):
                 "skipped": True,
                 "message": f"{current_player.user.username} skips a turn!",
                 "next_turn": active_players[game.current_turn % len(active_players)].user.username,
-                "players": self._serialize_players(all_players),
+                "players": _serialize_players(all_players),
                 "wizard_position": game.wizard_position,
                 "wizard_step": wizard_step,
                 "wizard_targets": wizard_targets,
@@ -197,7 +491,7 @@ class GooseGameConsumer(AsyncWebsocketConsumer):
             "extra_roll": extra_roll,
             "message": message,
             "next_turn": active_players[game.current_turn % len(active_players)].user.username if active_players and not game_over else None,
-            "players": self._serialize_players(all_players),
+            "players": _serialize_players(all_players),
             "wizard_position": game.wizard_position,
             "wizard_step": wizard_step,
             "wizard_targets": wizard_targets,
@@ -206,7 +500,7 @@ class GooseGameConsumer(AsyncWebsocketConsumer):
         }
 
     def _advance_wizard(self, game, all_players):
-        """Moves the Grey Wizard 1-3 squares toward whoever he's currently
+        """Moves the Grey Wizard 3-6 squares toward whoever he's currently
         hunting, wrapping around the board either way. He always has a
         target (picked from active or eliminated players) so he's guaranteed
         to reach someone eventually instead of wandering forever. Returns
@@ -237,9 +531,11 @@ class GooseGameConsumer(AsyncWebsocketConsumer):
         backward = WIZARD_BOARD_SIZE - forward
 
         if forward <= backward:
-            step = random.randint(1, min(forward, 3))
+            max_step = min(forward, WIZARD_STEP_MAX)
+            step = random.randint(min(WIZARD_STEP_MIN, max_step), max_step)
         else:
-            step = -random.randint(1, min(backward, 3))
+            max_step = min(backward, WIZARD_STEP_MAX)
+            step = -random.randint(min(WIZARD_STEP_MIN, max_step), max_step)
 
         if (game.wizard_position + step) % WIZARD_BOARD_SIZE == target.position:
             game.wizard_target = None  # arriving this turn — hunt someone new next time
@@ -307,20 +603,6 @@ class GooseGameConsumer(AsyncWebsocketConsumer):
                     loss=F("loss") + 1,
                 )
 
-    def _serialize_players(self, players):
-        return [
-            {
-                "username": p.user.username,
-                "position": p.position,
-                "turn_order": p.turn_order,
-                "skip_turns": p.skip_turns,
-                "is_active": p.is_active,
-                "wizard_strikes": p.wizard_strikes,
-                "color": PLAYER_COLORS[p.turn_order % len(PLAYER_COLORS)],
-            }
-            for p in players
-        ]
-
     @database_sync_to_async
     def _get_game_state(self):
         try:
@@ -339,142 +621,10 @@ class GooseGameConsumer(AsyncWebsocketConsumer):
             "game_id": game.pk,
             "status": game.status,
             "current_turn": current_player,
-            "players": self._serialize_players(all_players),
+            "players": _serialize_players(all_players),
             "wizard_position": game.wizard_position,
+            "wizard_paused": game.wizard_pending_count > 0,
             "winner": game.winner.username if game.winner else None,
-        }
-
-    # --- Grey Wizard mechanic ---
-
-    def _wizard_cache_key(self, username):
-        return f"goose:{self.game_id}:pending_question:{username}"
-
-    @database_sync_to_async
-    def _get_asked_questions(self):
-        game = GooseGame.objects.get(pk=self.game_id)
-        return list(game.wizard_questions_asked)
-
-    @database_sync_to_async
-    def _append_asked_question(self, question_text):
-        game = GooseGame.objects.get(pk=self.game_id)
-        asked = list(game.wizard_questions_asked)
-        asked.append(question_text)
-        game.wizard_questions_asked = asked
-        game.save(update_fields=["wizard_questions_asked"])
-
-    async def _start_wizard_encounter(self, username):
-        asked = await self._get_asked_questions()
-        question = await generate_question(asked)
-
-        key = self._wizard_cache_key(username)
-        added = await sync_to_async(cache.add)(key, question, timeout=WIZARD_CACHE_TTL)
-        if not added:
-            return  # this player already has a question pending
-
-        await self._append_asked_question(question["question"])
-
-        await self.channel_layer.group_send(
-            self.game_group,
-            {
-                "type": "broadcast_wizard_encounter",
-                "target": username,
-                "question": question["question"],
-                "choices": question["choices"],
-            },
-        )
-
-        asyncio.create_task(self._resolve_wizard_timeout(username))
-
-    async def _handle_wizard_answer(self, choice_index):
-        if not isinstance(choice_index, int):
-            return
-
-        username = self.user.username
-        key = self._wizard_cache_key(username)
-        pending = await sync_to_async(cache.get)(key)
-        if not pending:
-            return  # expired, already answered, or never asked
-
-        await sync_to_async(cache.delete)(key)
-        await self._resolve_wizard_answer(username, pending, choice_index)
-
-    async def _resolve_wizard_timeout(self, username):
-        await asyncio.sleep(WIZARD_ANSWER_SECONDS)
-
-        key = self._wizard_cache_key(username)
-        pending = await sync_to_async(cache.get)(key)
-        if not pending:
-            return  # already answered in time
-
-        await sync_to_async(cache.delete)(key)
-        await self._resolve_wizard_answer(username, pending, choice_index=-1, timed_out=True)
-
-    async def _resolve_wizard_answer(self, username, pending, choice_index, timed_out=False):
-        correct = (not timed_out) and (choice_index == pending["correct_index"])
-        outcome = await self._apply_wizard_result(username, correct)
-        if outcome is None:
-            return
-
-        if outcome["eliminated"]:
-            message = f"☠️ Le magicien a éliminé {username} !"
-        elif outcome["revived"]:
-            message = f"✨ Le magicien a ressuscité {username} !"
-        elif correct:
-            message = f"✅ {username} a bien répondu au magicien."
-        else:
-            message = f"❌ {username} s'est trompé face au magicien."
-
-        await self.channel_layer.group_send(
-            self.game_group,
-            {
-                "type": "broadcast_wizard_result",
-                "target": username,
-                "correct": correct,
-                "correct_index": pending["correct_index"],
-                "eliminated": outcome["eliminated"],
-                "revived": outcome["revived"],
-                "strikes": outcome["strikes"],
-                "players": outcome["players"],
-                "message": message,
-            },
-        )
-
-    @database_sync_to_async
-    def _apply_wizard_result(self, username, correct):
-        try:
-            player = GoosePlayer.objects.select_related("user").get(
-                game_id=self.game_id, user__username=username
-            )
-        except GoosePlayer.DoesNotExist:
-            return None
-
-        eliminated = False
-        revived = False
-
-        if player.is_active:
-            if not correct:
-                player.wizard_strikes += 1
-                if player.wizard_strikes >= WIZARD_MAX_STRIKES:
-                    player.is_active = False
-                    eliminated = True
-                player.save(update_fields=["wizard_strikes", "is_active"])
-        else:
-            if correct and random.randint(1, WIZARD_REVIVE_CHANCE) == 1:
-                player.is_active = True
-                player.position = 0
-                player.wizard_strikes = 0
-                player.save(update_fields=["is_active", "position", "wizard_strikes"])
-                revived = True
-
-        all_players = list(
-            GooseGame.objects.get(pk=self.game_id).players.select_related("user").order_by("turn_order")
-        )
-
-        return {
-            "eliminated": eliminated,
-            "revived": revived,
-            "strikes": player.wizard_strikes,
-            "players": self._serialize_players(all_players),
         }
 
     # Broadcast handlers
@@ -485,6 +635,7 @@ class GooseGameConsumer(AsyncWebsocketConsumer):
         await self.send(text_data=json.dumps({
             "type": "game_over",
             "winner": event["winner"],
+            "wizard_wins": event.get("wizard_wins", False),
         }))
 
     async def broadcast_wizard_encounter(self, event):
@@ -493,6 +644,7 @@ class GooseGameConsumer(AsyncWebsocketConsumer):
             "target": event["target"],
             "question": event["question"],
             "choices": event["choices"],
+            "paused": event["paused"],
         }))
 
     async def broadcast_wizard_result(self, event):
@@ -501,9 +653,12 @@ class GooseGameConsumer(AsyncWebsocketConsumer):
             "target": event["target"],
             "correct": event["correct"],
             "correct_index": event["correct_index"],
+            "answered_index": event["answered_index"],
+            "paused": event["paused"],
             "eliminated": event["eliminated"],
             "revived": event["revived"],
             "strikes": event["strikes"],
+            "revive_progress": event["revive_progress"],
             "players": event["players"],
             "message": event["message"],
         }))

@@ -15,6 +15,14 @@ interface Props {
 }
 
 export default function Wizard3D({ size = 56, hopping, reaction }: Props) {
+    // `size` comes from a board-relative calculation (circleSize * ratio)
+    // and is usually fractional. A fractional canvas size can round
+    // differently between the CSS-rendered box and the WebGL backing store
+    // three.js allocates for it, which is what triggers Firefox's
+    // "destination rect smaller than the viewport rect" warning — so the
+    // canvas must be an integer number of CSS pixels.
+    const px = Math.max(1, Math.round(size))
+
     const canvasRef = useRef<HTMLCanvasElement>(null)
     const hoppingRef = useRef(hopping)
     const reactionRef = useRef(reaction)
@@ -33,8 +41,8 @@ export default function Wizard3D({ size = 56, hopping, reaction }: Props) {
         camera.lookAt(0, 0.6, 0)
 
         const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true })
-        renderer.setSize(size, size, false)
         renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2))
+        renderer.setSize(px, px, false)
 
         scene.add(new THREE.AmbientLight(0xffffff, 0.7))
         const keyLight = new THREE.DirectionalLight(0xffffff, 1.1)
@@ -148,7 +156,7 @@ export default function Wizard3D({ size = 56, hopping, reaction }: Props) {
                 }
             })
         }
-    }, [size])
+    }, [px])
 
-    return <canvas ref={canvasRef} style={{ width: size, height: size, display: "block" }} />
+    return <canvas ref={canvasRef} style={{ width: px, height: px, display: "block" }} />
 }

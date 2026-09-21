@@ -2,9 +2,9 @@
 
 import { useState, useEffect, useRef, useCallback } from "react"
 import { useParams, useNavigate } from "react-router-dom"
-import { api } from "../api/client.ts"
+import { api, getAccessToken } from "../api/client.ts"
 import { useAuth } from "../context/AuthContext.tsx"
-import GooseBoard from "../components/GooseBoard.tsx"
+import GooseBoard, { PLAYER_HOP_MS, WIZARD_HOP_MS } from "../components/GooseBoard.tsx"
 import WizardQuiz from "../components/WizardQuiz.tsx"
 
 interface PlayerData {
@@ -18,8 +18,10 @@ interface PlayerData {
 }
 
 interface WizardEncounter {
+    target: string
     question: string
     choices: string[]
+    paused: boolean
 }
 
 const PLAYER_TOKENS = ["🐸", "🦊", "🐻", "🐰", "🦉", "🐱"]
@@ -36,6 +38,7 @@ export default function GooseGame() {
     const [currentTurn, setCurrentTurn] = useState<string | null>(null)
     const [gameStatus, setGameStatus] = useState("WAITING")
     const [winner, setWinner] = useState<string | null>(null)
+    const [wizardWon, setWizardWon] = useState(false)
     const [logs, setLogs] = useState<string[]>([])
     const [dice, setDice] = useState<[number, number] | null>(null)
     const [rolling, setRolling] = useState(false)
@@ -49,7 +52,8 @@ export default function GooseGame() {
     const [wizardMove, setWizardMove] = useState<{ from: number; step: number } | null>(null)
     const [wizardReaction, setWizardReaction] = useState<"correct" | "wrong" | null>(null)
     const [wizardEncounter, setWizardEncounter] = useState<WizardEncounter | null>(null)
-    const [wizardResult, setWizardResult] = useState<{ correct: boolean; correctIndex: number } | null>(null)
+    const [wizardResult, setWizardResult] = useState<{ correct: boolean; correctIndex: number; answeredIndex: number | null } | null>(null)
+    const [wizardPaused, setWizardPaused] = useState(false)
 
     const wsRef = useRef<WebSocket | null>(null)
     const logsEndRef = useRef<HTMLDivElement>(null)
@@ -73,6 +77,7 @@ export default function GooseGame() {
         setGameStatus(data.status)
         if (data.winner) setWinner(data.winner)
         if (typeof data.wizard_position === "number") syncWizardPosition(data.wizard_position)
+        if (typeof data.wizard_paused === "boolean") setWizardPaused(data.wizard_paused)
     }, [])
 
     // Fetch game info
@@ -104,7 +109,8 @@ export default function GooseGame() {
         if (!id) return
 
         const wsHost = window.location.hostname + ":9000"
-        const ws = new WebSocket(`ws://${wsHost}/ws/goose/${id}/`)
+        const token = getAccessToken()
+        const ws = new WebSocket(`ws://${wsHost}/ws/goose/${id}/${token ? `?token=${encodeURIComponent(token)}` : ""}`)
 
         ws.onmessage = (event) => {
             const data = JSON.parse(event.data)
@@ -128,7 +134,7 @@ export default function GooseGame() {
 
                     setTimeout(() => {
                         setPlayers(data.players || [])
-                    }, Math.abs(data.new_position - data.old_position) * 150 + 200)
+                    }, Math.abs(data.new_position - data.old_position) * PLAYER_HOP_MS + 200)
 
                     setLogs((prev) => [...prev, data.message])
 
@@ -144,23 +150,38 @@ export default function GooseGame() {
                         setWizardMove({ from, step })
                         setTimeout(() => {
                             syncWizardPosition(typeof data.wizard_position === "number" ? data.wizard_position : ((from + step) % 64 + 64) % 64)
-                        }, Math.abs(step) * 150 + 200)
+                        }, Math.abs(step) * WIZARD_HOP_MS + 200)
                     }
                 }, 600)
             }
 
             if (data.type === "game_over") {
                 setWinner(data.winner)
+                setWizardWon(!!data.wizard_wins)
                 setGameStatus("FINISHED")
-                setLogs((prev) => [...prev, `🏆 ${data.winner} wins!`])
+                setLogs((prev) => [
+                    ...prev,
+                    data.wizard_wins
+                        ? "🧙 Tous les joueurs sont en prison — le Magicien Gris gagne !"
+                        : `🏆 ${data.winner} wins!`,
+                ])
             }
 
             if (data.type === "wizard_encounter") {
                 setLogs((prev) => [...prev, `🧙 Le Magicien Gris interroge ${data.target} !`])
-                if (data.target === user?.username) {
+                // Active-player encounters (paused=true) pause the table and
+                // are shown to everyone; prison/revival ones (paused=false)
+                // stay private to the target and never block anyone.
+                if (data.paused || data.target === user?.username) {
                     setWizardResult(null)
-                    setWizardEncounter({ question: data.question, choices: data.choices })
+                    setWizardEncounter({
+                        target: data.target,
+                        question: data.question,
+                        choices: data.choices,
+                        paused: data.paused,
+                    })
                 }
+                if (data.paused) setWizardPaused(true)
             }
 
             if (data.type === "wizard_result") {
@@ -169,8 +190,14 @@ export default function GooseGame() {
                 setWizardReaction(data.correct ? "correct" : "wrong")
                 setTimeout(() => setWizardReaction(null), 1800)
 
-                if (data.target === user?.username) {
-                    setWizardResult({ correct: data.correct, correctIndex: data.correct_index })
+                if (data.paused) setWizardPaused(false)
+
+                if (data.paused || data.target === user?.username) {
+                    setWizardResult({
+                        correct: data.correct,
+                        correctIndex: data.correct_index,
+                        answeredIndex: data.answered_index,
+                    })
                     setTimeout(() => {
                         setWizardEncounter(null)
                         setWizardResult(null)
@@ -232,12 +259,12 @@ export default function GooseGame() {
     return (
         <div className="max-w-5xl mx-auto">
             {/* Header */}
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-2 lg:mb-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-white">
+                    <h1 className="text-lg lg:text-2xl font-bold text-white">
                         {gameInfo?.name || "Game of the Goose"}
                     </h1>
-                    <p className="text-gray-400 text-sm">
+                    <p className="text-gray-400 text-xs lg:text-sm">
                         {gameStatus === "WAITING" && "Waiting for players..."}
                         {gameStatus === "IN_PROGRESS" && currentTurn && (
                             <>
@@ -245,7 +272,8 @@ export default function GooseGame() {
                                 <span className="font-semibold text-white">{currentTurn}</span>'s turn
                             </>
                         )}
-                        {gameStatus === "FINISHED" && winner && `🏆 ${winner} wins!`}
+                        {gameStatus === "FINISHED" && wizardWon && "🧙 Le Magicien Gris gagne !"}
+                        {gameStatus === "FINISHED" && !wizardWon && winner && `🏆 ${winner} wins!`}
                     </p>
                 </div>
                 <div className="flex gap-2">
@@ -255,6 +283,15 @@ export default function GooseGame() {
                     >
                         {showRules ? "Hide Rules" : "How to Play"}
                     </button>
+                    {gameStatus === "IN_PROGRESS" && isMyTurn && isPlayer && (
+                        <button
+                            onClick={rollDice}
+                            disabled={rolling || wizardPaused}
+                            className="lg:hidden px-3 py-1.5 bg-yellow-600 text-white rounded hover:bg-yellow-700 text-sm font-bold disabled:opacity-50 active:scale-95 transition-transform"
+                        >
+                            {wizardPaused ? "🧙 En attente..." : rolling ? "Rolling..." : "🎲 Roll"}
+                        </button>
+                    )}
                     <button
                         onClick={() => navigate("/goose")}
                         className="px-3 py-1.5 md:px-4 md:py-2 bg-gray-700 text-white rounded hover:bg-gray-600 text-sm"
@@ -308,7 +345,7 @@ export default function GooseGame() {
                 {/* Sidebar */}
                 <div className="w-full lg:w-72 space-y-4">
                     {/* Players */}
-                    <div className="bg-gray-800 rounded-lg border border-gray-700 p-4">
+                    <div className="hidden lg:block bg-gray-800 rounded-lg border border-gray-700 p-4">
                         <h3 className="text-white font-semibold mb-3 text-sm">Players</h3>
                         <div className="space-y-2">
                             {players.map((p) => (
@@ -329,6 +366,11 @@ export default function GooseGame() {
                                     >
                                         {p.username}
                                     </span>
+                                    {!p.is_active && (
+                                        <span className="text-xs text-gray-300 bg-gray-600 px-1.5 py-0.5 rounded whitespace-nowrap">
+                                            ⛓️ Prison
+                                        </span>
+                                    )}
                                     <span className="text-xs text-gray-500">sq {p.position}</span>
                                     {p.skip_turns > 0 && (
                                         <span className="text-xs text-red-400">⏸ {p.skip_turns}</span>
@@ -339,7 +381,7 @@ export default function GooseGame() {
                     </div>
 
                     {/* Dice & Actions */}
-                    <div className="bg-gray-800 rounded-lg border border-gray-700 p-4">
+                    <div className="bg-gray-800 rounded-lg border border-gray-700 p-2 lg:p-4">
                         {gameStatus === "WAITING" && gameInfo?.created_by === user?.username && (
                             <button
                                 onClick={startGame}
@@ -358,13 +400,13 @@ export default function GooseGame() {
                         {gameStatus === "IN_PROGRESS" && (
                             <>
                                 {/* Dice display */}
-                                <div className="flex justify-center gap-4 mb-3">
-                                    <div className={`w-14 h-14 bg-white rounded-xl flex items-center justify-center text-3xl font-bold text-gray-900 shadow-lg ${
+                                <div className="flex justify-center gap-2 lg:gap-4 mb-1 lg:mb-3">
+                                    <div className={`w-9 h-9 lg:w-14 lg:h-14 bg-white rounded-xl flex items-center justify-center text-lg lg:text-3xl font-bold text-gray-900 shadow-lg ${
                                         diceAnim ? "animate-spin" : ""
                                     }`}>
                                         {diceAnim ? "?" : dice ? dice[0] : "·"}
                                     </div>
-                                    <div className={`w-14 h-14 bg-white rounded-xl flex items-center justify-center text-3xl font-bold text-gray-900 shadow-lg ${
+                                    <div className={`w-9 h-9 lg:w-14 lg:h-14 bg-white rounded-xl flex items-center justify-center text-lg lg:text-3xl font-bold text-gray-900 shadow-lg ${
                                         diceAnim ? "animate-spin" : ""
                                     }`}>
                                         {diceAnim ? "?" : dice ? dice[1] : "·"}
@@ -374,16 +416,18 @@ export default function GooseGame() {
                                 {isMyTurn && isPlayer && (
                                     <button
                                         onClick={rollDice}
-                                        disabled={rolling}
-                                        className="w-full py-3 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 font-bold text-lg disabled:opacity-50 active:scale-95 transition-transform"
+                                        disabled={rolling || wizardPaused}
+                                        className="hidden lg:block w-full py-3 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 font-bold text-lg disabled:opacity-50 active:scale-95 transition-transform"
                                     >
-                                        {rolling ? "Rolling..." : "🎲 Roll Dice"}
+                                        {wizardPaused ? "🧙 En attente du magicien..." : rolling ? "Rolling..." : "🎲 Roll Dice"}
                                     </button>
                                 )}
 
                                 {!isMyTurn && isPlayer && (
                                     <p className="text-gray-400 text-center text-sm">
-                                        Waiting for {PLAYER_TOKENS[players.find(p => p.username === currentTurn)?.turn_order ?? 0]} {currentTurn}...
+                                        {wizardPaused
+                                            ? "🧙 Le Magicien Gris interroge quelqu'un, en attente de sa réponse..."
+                                            : `Waiting for ${PLAYER_TOKENS[players.find(p => p.username === currentTurn)?.turn_order ?? 0]} ${currentTurn}...`}
                                     </p>
                                 )}
 
@@ -395,7 +439,22 @@ export default function GooseGame() {
                             </>
                         )}
 
-                        {gameStatus === "FINISHED" && winner && (
+                        {gameStatus === "FINISHED" && wizardWon && (
+                            <div className="text-center">
+                                <p className="text-purple-400 text-xl font-bold mb-1">🧙 Le Magicien Gris gagne !</p>
+                                <p className="text-gray-300 text-sm">
+                                    Tous les joueurs sont en prison, personne n'a pu finir la partie.
+                                </p>
+                                <button
+                                    onClick={() => navigate("/goose")}
+                                    className="mt-3 px-4 py-2 bg-gray-700 text-white rounded hover:bg-gray-600 text-sm"
+                                >
+                                    Back to Lobby
+                                </button>
+                            </div>
+                        )}
+
+                        {gameStatus === "FINISHED" && !wizardWon && winner && (
                             <div className="text-center">
                                 <p className="text-yellow-400 text-xl font-bold mb-1">🏆 Winner!</p>
                                 <p className="text-white text-lg">
@@ -412,7 +471,7 @@ export default function GooseGame() {
                     </div>
 
                     {/* Game Log */}
-                    <div className="bg-gray-800 rounded-lg border border-gray-700 p-4">
+                    <div className="hidden lg:block bg-gray-800 rounded-lg border border-gray-700 p-4">
                         <h3 className="text-white font-semibold mb-2 text-sm">Game Log</h3>
                         <div className="h-40 lg:h-48 overflow-y-auto space-y-1">
                             {logs.length === 0 && (
@@ -426,7 +485,7 @@ export default function GooseGame() {
                     </div>
 
                     {/* Legend */}
-                    <div className="bg-gray-800 rounded-lg border border-gray-700 p-4">
+                    <div className="hidden lg:block bg-gray-800 rounded-lg border border-gray-700 p-4">
                         <h3 className="text-white font-semibold mb-2 text-sm">Legend</h3>
                         <div className="grid grid-cols-2 gap-1 text-xs text-gray-400">
                             <span>🪿 Goose (double)</span>
@@ -444,6 +503,8 @@ export default function GooseGame() {
 
             {wizardEncounter && (
                 <WizardQuiz
+                    target={wizardEncounter.target}
+                    isTarget={wizardEncounter.target === user?.username}
                     question={wizardEncounter.question}
                     choices={wizardEncounter.choices}
                     onAnswer={answerWizard}

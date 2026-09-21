@@ -14,6 +14,7 @@
 # Les règles, constantes et signatures de méthodes sont identiques à l'original.
 
 import time
+from collections import deque
 
 
 # --- Disposition du labyrinthe (map-1, seul niveau) --------------------------
@@ -60,11 +61,108 @@ MAP1_ROWS = [
     '----------------------------',
 ]
 
+# Cartes 2 et 3, copiées telles quelles de `frontend-react/src/pacman/maps/
+# map-2.ts` et `map-3.ts` (déjà importées côté front dans `GameModel.ts`
+# pour la progression de niveau solo, mais jamais exposées au choix du
+# joueur ni connues du serveur avant ce travail). Même légende, même
+# géométrie 28x36 — vérifié que (14, 26), le point de départ du Pac-Man
+# solo, est une case franchissable sur les 3.
+MAP2_ROWS = [
+    'tttttt-==..........==-tttttt',
+    '======.==.========.==.======',
+    '======.==.========.==.======',
+    '=*...........==...........*=',
+    '=.=======.==.==.==.=======.=',
+    '=.=======.==.==.==.=======.=',
+    '=.==......==.==.==......==.=',
+    '=.==.====-==....==-====.==.=',
+    '=.==.====-========-====.==.=',
+    '=......==-========-==......=',
+    '======.==----------==.======',
+    '======.==-===hh===-==.======',
+    '=......==-===--===-==......=',
+    '=.====.==-=------=-==.====.=',
+    '=.====.---========---.====.=',
+    '=...==.==-========-==.==...=',
+    '===.==.==----------==.==.===',
+    '--=.==.====-====-====.==.=--',
+    '--=.==.====-====-====.==.=--',
+    '--=.........====.........=--',
+    '--=.=======.====.=======.=--',
+    '===.=======.====.=======.===',
+    'ttt....==...----...==....ttt',
+    '===.==.==.========.==.==.===',
+    '===.==.==.========.==.==.===',
+    '=*..==.......==.......==..*=',
+    '=.====.=====.==.=====.====.=',
+    '=.====.=====.==.=====.====.=',
+    '=..........................=',
+    '============================',
+    '----------------------------',
+    '----------------------------',
+]
+MAP2_ROWS = (
+    ['----------------------------'] * 3
+    + ['============================']
+    + MAP2_ROWS
+)
+
+MAP3_ROWS = [
+    '=.........==....==.........=',
+    '=.=======.==.==.==.=======.=',
+    '=*=======.==.==.==.=======*=',
+    '=.==.........==.........==.=',
+    '=.==.==.====.==.====.==.==.=',
+    '=....==.====.==.====.==....=',
+    '====.==.====.==.====.==.====',
+    '====.==..............==.====',
+    't....====-========-====....t',
+    '=.==-====-========-====-==.=',
+    '=.==--------------------==.=',
+    '=.====-==-===hh===-==-====.=',
+    '=.====-==-===--===-==-====.=',
+    '=.-----==-=------=-==-----.=',
+    '=.==-====-========-====-==.=',
+    '=.==-====-========-====-==.=',
+    '=.==--------------------==.=',
+    '=.====-=====-==-=====-====.=',
+    '=.====-=====-==-=====-====.=',
+    '=......==....==....==......=',
+    '===.==.==.========.==.==.===',
+    '===.==.==.========.==.==.===',
+    '=*..==.......--.......==..*=',
+    '=.====.=====.==.=====.====.=',
+    '=.====.=====.==.=====.====.=',
+    '=......==....==....==......=',
+    '=.====.==.========.==.====.=',
+    '=.====.==.========.==.====.=',
+    '=......==..........==......=',
+    '============================',
+    '----------------------------',
+    '----------------------------',
+]
+MAP3_ROWS = (
+    ['----------------------------'] * 3
+    + ['============================']
+    + MAP3_ROWS
+)
+
+MAPS = {1: MAP1_ROWS, 2: MAP2_ROWS, 3: MAP3_ROWS}
+
 # Rôles qui mangent les grains. `blocker` est un Pac-Man increvable (voir
 # `resolve_contact`) qui construit des murs anti-fantômes au lieu de tuer.
 # Miroir de pacman_game.models.PACMAN_ROLES (strings, pour garder cette couche
 # testable sans la base).
 PACMAN_ROLES = frozenset({'pacman', 'madame_pacman', 'baby', 'blocker'})
+
+# Les 4 fantômes-sprites, à l'exclusion de `builder` (rôle "camp fantômes"
+# mais qui ne touche pas Pac-Man pour le faire perdre une vie — il construit
+# des murs). C'est cette liste, pas `_WINNING_ROLES['ghosts']`, qu'il faut
+# utiliser pour savoir contre quels joueurs le bot Pac-Man doit vérifier un
+# contact.
+GHOST_SPRITE_ROLES = frozenset({
+    'ghost_pinky', 'ghost_blinky', 'ghost_inky', 'ghost_sue',
+})
 
 # Points, alignés sur `src/js/Game.js` (`dotScore` / `pillScore`).
 DOT_SCORE = 10
@@ -105,11 +203,117 @@ def seed_dots(rows):
     return dots, pellets
 
 
+# --- Bot Pac-Man (serveur) ---------------------------------------------------
+#
+# Quand personne n'a pris un rôle `PACMAN_ROLES` au lancement de la manche, le
+# serveur joue lui-même un Pac-Man (voir `_bot_loop` dans consumers.py) plutôt
+# que de laisser le Pac-Man de chaque client figé (`this.pacman.hide()`, voir
+# `_setupLocalAvatar` côté front). Miroir volontaire de la géométrie du front
+# (`Tile.ts` : tuile 32px, centre à `x+16`/`y+20` ; `Map.getTile` : le
+# labyrinthe boucle sur les colonnes hors-bornes pour les tunnels) — mêmes
+# nombres, pas de couplage de code possible entre TS et Python.
+BOT_PACMAN_ID = 'bot:pacman'
+BOT_PACMAN_NAME = '🤖 Bot'
+TILE_SIZE = 32
+MAZE_WIDTH = len(MAP1_ROWS[0])
+MAZE_HEIGHT = len(MAP1_ROWS)
+# Case de départ du Pac-Man humain en solo (`Game.ts`, `x:452, y:848`),
+# reconvertie en tuile pour que le bot démarre au même endroit logique.
+BOT_START_COL = round((452 - TILE_SIZE // 2) / TILE_SIZE)
+BOT_START_ROW = round((848 - TILE_SIZE // 2 - 4) / TILE_SIZE)
+
+# Une tuile est franchissable si ce n'est ni un mur (`=`) ni la maison des
+# fantômes (`h`) — même règle que `Ghost.canGo()` côté front, appliquée à
+# Pac-Man aussi (il n'entre pas plus dans la maison que les fantômes ne
+# devraient le laisser passer). Une par carte (`map_choice` 1/2/3).
+_WALKABLE_BY_MAP = {
+    choice: frozenset(
+        (col, row)
+        for row, line in enumerate(rows)
+        for col, ch in enumerate(line)
+        if ch not in ('=', 'h')
+    )
+    for choice, rows in MAPS.items()
+}
+
+
+def walkable_for(map_choice):
+    return _WALKABLE_BY_MAP.get(map_choice, _WALKABLE_BY_MAP[1])
+
+
+def tile_to_pixel(col, row):
+    """(col, row) -> centre de la tuile en pixels, mêmes constantes que `Tile.ts`."""
+    return (col * TILE_SIZE + TILE_SIZE // 2, row * TILE_SIZE + TILE_SIZE // 2 + 4)
+
+
+def pixel_to_tile(x, y):
+    """Inverse de `tile_to_pixel`, mêmes règles que `Map.getTile(x, y, true)`
+    côté front : troncature simple, pas de recentrage (l'offset de +16/+20
+    n'existe que pour placer le CENTRE d'une tuile, pas pour la retrouver)."""
+    return (int(x) // TILE_SIZE, int(y) // TILE_SIZE)
+
+
+def _wrap_col(col):
+    if col < 0:
+        return MAZE_WIDTH - 1
+    if col >= MAZE_WIDTH:
+        return 0
+    return col
+
+
+def _neighbors(cell, blocked, walkable):
+    col, row = cell
+    for dcol, drow in ((0, -1), (0, 1), (-1, 0), (1, 0)):
+        ncol, nrow = _wrap_col(col + dcol), row + drow
+        if not (0 <= nrow < MAZE_HEIGHT):
+            continue
+        n = (ncol, nrow)
+        if n in walkable and n not in blocked:
+            yield n
+
+
+def bot_next_step(start, targets, blocked=frozenset(), map_choice=1):
+    """BFS depuis `start` vers la cible atteignable la plus proche parmi
+    `targets` (typiquement les grains restants), en évitant `blocked`
+    (cases proches d'un fantôme non effrayé), sur la carte `map_choice`.
+    Retourne la PROCHAINE case du chemin (un pas), ou `None` si `start` est
+    déjà une cible ou qu'aucune n'est atteignable.
+
+    `blocked` n'est qu'un filtre souple : si aucun chemin n'existe en
+    l'évitant, on relance sans lui plutôt que de laisser le bot bloqué
+    (mieux vaut frôler un fantôme que ne plus jamais bouger).
+    """
+    if not targets:
+        return None
+    if start in targets:
+        return None
+
+    walkable = walkable_for(map_choice)
+
+    for avoid in (blocked, frozenset()):
+        if avoid and start in avoid:
+            continue  # le bot est déjà sur une case "bloquée" - ignore l'évitement ce tour
+        visited = {start}
+        queue = deque([(start, None)])
+        while queue:
+            cell, first_step = queue.popleft()
+            for n in _neighbors(cell, avoid, walkable):
+                if n in visited:
+                    continue
+                visited.add(n)
+                step = first_step or n
+                if n in targets:
+                    return step
+                queue.append((n, step))
+    return None
+
+
 class RoomState:
     """État partagé d'un salon : grains restants, scores, statut de manche."""
 
-    def __init__(self):
-        self.dots, self.pellets = seed_dots(MAP1_ROWS)
+    def __init__(self, map_choice=1):
+        self.map_choice = map_choice if map_choice in MAPS else 1
+        self.dots, self.pellets = seed_dots(MAPS[self.map_choice])
         self.status = 'lobby'          # 'lobby' | 'playing' | 'over'
         self.winner = None            # 'pacman' (tout mangé) | 'ghosts' (0 vie)
         # Fin de la fenêtre « effrayé » (time.time()), 0 = pas actif.
@@ -127,6 +331,7 @@ class RoomState:
 
     def to_dict(self):
         return {
+            'map_choice': self.map_choice,
             'dots': [list(cell) for cell in self.dots],
             'pellets': [list(cell) for cell in self.pellets],
             'status': self.status,
@@ -141,6 +346,9 @@ class RoomState:
     @classmethod
     def from_dict(cls, data):
         room = cls.__new__(cls)
+        room.map_choice = data.get('map_choice', 1)
+        if room.map_choice not in MAPS:
+            room.map_choice = 1
         room.dots = {tuple(cell) for cell in data.get('dots', [])}
         room.pellets = {tuple(cell) for cell in data.get('pellets', [])}
         room.status = data.get('status', 'lobby')
@@ -228,16 +436,26 @@ class RoomState:
             player['seen_ts'] = time.time()
 
     def prune(self, now):
-        """Retire les joueurs silencieux depuis trop longtemps."""
+        """Retire les joueurs silencieux depuis trop longtemps.
+
+        `BOT_PACMAN_ID` n'a pas de socket qui rafraîchit `seen_ts` (rien
+        n'appelle `touch()` pour lui) — sans cette exclusion, `_sync_loop`
+        (toutes les 2 s) le supprimerait de `room.players` ~10 s après le
+        lancement de la manche, coupant `_bot_loop` en plein milieu.
+        """
         stale = [
             pid for pid, p in self.players.items()
-            if now - p['seen_ts'] > PLAYER_TTL_SECONDS
+            if pid != BOT_PACMAN_ID and now - p['seen_ts'] > PLAYER_TTL_SECONDS
         ]
         for pid in stale:
             del self.players[pid]
 
     def empty(self):
-        return not self.players and not self.spectators
+        """Vrai si plus aucun humain (`BOT_PACMAN_ID` ne compte pas — sinon un
+        salon que tout le monde a quitté ne serait jamais reconnu comme vide
+        tant que le bot y figure encore comme "joueur")."""
+        real_players = (pid for pid in self.players if pid != BOT_PACMAN_ID)
+        return not any(real_players) and not self.spectators
 
     # --- manche -----------------------------------------------------------
 
@@ -352,8 +570,9 @@ class RoomState:
         return not self.dots and not self.pellets
 
     def reset_round(self):
-        """Nouvelle manche : grille repeuplée, scores et vies remis à neuf."""
-        self.dots, self.pellets = seed_dots(MAP1_ROWS)
+        """Nouvelle manche : grille repeuplée (même carte), scores et vies
+        remis à neuf."""
+        self.dots, self.pellets = seed_dots(MAPS[self.map_choice])
         self.status = 'lobby'
         self.winner = None
         self.frightened_until = 0.0
@@ -370,6 +589,7 @@ class RoomState:
         return {
             'status': self.status,
             'level': 1,
+            'map_choice': self.map_choice,
             'winner': self.winner,
             'dots': [list(cell) for cell in self.dots],
             'pellets': [list(cell) for cell in self.pellets],

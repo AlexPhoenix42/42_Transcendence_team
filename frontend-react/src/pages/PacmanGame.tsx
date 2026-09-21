@@ -60,6 +60,7 @@ export default function PacmanGame() {
     const [full, setFull] = useState(false) // toutes les places jouables prises
     const [roomExists, setRoomExists] = useState(false) // ligne Game créée via REST
     const [roomId, setRoomId] = useState<number | null>(null)
+    const [mapChoice, setMapChoice] = useState(1)
     const [isCreator, setIsCreator] = useState(false)
 
     const clientRef = useRef<PacmanLobbyClient | null>(null)
@@ -107,6 +108,7 @@ export default function PacmanGame() {
                 setRoomExists(true)
                 const g = await resp.json()
                 setRoomId(g.id ?? null)
+                setMapChoice(g.map_choice ?? 1)
                 setIsCreator(g.created_by === user?.username)
                 const playing = (g.players ?? []).filter(
                     (p: { role: string }) => p.role !== "spectator",
@@ -161,6 +163,7 @@ export default function PacmanGame() {
                     room: roomName,
                     role: myRole,
                     playerName: user?.username || "Joueur",
+                    mapChoice,
                     autoStart: true,
                     // Manche terminée, tout le monde revient au salon d'attente
                     // (écran « prêt ») au lieu de rejouer en place : voir le

@@ -25,6 +25,7 @@ interface RoomData {
     room_name: string
     status: string
     level: number
+    map_choice: number
     winner: string | null
     created_by: string
     created_at: string
@@ -54,7 +55,7 @@ function Row({
                 <br />
                 <span className="pm-item-meta">
                     {room.created_by} · {room.player_count} JOUEUR
-                    {room.player_count > 1 ? "S" : ""}
+                    {room.player_count > 1 ? "S" : ""} · CARTE {room.map_choice}
                     {live && ` · NIV ${room.level}`}
                 </span>
             </div>
@@ -72,6 +73,7 @@ export default function PacmanLobby() {
     const [liveRooms, setLiveRooms] = useState<RoomData[]>([])
 
     const [roomName, setRoomName] = useState("")
+    const [mapChoice, setMapChoice] = useState(1)
     const [error, setError] = useState("")
     const [showCreate, setShowCreate] = useState(false)
 
@@ -118,12 +120,13 @@ export default function PacmanLobby() {
         try {
             const resp = await api("/api/pacman/", {
                 method: "POST",
-                body: JSON.stringify({ room_name: name }),
+                body: JSON.stringify({ room_name: name, map_choice: mapChoice }),
             })
 
             if (resp.ok) {
                 setShowCreate(false)
                 setRoomName("")
+                setMapChoice(1)
                 navigate(`/pacman/${name}`)
             } else {
                 const data = await resp.json().catch(() => ({}))
@@ -184,6 +187,18 @@ export default function PacmanLobby() {
                                 placeholder="nom-du-salon"
                                 autoFocus
                             />
+                            <div className="pm-roles pm-roles-wrap">
+                                {[1, 2, 3].map((n) => (
+                                    <button
+                                        key={n}
+                                        type="button"
+                                        className={mapChoice === n ? "pm-role active" : "pm-role"}
+                                        onClick={() => setMapChoice(n)}
+                                    >
+                                        🗺️ Carte {n}
+                                    </button>
+                                ))}
+                            </div>
                             <button className="pm-btn" type="submit">
                                 Creer &amp; rejoindre
                             </button>
