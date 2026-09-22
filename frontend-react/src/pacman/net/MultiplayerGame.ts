@@ -342,6 +342,21 @@ class MultiplayerGame extends JsPacman {
         // avatar/Pac-Man sprite setup right below, so that setup lands on
         // the correct, final map.
         this.reset();
+        // `reset()` -> `makeLevel()` creates a fresh batch of ~224 dot/pill
+        // sprites via `addSprite()`. At this point in the constructor the
+        // game hasn't reached STATE_RUNNING yet (the async `waitForResources`
+        // chain from `super()`'s own `start()` is still mid-flight), so
+        // `addSprite()` deliberately skips loading each one individually -
+        // it expects a `preload()` sweep to pick them up. But `preload()` is
+        // only ever called from `start()`/`resume()`, neither of which runs
+        // again after this point, and `reset()`'s `clear()` reset
+        // `loadedSpritesIndex` to 0 - so the running `waitForResources` loop
+        // keeps checking these dots' `isReady()` forever without anything
+        // ever having called `.load()` on them: the loading screen hangs
+        // indefinitely (observed as `Animation.isReady()` reading `.complete`
+        // on an `img` that's never assigned). Sweep them now, same as the
+        // original (never-reset) sprites already got via `super()`'s call.
+        this.preload();
 
         // Runs every frame, even on the splash screen, independent of mainLoop.
         this.addCallback(() => {

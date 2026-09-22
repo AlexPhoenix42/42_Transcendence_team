@@ -18,8 +18,14 @@ const animationBase = {
  * Animation definitions for Pacman in different directions.
  */
 const animations = {
+    // droite/gauche échangées par rapport à characters.png : la bouche de la
+    // frame à offsetX=0 s'ouvre vers la gauche, celle à offsetX=64*12 vers la
+    // droite - vérifié pixel par pixel, pas une histoire de sens de lecture.
+    // (bug signalé : Pac-Man "marche à l'envers" - la sprite regardait le
+    // sens opposé au déplacement réel.)
     right: new Animation({
         ...animationBase,
+        offsetX: 64 * 12,
     }),
 
     down: new Animation({
@@ -34,7 +40,6 @@ const animations = {
 
     left: new Animation({
         ...animationBase,
-        offsetX: 64 * 12,
     }),
 };
 

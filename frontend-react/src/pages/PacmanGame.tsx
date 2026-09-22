@@ -496,7 +496,13 @@ export default function PacmanGame() {
                             </button>
                         </div>
 
-                        {kind === "player" && !full && (
+                        {kind === "player" && !full && isSolo && (
+                            <p className="pm-item-meta" style={{ marginTop: 18 }}>
+                                Mode solo : le jeu Pac-Man original, tu joues Pac-Man — pas de
+                                personnage à choisir.
+                            </p>
+                        )}
+                        {kind === "player" && !full && !isSolo && (
                             <>
                                 <div className="pm-panel-title" style={{ marginTop: 18 }}>
                                     Personnage
@@ -545,40 +551,47 @@ export default function PacmanGame() {
                                     </span>
                                 )}
                             </div>
-                            <div className="pm-roles pm-roles-wrap">
-                                <button
-                                    className={myRole === "spectator" ? "pm-role active" : "pm-role"}
-                                    onClick={() => {
-                                        setKind("spectator")
-                                        pickRole("spectator")
-                                    }}
-                                >
-                                    👁️ Spectateur
-                                </button>
-                                {CHARACTERS.map((c) => {
-                                    const taken = takenByOthers.has(c.role)
-                                    return (
-                                        <button
-                                            key={c.role}
-                                            disabled={taken}
-                                            className={
-                                                myRole === c.role
-                                                    ? "pm-role active"
-                                                    : taken
-                                                      ? "pm-role taken"
-                                                      : "pm-role"
-                                            }
-                                            onClick={() => {
-                                                setKind("player")
-                                                pickRole(c.role)
-                                            }}
-                                        >
-                                            {c.label}
-                                            {taken && <span className="pm-taken">pris</span>}
-                                        </button>
-                                    )
-                                })}
-                            </div>
+                            {isSolo ? (
+                                <p className="pm-item-meta">
+                                    Mode solo : le jeu Pac-Man original, tu joues Pac-Man — pas de
+                                    personnage à choisir.
+                                </p>
+                            ) : (
+                                <div className="pm-roles pm-roles-wrap">
+                                    <button
+                                        className={myRole === "spectator" ? "pm-role active" : "pm-role"}
+                                        onClick={() => {
+                                            setKind("spectator")
+                                            pickRole("spectator")
+                                        }}
+                                    >
+                                        👁️ Spectateur
+                                    </button>
+                                    {CHARACTERS.map((c) => {
+                                        const taken = takenByOthers.has(c.role)
+                                        return (
+                                            <button
+                                                key={c.role}
+                                                disabled={taken}
+                                                className={
+                                                    myRole === c.role
+                                                        ? "pm-role active"
+                                                        : taken
+                                                          ? "pm-role taken"
+                                                          : "pm-role"
+                                                }
+                                                onClick={() => {
+                                                    setKind("player")
+                                                    pickRole(c.role)
+                                                }}
+                                            >
+                                                {c.label}
+                                                {taken && <span className="pm-taken">pris</span>}
+                                            </button>
+                                        )
+                                    })}
+                                </div>
+                            )}
                         </div>
 
                         <div className="pm-panel">

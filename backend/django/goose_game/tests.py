@@ -7,16 +7,16 @@ User = get_user_model()
 
 class GooseGameModelTest(TestCase):
     def setUp(self):
-        self.user1 = User.objects.create_user(username="player1", password="test")
-        self.user2 = User.objects.create_user(username="player2", password="test")
+        self.user1 = User.objects.create_user(username="player1", password="test", email="player1@example.com")
+        self.user2 = User.objects.create_user(username="player2", password="test", email="player2@example.com")
         self.game = GooseGame.objects.create(
-            creator=self.user1,
+            created_by=self.user1,
             status=GooseGameStatus.WAITING,
         )
 
     def test_game_creation(self):
         self.assertEqual(self.game.status, GooseGameStatus.WAITING)
-        self.assertEqual(self.game.creator, self.user1)
+        self.assertEqual(self.game.created_by, self.user1)
         self.assertIsNone(self.game.winner)
 
     def test_game_player_creation(self):

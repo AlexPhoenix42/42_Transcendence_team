@@ -1,9 +1,10 @@
 # AVANCEMENT — intégration Pac-Man multijoueur + Goose Game
 
-Branche : `pacman2` (voir aussi `pacman`, `pacman3`, `main`, `mtice`, `bvan-duy`)
+Branche : `3D` (consolidation — remplace le suivi séparé `pacman`/`pacman2`/`pacman3`, voir §2quater)
 Remote : `git@github.com:AlexPhoenix42/42_Transcendence_unofficial.git`
-Dernière mise à jour : 2026-09-17
-Dernier commit `pacman2` : `2d91ab8 pacman: sprites Pac-Man/fantômes/Mme Pac-Man + 4 fantômes sélectionnables + nginx local`
+Dernière mise à jour : 2026-09-22
+Dernier commit `3D` : `aeeb10e fix: pacman solo/multi mode + animation loading + goose sync`
+(non commité depuis : correctifs sens Pac-Man + hang multijoueur + Goose Game testé, voir §2quater/§2ter)
 
 ---
 
@@ -173,7 +174,7 @@ voir §7.
 
 ---
 
-## 2ter. Goose Game (jeu de l'oie) — ⚠️ NON COMMITÉ, testé en local (2026-09-17)
+## 2ter. Goose Game (jeu de l'oie) — ⚠️ NON COMMITÉ, testé en vrai (2026-09-22)
 
 Le jeu de l'oie (backend Django `goose_game/` + pages React `GooseLobby`/`GooseGame`/`GooseBoard`)
 a été ajouté par Alex sur `main` (via la branche `mtice`, commit `51b6310`). Ce commit mélangeait
@@ -195,29 +196,40 @@ branches pacman**, pour ne pas tout écraser :
   docker-compose-dev.yml, suppression `.env`, `index.css` dark-mode chess) — sans rapport, aurait
   cassé des choses ou créé des conflits inutiles.
 
-### Statut par branche
-- **`pacman2`** : appliqué directement dans le repo réel (`/goinfre/isadbaib/42_Transcendence_unofficial`).
-  **Testé en vrai** : `make` (régénère `.env`, up, seed) → build frontend OK (vite, nouvelles
-  pages incluses) → migration `goose_game` appliquée par Django → login test + `GET /api/goose/`
-  (200, liste vide) + `POST /api/goose/` (201, partie créée avec le joueur `test`) → fonctionnel
-  de bout en bout côté API. Pas testé visuellement dans un vrai navigateur (extension Chrome
-  indisponible pendant la session) — juste curl + shell Django.
-- **`pacman`** et **`pacman3`** : même patch appliqué mais dans des **worktrees temporaires**
-  (scratchpad de session, pas persistants) — **pas testés en live**, juste les fichiers copiés/édités.
-  À refaire dans le vrai checkout de ces branches si besoin (le patch est documenté ci-dessus,
-  reproductible en 5 minutes).
-- **Rien n'est commité nulle part** — à committer par l'utilisateur quand il valide.
+### Statut
+Consolidé sur `3D` (voir §2quater — `pacman`/`pacman2`/`pacman3` ne sont plus suivies séparément).
+**Rien n'est commité** — à committer par l'utilisateur quand il valide.
 
 ### À faire avant de committer
-1. Relire le code `goose_game/` (models/consumers/views/serializers) — c'est le code d'Alex,
-   jamais review, pas de tests dedans (`tests.py` vide, juste 3 lignes de stub Django par défaut).
-2. Tester `pacman` et `pacman3` en vrai (actuellement seul `pacman2` a été vérifié par API).
-3. Vérifier le rendu frontend dans un navigateur (GooseLobby/GooseGame/GooseBoard) — seul un test
-   API a été fait, jamais un clic réel dans l'UI.
+1. ✅ **Fait (2026-09-22)** — relu `views.py`/`serializers.py`/`wizard_service.py`/`consumers.py`
+   (verrou de tour, logique dés/oie/magicien). Solide : `_GooseGameLock` utilise déjà
+   `thread_local=False` + `thread_sensitive=False` + poll non-bloquant — les 3 pièges qu'on a dû
+   corriger côté Pac-Man (§2quater) étaient déjà évités ici dès le départ.
+   **2 bugs trouvés et corrigés dans `tests.py`** (jamais exécutés avant, donc jamais détectés) :
+   - `setUp()` créait `player1`/`player2` sans email → les deux prenaient la même valeur par
+     défaut → `IntegrityError` sur `users.email` (`unique=True`). Fix : email distinct par joueur.
+   - `GooseGame.objects.create(creator=...)` — le champ s'appelle `created_by`, pas `creator`.
+     Les 5 tests plantaient à 100% avant ce fix. `python manage.py test goose_game` → 5/5 verts
+     maintenant.
+2. ~~Tester `pacman` et `pacman3` en vrai~~ — obsolète, plus qu'une seule branche (`3D`).
+3. ✅ **Fait (2026-09-22)** — testé en vrai dans un navigateur (Puppeteer, pas juste curl) :
+   login → `/goose` (lobby, liste vide, formulaire création) → créer un salon 2 joueurs → 2e
+   compte rejoint par API → créateur démarre → `/goose/<id>` affiche le **plateau complet**
+   (spirale, 63 cases, emojis oies/pont/auberge/puits/labyrinthe/prison/mort/arrivée, pions des
+   2 joueurs) → clic réel sur "🎲 Roll" → tour joué, position mise à jour, tour suivant affiché
+   correctement. Zéro erreur JS.
 4. Compte de test local `test` : son email a été forcé `verified`/`email_verfd=True` en DB pour
    débloquer le login pendant les tests ("Account frozen. please verify your email." bloquait
    sinon) — changement fait direct en DB dev, pas dans le code, sans impact sur le comportement
    normal de vérification d'email pour les autres comptes.
+
+### Pistes notées en revue (pas des bugs bloquants, pas corrigées — à trancher plus tard)
+- `_apply_special_squares` ne rechaîne pas les oies consécutives : si le double-mouvement d'une
+  oie retombe sur une AUTRE case spéciale, elle n'est pas réappliquée (la règle classique du jeu
+  de l'oie veut que les oies s'enchaînent). Édge case, pas de crash.
+- Les joueurs éliminés (`is_active=False`) sont exclus de `_update_goose_stats` — ni victoire ni
+  défaite comptabilisée pour eux sur une partie où ils ont été éliminés. Comportement peut-être
+  voulu (ne compter que les finishers), à confirmer.
 
 ---
 
