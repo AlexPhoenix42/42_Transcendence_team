@@ -62,6 +62,7 @@ export default function PacmanGame() {
     const [roomId, setRoomId] = useState<number | null>(null)
     const [mapChoice, setMapChoice] = useState(1)
     const [isCreator, setIsCreator] = useState(false)
+    const [isSolo, setIsSolo] = useState(false)
 
     const clientRef = useRef<PacmanLobbyClient | null>(null)
     const cdRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -109,6 +110,7 @@ export default function PacmanGame() {
                 const g = await resp.json()
                 setRoomId(g.id ?? null)
                 setMapChoice(g.map_choice ?? 1)
+                setIsSolo(g.is_solo ?? false)
                 setIsCreator(g.created_by === user?.username)
                 const playing = (g.players ?? []).filter(
                     (p: { role: string }) => p.role !== "spectator",
@@ -152,7 +154,24 @@ export default function PacmanGame() {
         const h = Math.round(w / AR)
 
         let cancelled = false
-        import("../pacman/net/MultiplayerGame.ts")
+
+        if (isSolo) {
+            // Mode SOLO: charger juste le jeu original
+            import("../pacman/Game.ts")
+                .then(({ default: PacmanGame }) => {
+                    if (cancelled || !el) return
+                    gameRef.current = new PacmanGame({
+                        el,
+                        width: w,
+                        height: h,
+                        position: "relative",
+                        mapChoice,
+                    })
+                })
+                .catch(() => setError("Erreur au démarrage du jeu"))
+        } else {
+            // Mode MULTI: charger le jeu multijoueur
+            import("../pacman/net/MultiplayerGame.ts")
             .then(({ default: MultiplayerGame }) => {
                 if (cancelled || !el) return
                 gameRef.current = new MultiplayerGame({
@@ -185,6 +204,7 @@ export default function PacmanGame() {
                 ;(window as unknown as { __pacman?: unknown }).__pacman = gameRef.current
             })
             .catch((e) => setError(`MOTEUR : ${String(e?.message || e).toUpperCase()}`))
+        }
 
         return () => {
             cancelled = true

@@ -4,6 +4,7 @@ import json
 import random
 import logging
 import asyncio
+import time
 
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
@@ -16,8 +17,34 @@ from .wizard_service import generate_question
 
 logger = logging.getLogger(__name__)
 
+GOOSE_GAME_LOCK_TIMEOUT = 10
+
 # Player colors for the board
 PLAYER_COLORS = ["#ef4444", "#3b82f6", "#22c55e", "#eab308", "#a855f7", "#f97316"]
+
+
+class _GooseGameLock:
+    """Async Redis-backed lock for synchronizing turn operations."""
+
+    _POLL_INTERVAL = 0.05
+
+    def __init__(self, game_id: int):
+        self._lock = cache.lock(
+            f"goose_game_lock:{game_id}", timeout=GOOSE_GAME_LOCK_TIMEOUT, thread_local=False,
+        )
+
+    async def __aenter__(self):
+        while not await sync_to_async(self._lock.acquire, thread_sensitive=False)(blocking=False):
+            await asyncio.sleep(self._POLL_INTERVAL)
+        return self
+
+    async def __aexit__(self, exc_type, exc, tb):
+        await sync_to_async(self._lock.release, thread_sensitive=False)()
+
+
+def _game_lock(game_id: int):
+    return _GooseGameLock(game_id)
+
 
 # Grey Wizard trivia mechanic
 WIZARD_BOARD_SIZE      = 64  # squares 0..63
@@ -62,19 +89,20 @@ def _wizard_cache_key(game_id, username):
     return f"goose:{game_id}:pending_question:{username}"
 
 
-@database_sync_to_async
-def _get_asked_questions(game_id):
-    game = GooseGame.objects.get(pk=game_id)
-    return list(game.wizard_questions_asked)
+def _wizard_asked_key(game_id):
+    return f"goose:{game_id}:asked_questions"
 
 
-@database_sync_to_async
-def _append_asked_question(game_id, question_text):
-    game = GooseGame.objects.get(pk=game_id)
-    asked = list(game.wizard_questions_asked)
+def _get_asked_questions_sync(game_id):
+    asked = cache.get(_wizard_asked_key(game_id))
+    return asked if asked else []
+
+
+def _append_asked_question_sync(game_id, question_text):
+    key = _wizard_asked_key(game_id)
+    asked = _get_asked_questions_sync(game_id)
     asked.append(question_text)
-    game.wizard_questions_asked = asked
-    game.save(update_fields=["wizard_questions_asked"])
+    cache.set(key, asked, timeout=86400)
 
 
 @database_sync_to_async
@@ -85,16 +113,16 @@ def _adjust_wizard_pending(game_id, delta):
 
 
 async def _start_wizard_encounter(channel_layer, game_group, game_id, username, is_active):
-    asked = await _get_asked_questions(game_id)
+    asked = await sync_to_async(_get_asked_questions_sync)(game_id)
     question = await generate_question(asked)
-    question["paused"] = is_active  # active-player encounters pause the table; prison ones don't
+    question["paused"] = is_active
 
     key = _wizard_cache_key(game_id, username)
     added = await sync_to_async(cache.add)(key, question, timeout=WIZARD_CACHE_TTL)
     if not added:
-        return  # this player already has a question pending
+        return
 
-    await _append_asked_question(game_id, question["question"])
+    await sync_to_async(_append_asked_question_sync)(game_id, question["question"])
 
     if is_active:
         await _adjust_wizard_pending(game_id, 1)
@@ -346,14 +374,14 @@ class GooseGameConsumer(AsyncWebsocketConsumer):
             await self._handle_wizard_answer(data.get("choice_index"))
 
     async def _handle_roll_dice(self):
-        result = await self._process_turn()
+        async with _game_lock(self.game_id):
+            result = await self._process_turn()
         if result:
             await self.channel_layer.group_send(
                 self.game_group,
                 {"type": "broadcast_turn", "data": result},
             )
 
-            # Check if game ended
             if result.get("game_over"):
                 await self.channel_layer.group_send(
                     self.game_group,
@@ -662,4 +690,11 @@ class GooseGameConsumer(AsyncWebsocketConsumer):
             "players": event["players"],
             "message": event["message"],
         }))
+
+    async def broadcast_game_closed(self, event):
+        await self.send(text_data=json.dumps({
+            "type": "game_closed",
+            "message": "Le salon a été supprimé par le créateur.",
+        }))
+        await self.close(code=4003)
 

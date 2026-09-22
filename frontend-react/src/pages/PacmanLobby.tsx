@@ -74,6 +74,7 @@ export default function PacmanLobby() {
 
     const [roomName, setRoomName] = useState("")
     const [mapChoice, setMapChoice] = useState(1)
+    const [isSolo, setIsSolo] = useState(false)
     const [error, setError] = useState("")
     const [showCreate, setShowCreate] = useState(false)
 
@@ -120,13 +121,14 @@ export default function PacmanLobby() {
         try {
             const resp = await api("/api/pacman/", {
                 method: "POST",
-                body: JSON.stringify({ room_name: name, map_choice: mapChoice }),
+                body: JSON.stringify({ room_name: name, map_choice: mapChoice, is_solo: isSolo }),
             })
 
             if (resp.ok) {
                 setShowCreate(false)
                 setRoomName("")
                 setMapChoice(1)
+                setIsSolo(false)
                 navigate(`/pacman/${name}`)
             } else {
                 const data = await resp.json().catch(() => ({}))
@@ -198,6 +200,15 @@ export default function PacmanLobby() {
                                         🗺️ Carte {n}
                                     </button>
                                 ))}
+                            </div>
+                            <div className="pm-roles pm-roles-wrap">
+                                <button
+                                    type="button"
+                                    className={isSolo ? "pm-role active" : "pm-role"}
+                                    onClick={() => setIsSolo(!isSolo)}
+                                >
+                                    {isSolo ? "👤 SOLO" : "👥 MULTI"}
+                                </button>
                             </div>
                             <button className="pm-btn" type="submit">
                                 Creer &amp; rejoindre

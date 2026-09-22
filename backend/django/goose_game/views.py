@@ -137,10 +137,37 @@ class GooseGameLeaveView(APIView):
 
         player.delete()
 
-        # If creator leaves, cancel the game
         if game.created_by == request.user:
             game.status = GooseGameStatus.CANCELLED
             game.save(update_fields=["status", "updated_at"])
 
         return Response({"status": "left"})
+
+
+class GooseGameDeleteView(APIView):
+    """Delete a game (creator only). Removes all players and the game itself."""
+    permission_classes      = [IsAuthenticated]
+    authentication_classes  = [JWTAuthentication, SessionAuthentication]
+
+    def delete(self, request: Request, pk: int) -> Response:
+        game = get_object_or_404(GooseGame, pk=pk)
+
+        if game.created_by_id != request.user.pk:
+            return Response(
+                {"error": "Seul le créateur peut supprimer le salon."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        game_id = game.pk
+        game.delete()
+
+        from channels.layers import get_channel_layer
+        from asgiref.sync import async_to_sync
+        layer = get_channel_layer()
+        if layer is not None:
+            async_to_sync(layer.group_send)(
+                f"goose_{game_id}", {"type": "broadcast_game_closed"},
+            )
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
 

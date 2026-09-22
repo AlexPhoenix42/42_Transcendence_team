@@ -75,6 +75,7 @@ export class PacmanLobbyClient {
     }
 
     connect() {
+        this.closed = false
         const proto = window.location.protocol === "https:" ? "wss" : "ws"
         const token = getAccessToken()
         const url =

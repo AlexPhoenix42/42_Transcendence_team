@@ -108,9 +108,10 @@ export default function GooseGame() {
     useEffect(() => {
         if (!id) return
 
-        const wsHost = window.location.hostname + ":9000"
+        const proto = window.location.protocol === "https:" ? "wss" : "ws"
+        const wsHost = window.location.host
         const token = getAccessToken()
-        const ws = new WebSocket(`ws://${wsHost}/ws/goose/${id}/${token ? `?token=${encodeURIComponent(token)}` : ""}`)
+        const ws = new WebSocket(`${proto}://${wsHost}/ws/goose/${id}/${token ? `?token=${encodeURIComponent(token)}` : ""}`)
 
         ws.onmessage = (event) => {
             const data = JSON.parse(event.data)
@@ -167,11 +168,13 @@ export default function GooseGame() {
                 ])
             }
 
+            if (data.type === "game_closed") {
+                setError("Le salon a été supprimé par le créateur.")
+                setGameStatus("CANCELLED")
+            }
+
             if (data.type === "wizard_encounter") {
                 setLogs((prev) => [...prev, `🧙 Le Magicien Gris interroge ${data.target} !`])
-                // Active-player encounters (paused=true) pause the table and
-                // are shown to everyone; prison/revival ones (paused=false)
-                // stay private to the target and never block anyone.
                 if (data.paused || data.target === user?.username) {
                     setWizardResult(null)
                     setWizardEncounter({
@@ -212,6 +215,12 @@ export default function GooseGame() {
         }
 
         ws.onerror = () => setError("WebSocket error")
+
+        ws.onclose = () => {
+            setError("Connexion perdue")
+            wsRef.current = null
+        }
+
         wsRef.current = ws
 
         return () => { ws.close() }

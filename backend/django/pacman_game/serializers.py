@@ -53,6 +53,7 @@ class GameSerializer(serializers.ModelSerializer):
             "status",
             "level",
             "map_choice",
+            "is_solo",
             "winner",
             "created_by",
             "created_at",

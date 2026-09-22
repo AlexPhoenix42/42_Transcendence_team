@@ -95,7 +95,7 @@ class Animation {
      * @returns True if the image is complete, false otherwise.
      */
     isReady(): boolean {
-        return this.img.complete;
+        return this.img?.complete ?? false;
     }
 }
 

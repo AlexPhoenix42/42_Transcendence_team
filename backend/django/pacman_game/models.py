@@ -67,6 +67,7 @@ class Game(models.Model):
     map_choice  = models.PositiveSmallIntegerField(
         default=1, choices=[(1, "Carte 1"), (2, "Carte 2"), (3, "Carte 3")],
     )
+    is_solo     = models.BooleanField(default=False, db_index=True)
     winner      = models.CharField(
         max_length=10, choices=Winner.choices, null=True, blank=True,
     )

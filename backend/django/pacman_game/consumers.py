@@ -640,14 +640,6 @@ class GameConsumer(AsyncWebsocketConsumer):
             stale_pid = None
             async with _room_lock(self.room_name):
                 room = await self._load_room()
-                # Reconnexion réseau en pleine manche (pas un `disconnect`
-                # propre) : le pid précédent de CE compte traîne encore dans
-                # `room.players` le temps que le serveur remarque que son
-                # ancienne socket est morte (ça peut prendre plusieurs
-                # secondes). Sans ça, deux pids != pour le même joueur = deux
-                # sprites affichés chez tout le monde jusqu'à expiration -
-                # symptôme observé : "des personnages dupliqués, on voit
-                # double". On le vire tout de suite.
                 stale_pid = room.find_pid_by_user(self.user.pk, exclude_pid=self.channel_name)
                 if stale_pid:
                     room.remove_player(stale_pid)
@@ -684,15 +676,15 @@ class GameConsumer(AsyncWebsocketConsumer):
         if not hasattr(self, 'room_group_name'):
             return
 
-        await self.channel_layer.group_send(
-            self.room_group_name,
-            {'type': 'player_left', 'player_id': self.channel_name},
-        )
         await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
 
         async with _room_lock(self.room_name):
             data = await sync_to_async(cache.get)(_room_key(self.room_name))
             if data is None:
+                await self.channel_layer.group_send(
+                    self.room_group_name,
+                    {'type': 'player_left', 'player_id': self.channel_name},
+                )
                 return
             room = RoomState.from_dict(data)
             room.remove_player(self.channel_name)
@@ -708,6 +700,11 @@ class GameConsumer(AsyncWebsocketConsumer):
                     bot_task.cancel()
             else:
                 await self._save_room(room)
+
+        await self.channel_layer.group_send(
+            self.room_group_name,
+            {'type': 'player_left', 'player_id': self.channel_name},
+        )
 
     async def receive(self, text_data=None, bytes_data=None):
         if text_data is None or len(text_data) > 10000:
