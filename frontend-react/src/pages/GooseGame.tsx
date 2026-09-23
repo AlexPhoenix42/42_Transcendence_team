@@ -44,7 +44,7 @@ export default function GooseGame() {
     const [rolling, setRolling] = useState(false)
     const [diceAnim, setDiceAnim] = useState(false)
     const [error, setError] = useState("")
-    const [gameInfo, setGameInfo] = useState<{ name: string; created_by: string } | null>(null)
+    const [gameInfo, setGameInfo] = useState<{ name: string; created_by: string; max_players: number } | null>(null)
     const [lastMove, setLastMove] = useState<{ player: string; from: number; to: number } | null>(null)
     const [showRules, setShowRules] = useState(false)
 
@@ -87,7 +87,11 @@ export default function GooseGame() {
                 const resp = await api(`/api/goose/${id}/`)
                 if (resp.ok) {
                     const data = await resp.json()
-                    setGameInfo({ name: data.name, created_by: data.created_by })
+                    setGameInfo({
+                        name: data.name,
+                        created_by: data.created_by,
+                        max_players: data.max_players,
+                    })
                     setGameStatus(data.status)
 
                     if (data.players) {
@@ -208,6 +212,10 @@ export default function GooseGame() {
                 }
             }
 
+            if (data.type === "room_closed") {
+                navigate("/goose")
+            }
+
             if (data.error) {
                 setError(data.error)
                 setRolling(false)
@@ -265,6 +273,18 @@ export default function GooseGame() {
         } catch {}
     }
 
+    async function leaveGame() {
+        try {
+            const resp = await api(`/api/goose/${id}/leave/`, { method: "POST" })
+            if (resp.ok) {
+                navigate("/goose")
+            } else {
+                const data = await resp.json()
+                setError(data.error || "Failed to leave")
+            }
+        } catch {}
+    }
+
     return (
         <div className="max-w-5xl mx-auto">
             {/* Header */}
@@ -299,6 +319,14 @@ export default function GooseGame() {
                             className="lg:hidden px-3 py-1.5 bg-yellow-600 text-white rounded hover:bg-yellow-700 text-sm font-bold disabled:opacity-50 active:scale-95 transition-transform"
                         >
                             {wizardPaused ? "🧙 En attente..." : rolling ? "Rolling..." : "🎲 Roll"}
+                        </button>
+                    )}
+                    {gameStatus === "WAITING" && isPlayer && (
+                        <button
+                            onClick={leaveGame}
+                            className="px-3 py-1.5 md:px-4 md:py-2 bg-red-900/50 text-red-300 border border-red-700 rounded hover:bg-red-900 text-sm"
+                        >
+                            Leave
                         </button>
                     )}
                     <button
@@ -392,12 +420,20 @@ export default function GooseGame() {
                     {/* Dice & Actions */}
                     <div className="bg-gray-800 rounded-lg border border-gray-700 p-2 lg:p-4">
                         {gameStatus === "WAITING" && gameInfo?.created_by === user?.username && (
-                            <button
-                                onClick={startGame}
-                                className="w-full py-2 bg-green-600 text-white rounded hover:bg-green-700 font-semibold mb-3"
-                            >
-                                Start Game
-                            </button>
+                            <>
+                                <button
+                                    onClick={startGame}
+                                    disabled={!gameInfo || players.length < gameInfo.max_players}
+                                    className="w-full py-2 bg-green-600 text-white rounded hover:bg-green-700 font-semibold mb-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    Start Game
+                                </button>
+                                {gameInfo && players.length < gameInfo.max_players && (
+                                    <p className="text-gray-400 text-center text-xs mb-3">
+                                        Waiting for {players.length}/{gameInfo.max_players} players...
+                                    </p>
+                                )}
+                            </>
                         )}
 
                         {gameStatus === "WAITING" && gameInfo?.created_by !== user?.username && (

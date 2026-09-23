@@ -656,6 +656,10 @@ class GooseGameConsumer(AsyncWebsocketConsumer):
         }
 
     # Broadcast handlers
+    async def broadcast_room_closed(self, event):
+        await self.send(text_data=json.dumps({"type": "room_closed"}))
+        await self.close(code=4002)
+
     async def broadcast_turn(self, event):
         await self.send(text_data=json.dumps(event["data"]))
 

@@ -79,6 +79,21 @@ export default function GooseLobby() {
         } catch {}
     }
 
+    async function cancelGame(gameId: number) {
+        setError("")
+        try {
+            const resp = await api(`/api/goose/${gameId}/cancel/`, { method: "DELETE" })
+            if (resp.ok) {
+                fetchGames()
+            } else {
+                const data = await resp.json().catch(() => ({}))
+                setError(data.error || "Failed to delete room")
+            }
+        } catch {
+            setError("Network error")
+        }
+    }
+
     return (
         <div className="max-w-3xl mx-auto">
             <h1 className="text-3xl font-bold text-white mb-6">Game of the Goose</h1>
@@ -163,7 +178,7 @@ export default function GooseLobby() {
                                     ))}
                                 </div>
                             </div>
-                            <div>
+                            <div className="flex items-center gap-2">
                                 {isInGame ? (
                                     <button
                                         onClick={() => navigate(`/goose/${game.id}`)}
@@ -186,6 +201,15 @@ export default function GooseLobby() {
                                         Watch
                                     </button>
                                 ) : null}
+                                {game.created_by === user?.username && (
+                                    <button
+                                        onClick={() => cancelGame(game.id)}
+                                        title="Delete room"
+                                        className="px-3 py-2 bg-red-900/50 text-red-300 border border-red-700 rounded hover:bg-red-900"
+                                    >
+                                        🗑
+                                    </button>
+                                )}
                             </div>
                         </div>
                     )

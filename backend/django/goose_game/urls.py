@@ -8,6 +8,7 @@ from .views import (
     GooseGameStartView,
     GooseGameLeaveView,
     GooseGameDeleteView,
+    GooseGameCancelView,
 )
 
 urlpatterns = [
@@ -17,5 +18,6 @@ urlpatterns = [
     path("<int:pk>/start/", GooseGameStartView.as_view(),       name="goose-start"),
     path("<int:pk>/leave/", GooseGameLeaveView.as_view(),       name="goose-leave"),
     path("<int:pk>/delete/",GooseGameDeleteView.as_view(),      name="goose-delete"),
+    path("<int:pk>/cancel/", GooseGameCancelView.as_view(),     name="goose-cancel"),
 ]
 

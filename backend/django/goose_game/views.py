@@ -9,6 +9,7 @@ from rest_framework.authentication import SessionAuthentication
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
 from django.shortcuts import get_object_or_404
+from django.db import transaction
 
 from .models import GooseGame, GoosePlayer, GooseGameStatus
 from .serializers import GooseGameSerializer
@@ -107,9 +108,9 @@ class GooseGameStartView(APIView):
         if game.status != GooseGameStatus.WAITING:
             return Response({"error": "Game already started."}, status=400)
 
-        if game.players.count() < game.min_players:
+        if game.players.count() < game.max_players:
             return Response(
-                {"error": f"Need at least {game.min_players} players."},
+                {"error": f"Waiting for all {game.max_players} players to join."},
                 status=400,
             )
 
@@ -167,6 +168,36 @@ class GooseGameDeleteView(APIView):
         if layer is not None:
             async_to_sync(layer.group_send)(
                 f"goose_{game_id}", {"type": "broadcast_game_closed"},
+            )
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class GooseGameCancelView(APIView):
+    """Le créateur supprime son salon (à tout moment). Les joueurs connectés
+    sont éjectés (room_closed) et la ligne GooseGame est supprimée."""
+    permission_classes      = [IsAuthenticated]
+    authentication_classes  = [JWTAuthentication, SessionAuthentication]
+
+    def delete(self, request: Request, pk: int) -> Response:
+        with transaction.atomic():
+            game = generics.get_object_or_404(
+                GooseGame.objects.select_for_update(), pk=pk,
+            )
+            if game.created_by_id != request.user.pk:
+                return Response(
+                    {"error": "Only the creator can delete this room."},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+            game_id = game.pk
+            game.delete()
+
+        from channels.layers import get_channel_layer
+        from asgiref.sync    import async_to_sync
+        layer = get_channel_layer()
+        if layer is not None:
+            async_to_sync(layer.group_send)(
+                f"goose_{game_id}", {"type": "broadcast_room_closed"},
             )
 
         return Response(status=status.HTTP_204_NO_CONTENT)

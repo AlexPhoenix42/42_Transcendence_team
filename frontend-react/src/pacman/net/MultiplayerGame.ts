@@ -358,6 +358,33 @@ class MultiplayerGame extends JsPacman {
         // original (never-reset) sprites already got via `super()`'s call.
         this.preload();
 
+        // `reset()` just tore down the wrongly-built map-1 level and rebuilt
+        // it via `makeLevel()` - but at this point in the constructor the
+        // engine's *original* preload cycle (kicked off by `super()`, via
+        // `Game.ts`'s own `this.start()`) is still in flight: `this.state`
+        // is still `STATE_NEW`, not yet `STATE_RUNNING`. `engine/Game.ts`'s
+        // `addSprite()` only eagerly `.load()`s a sprite when the game is
+        // already running - otherwise it assumes the pending bulk `preload()`
+        // will pick it up. That assumption breaks here: the ORIGINAL
+        // `preload()` call already ran (once, synchronously, over the
+        // sprites that existed before this rebuild) and its `waitForResources`
+        // retry loop only re-scans `this.sprites`, it never re-`preload()`s.
+        // So every sprite this rebuild just created (Pac-Man, all 4 ghosts,
+        // every dot/pill, the bonus) sits with an un-loaded `Animation` -
+        // `.img` never set - and the next `waitForResources()` tick throws
+        // `Cannot read properties of undefined (reading 'complete')` trying
+        // to check it, which kills that polling loop for good (uncaught,
+        // inside a `setTimeout` callback) and leaves `this.state` stuck at
+        // `STATE_NEW` forever. Every state-gated multiplayer path silently
+        // stops working from then on - `_onSync`/`_onPos` both bail out on
+        // `this.state !== STATE_RUNNING` - so remotes never appear and
+        // things like the frightened-ghost tint never reach anyone, with no
+        // visible error unless devtools happens to be open. Re-running
+        // `preload()` here re-`.load()`s every sprite (redundant but
+        // harmless for the ones already loading) and restarts a clean
+        // `waitForResources` cycle that will actually reach `STATE_RUNNING`.
+        this.preload();
+
         // Runs every frame, even on the splash screen, independent of mainLoop.
         this.addCallback(() => {
             this._netTick();
