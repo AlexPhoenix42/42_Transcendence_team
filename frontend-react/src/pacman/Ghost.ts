@@ -246,6 +246,18 @@ class Ghost extends Character {
 
         this.setMode(this.mode);
 
+        // `Character`'s constructor calls `_saveDefaults()` (via `super()`,
+        // above) before this subclass constructor has finished setting up
+        // `mode` - so `_defaults.mode` was captured as `undefined`, not
+        // `MODE_HOUSE`. `reset()` (called after Pacman dies) restores from
+        // `_defaults` then does `setMode(this.mode)`; with mode `undefined`
+        // that falls through to `mode = this.globalMode` (chase/scatter)
+        // instead of `MODE_HOUSE` - so the ghost ends up physically back in
+        // the house but in a mode that forbids moving onto house tiles
+        // (`canGo()`), leaving it stuck forever. Re-save defaults now that
+        // `mode` is actually `MODE_HOUSE`, so `reset()` restores correctly.
+        this._saveDefaults();
+
         // Change tile.
         this.on("item:tile", (t: Tile) => {
             if (this.mode === MODE_FRIGHTENED) this._speed = this.frightenedSpeed as number;

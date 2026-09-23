@@ -326,6 +326,17 @@ export default function PacmanGame() {
         c.connect()
     }
 
+    // Solo : pas de rôle à choisir ni d'écran d'attente utile (un seul
+    // joueur) - on rejoint tout seul dès l'arrivée sur l'écran "rejoindre".
+    const autoJoinedRef = useRef(false)
+    useEffect(() => {
+        if (phase === "join" && isSolo && !full && !autoJoinedRef.current) {
+            autoJoinedRef.current = true
+            join()
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [phase, isSolo, full])
+
     // Sortie complète -> navigateur de salons.
     function leaveToLobby() {
         cleanup()
@@ -394,6 +405,14 @@ export default function PacmanGame() {
             clientRef.current?.start(3)
         }
     }, [allReady, phase, roster, me])
+
+    // Solo : se marque prêt tout seul (un seul joueur, rien à négocier) -
+    // combiné à l'auto-lancement ci-dessus, ça enchaîne direct sur la partie.
+    useEffect(() => {
+        if (phase === "waiting" && isSolo && me && !me.ready) {
+            clientRef.current?.setReady(true)
+        }
+    }, [phase, isSolo, me])
 
     // Voyant d'état du salon
     const lamp =

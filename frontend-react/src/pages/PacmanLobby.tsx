@@ -145,6 +145,29 @@ export default function PacmanLobby() {
         navigate(`/pacman/${name}`)
     }
 
+    // Bouton "SOLO" direct : crée un salon solo avec un nom aléatoire et y
+    // entre tout de suite, sans passer par le formulaire (nom/carte/toggle).
+    async function createSoloRoom() {
+        setError("")
+        const name = "solo-" + Math.random().toString(36).slice(2, 10)
+
+        try {
+            const resp = await api("/api/pacman/", {
+                method: "POST",
+                body: JSON.stringify({ room_name: name, map_choice: 1, is_solo: true }),
+            })
+
+            if (resp.ok) {
+                navigate(`/pacman/${name}`)
+            } else {
+                const data = await resp.json().catch(() => ({}))
+                setError((data.error || "CREATION IMPOSSIBLE").toUpperCase())
+            }
+        } catch {
+            setError("ERREUR RESEAU")
+        }
+    }
+
     async function cancelRoom(id: number) {
         setError("")
         try {
@@ -176,6 +199,13 @@ export default function PacmanLobby() {
                             onClick={() => setShowCreate((s) => !s)}
                         >
                             {showCreate ? "Fermer" : "+ Nouveau"}
+                        </button>
+                        <button
+                            className="pm-btn pm-ghost"
+                            style={{ float: "right", marginTop: "-6px", marginRight: 8 }}
+                            onClick={createSoloRoom}
+                        >
+                            🎮 SOLO
                         </button>
                     </div>
 

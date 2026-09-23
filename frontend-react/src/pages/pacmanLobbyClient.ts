@@ -114,8 +114,24 @@ export class PacmanLobbyClient {
     private route(msg: any) {
         switch (msg.type) {
             case "player_joined":
-                if (!this.selfId) this.selfId = msg.player_id
-                else this.hello()
+                if (!this.selfId) {
+                    // Jusqu'ici `emitRoster()` (appelé par `setName`/`setRole`/
+                    // `setReady` juste après `connect()`, avant que le serveur
+                    // ait confirmé qui on est) mettait `id: "me"` (placeholder)
+                    // dans notre propre entrée du roster - et rien ne
+                    // re-notifiait une fois `selfId` connu. En pratique ça
+                    // passait inaperçu : un délai humain (ou de script) entre
+                    // "rejoindre" et "prêt" laissait le temps à ce message
+                    // d'arriver avant le prochain appel local, qui captait
+                    // alors le bon id. Un flux qui enchaîne join+ready sans
+                    // ce délai (bouton "SOLO" direct) expose le bug : l'id
+                    // reste "me" pour toujours, `iAmStarter` (PacmanGame.tsx)
+                    // ne devient jamais vrai, le salon solo reste bloqué sur
+                    // "Tous prêts - lancement...". Re-notifier ici corrige la
+                    // cause réelle au lieu de compter sur ce délai fortuit.
+                    this.selfId = msg.player_id
+                    this.emitRoster()
+                } else this.hello()
                 break
             case "player_left":
                 if (this.roster.delete(msg.player_id)) this.emitRoster()
