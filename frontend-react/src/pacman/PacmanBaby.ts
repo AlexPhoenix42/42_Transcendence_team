@@ -27,6 +27,10 @@ export interface PacmanBabyOptions extends PacmanOptions {
 
 class PacmanBaby extends PacmanMan {
     _getFollowTarget: (() => Tile | null) | null;
+    /** -1 = mirrored (last heading right), kept while going up/down. No
+     * initializer: PacmanMan's constructor already sets it through
+     * `_applyRotation`, a field initializer would run after and reset it. */
+    _flipX?: number;
 
     /**
      * @param options - Same options as {@link Pacman}, plus:
@@ -64,6 +68,13 @@ class PacmanBaby extends PacmanMan {
      */
     _chooseDir(targetTile: Tile): Direction {
         const here = this.getTile()!;
+
+        // Target right next to us (a step of a computed path): take it, even
+        // straight back - that's how the baby turns around to flee a ghost.
+        for (const dir of ["u", "l", "d", "r"] as Direction[]) {
+            if (here.get(dir) === targetTile && this.canGo(dir)) return dir;
+        }
+
         const back = oppositeDir[this.dir as Direction];
         let best = this.dir as Direction;
         let bestDist = Infinity;
@@ -87,7 +98,20 @@ class PacmanBaby extends PacmanMan {
      */
     transform(): void {
         super.transform();
-        this.el.style.transform += ` scale(${BABY_SCALE})`;
+        this.el.style.transform += ` scale(${(this._flipX ?? 1) * BABY_SCALE}, ${BABY_SCALE})`;
+    }
+
+    /**
+     * Unlike {@link PacmanMan}, never rotate: turned 90/180 degrees the baby
+     * ended up on its side or upside down, diaper on its head. It stays
+     * upright and just faces left/right (mirrored when heading right).
+     * @private
+     */
+    _applyRotation(): void {
+        if (this.dir === "r") this._flipX = -1;
+        else if (this.dir === "l") this._flipX = 1;
+        if (this.angle !== 0) this.rotate(0);
+        else this.transform();
     }
 
     /**

@@ -488,7 +488,7 @@ class MultiplayerGame extends JsPacman {
         this.pacman.off("item:life");
         this.pacman.off("item:die");
         this._disarmAiGhosts();
-        this.hideGhosts();
+        this._hideAiGhosts();
 
         // The base score header (1UP / HIGH SCORE) is meaningless watch-only.
         const hud = this.el.querySelector(".score") as HTMLElement | null;
@@ -724,7 +724,7 @@ class MultiplayerGame extends JsPacman {
         if (this._isSpectator) {
             // The base intro/respawn code keeps re-showing them - keep watch-only.
             this.pacman.hide();
-            this.hideGhosts();
+            this._hideAiGhosts();
             return;
         }
 
@@ -732,7 +732,7 @@ class MultiplayerGame extends JsPacman {
         // qu'on ne les confonde pas avec les vrais fantômes pilotés (le moteur
         // de base les ré-affiche à certaines transitions, d'où le hide chaque
         // frame). `_disarmAiGhosts` les a déjà rendus inoffensifs.
-        this.hideGhosts();
+        this._hideAiGhosts();
 
         if (this._localIsPacman || !this.avatar) return;
 
@@ -868,6 +868,19 @@ class MultiplayerGame extends JsPacman {
         this.addSprite(item);
     }
 
+    /**
+     * Hide the 4 AI ghosts only. The base `hideGhosts()` also hides the bonus
+     * fruit - called every frame here, it kept the fruit invisible forever, so
+     * papa could never see (or aim for) the fruit he needs to have a baby.
+     * @private
+     */
+    _hideAiGhosts(): void {
+        this.pinky.hide();
+        this.blinky.hide();
+        this.inky.hide();
+        this.sue.hide();
+    }
+
     // ===================== baby Pac-Man =====================
 
     /**
@@ -937,24 +950,60 @@ class MultiplayerGame extends JsPacman {
     }
 
     /**
+     * Next tile on the shortest path to the nearest side tunnel (the exit),
+     * steering clear of the tiles around every ghost-side player. If ghosts
+     * cut off every way out, take the shortest path anyway rather than freeze.
      * @private
-     * @returns Nearest side-tunnel tile to the baby.
+     * @returns The tile the baby should step onto next.
      */
     _babyTarget(): Tile | null {
         const tunnels = this.map.tunnels;
         if (!tunnels || !tunnels.length || !this._baby) return null;
+        const here = this._baby.getTile();
+        if (!here) return null;
 
-        const here = this._baby.getTile()!;
-        let best = tunnels[0];
-        let bestDist = Infinity;
-        for (const tunnel of tunnels) {
-            const d = (tunnel.col - here.col) ** 2 + (tunnel.row - here.row) ** 2;
-            if (d < bestDist) {
-                bestDist = d;
-                best = tunnel;
+        const danger = new Set<Tile>();
+        for (const remote of this.remotes.values()) {
+            if (PACMAN_ROLES.indexOf(remote._role as string) !== -1) continue;
+            const t = remote.getTile();
+            if (!t) continue;
+            danger.add(t);
+            for (const d of ["u", "l", "d", "r"]) {
+                const n = t.get(d);
+                if (n) {
+                    danger.add(n);
+                    const n2 = n.get(d);
+                    if (n2) danger.add(n2);
+                }
             }
         }
-        return best;
+
+        return this._babyNextStep(here, danger) || this._babyNextStep(here, new Set()) || tunnels[0];
+    }
+
+    /**
+     * Breadth-first search from `start` to any tunnel tile, avoiding `danger`.
+     * @private
+     * @returns First step of the path, or null if no path exists.
+     */
+    _babyNextStep(start: Tile, danger: Set<Tile>): Tile | null {
+        const prev = new Map<Tile, Tile | null>([[start, null]]);
+        const queue: Tile[] = [start];
+        while (queue.length) {
+            const tile = queue.shift()!;
+            if (tile !== start && tile.isTunnel()) {
+                let step = tile;
+                while (prev.get(step) !== start) step = prev.get(step)!;
+                return step;
+            }
+            for (const d of ["u", "l", "d", "r"]) {
+                const n = tile.get(d);
+                if (!n || prev.has(n) || n.isWall() || n.isHouse() || danger.has(n)) continue;
+                prev.set(n, tile);
+                queue.push(n);
+            }
+        }
+        return null;
     }
 
     /**
@@ -970,8 +1019,19 @@ class MultiplayerGame extends JsPacman {
 
         if (this.role !== "pacman") {
             const k = 0.3;
-            this._baby.x += ((baby._netX ?? this._baby.x) - this._baby.x) * k;
-            this._baby.y += ((baby._netY ?? this._baby.y) - this._baby.y) * k;
+            const dx = (baby._netX ?? this._baby.x) - this._baby.x;
+            const dy = (baby._netY ?? this._baby.y) - this._baby.y;
+            // Only positions come over the network: face where it's heading,
+            // like the papa's copy does.
+            const dir: Direction | null = Math.abs(dx) > Math.abs(dy)
+                ? (Math.abs(dx) > 1 ? (dx > 0 ? "r" : "l") : null)
+                : (Math.abs(dy) > 1 ? (dy > 0 ? "d" : "u") : null);
+            if (dir && dir !== this._baby.dir) {
+                this._baby.dir = dir;
+                this._baby.setNextAnimation();
+            }
+            this._baby.x += dx * k;
+            this._baby.y += dy * k;
             this._baby.update();
             return;
         }

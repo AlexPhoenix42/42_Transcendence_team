@@ -1075,6 +1075,13 @@ class GameConsumer(AsyncWebsocketConsumer):
         y = pos.get('y', 0)
         if not isinstance(x, (int, float)) or not isinstance(y, (int, float)):
             return
+        lives_changed = False
+        room = None
+        if kind != 'move':   # 'move' part ~20/s : pas de verrou Redis pour ça
+            async with _room_lock(self.room_name):
+                room = await self._load_room()
+                lives_changed = room.baby_event(self.channel_name, kind)
+                await self._save_room(room)
         await self.channel_layer.group_send(
             self.room_group_name,
             {
@@ -1084,6 +1091,9 @@ class GameConsumer(AsyncWebsocketConsumer):
                 'position': {'x': float(x), 'y': float(y)},
             },
         )
+        if lives_changed:
+            # sinon le prochain state_sync ramène les vies d'avant sur chaque client
+            await self._broadcast_sync(room)
 
     async def handle_power_used(self, data):
         kind = data.get('kind', '')

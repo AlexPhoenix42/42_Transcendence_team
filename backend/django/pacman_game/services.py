@@ -326,6 +326,8 @@ class RoomState:
         self.players = {}
         # pids qui regardent la partie sans y jouer (hors scores / manche)
         self.spectators = set()
+        # Un bébé Pac-Man est en route vers la sortie (vie en plus s'il sort).
+        self.baby_alive = False
 
     # --- (dé)sérialisation Redis -----------------------------------------
 
@@ -341,6 +343,7 @@ class RoomState:
             'result_saved': self._result_saved,
             'players': self.players,
             'spectators': list(self.spectators),
+            'baby_alive': self.baby_alive,
         }
 
     @classmethod
@@ -358,6 +361,7 @@ class RoomState:
         room._result_saved = data.get('result_saved', False)
         room.players = data.get('players', {})
         room.spectators = set(data.get('spectators', []))
+        room.baby_alive = data.get('baby_alive', False)
         return room
 
     # --- joueurs ------------------------------------------------------------
@@ -413,6 +417,28 @@ class RoomState:
             pid != exclude_pid and p.get('role') == role
             for pid, p in self.players.items()
         )
+
+    def baby_event(self, pid, kind):
+        """Cycle de vie du bébé, annoncé par le papa (rôle 'pacman') seul.
+
+        `spawn` le déclare en route, `died` l'annule, `escape` donne une vie
+        à chaque joueur de l'équipe Pac-Man encore en vie - une seule fois par
+        bébé (un `escape` répété ou sans `spawn` ne rapporte rien).
+        Retourne True si des vies ont été ajoutées.
+        """
+        if self.players.get(pid, {}).get('role') != 'pacman':
+            return False
+        if kind == 'spawn':
+            self.baby_alive = True
+        elif kind == 'died':
+            self.baby_alive = False
+        elif kind == 'escape' and self.baby_alive:
+            self.baby_alive = False
+            for p in self.players.values():
+                if p.get('role') in PACMAN_ROLES and p['lives'] > 0:
+                    p['lives'] += 1
+            return True
+        return False
 
     def start_problem(self):
         """Raison pour laquelle la partie ne peut pas démarrer, ou `None`.
@@ -595,6 +621,7 @@ class RoomState:
         self.frightened_until = 0.0
         self.started_wall = 0.0
         self._result_saved = False
+        self.baby_alive = False
         for player in self.players.values():
             player['score'] = 0
             player['lives'] = DEFAULT_LIVES

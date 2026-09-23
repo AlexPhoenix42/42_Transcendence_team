@@ -332,6 +332,49 @@ class RoomStateRoleTakenTests(SimpleTestCase):
         self.assertFalse(room.role_taken('baby', exclude_pid='p2'))
 
 
+class RoomStateBabyTests(SimpleTestCase):
+    def _room(self):
+        room = RoomState()
+        room.add_player('papa', 'pacman')
+        room.add_player('mama', 'madame_pacman')
+        room.add_player('g1', 'ghost_blinky')
+        return room
+
+    def test_escaped_baby_gives_a_life_to_the_pacman_team(self):
+        room = self._room()
+        room.baby_event('papa', 'spawn')
+        self.assertTrue(room.baby_event('papa', 'escape'))
+        self.assertEqual(room.players['papa']['lives'], DEFAULT_LIVES + 1)
+        self.assertEqual(room.players['mama']['lives'], DEFAULT_LIVES + 1)
+        self.assertEqual(room.players['g1']['lives'], DEFAULT_LIVES)
+
+    def test_one_life_per_baby_only(self):
+        room = self._room()
+        room.baby_event('papa', 'spawn')
+        room.baby_event('papa', 'escape')
+        self.assertFalse(room.baby_event('papa', 'escape'))
+        self.assertEqual(room.players['papa']['lives'], DEFAULT_LIVES + 1)
+
+    def test_dead_baby_gives_nothing(self):
+        room = self._room()
+        room.baby_event('papa', 'spawn')
+        room.baby_event('papa', 'died')
+        self.assertFalse(room.baby_event('papa', 'escape'))
+        self.assertEqual(room.players['papa']['lives'], DEFAULT_LIVES)
+
+    def test_only_papa_announces_the_baby(self):
+        room = self._room()
+        room.baby_event('g1', 'spawn')
+        self.assertFalse(room.baby_event('g1', 'escape'))
+        self.assertEqual(room.players['papa']['lives'], DEFAULT_LIVES)
+
+    def test_baby_state_survives_redis_round_trip(self):
+        room = self._room()
+        room.baby_event('papa', 'spawn')
+        clone = RoomState.from_dict(room.to_dict())
+        self.assertTrue(clone.baby_event('papa', 'escape'))
+
+
 class RoomStateStartProblemTests(SimpleTestCase):
     def test_distinct_characters_can_start(self):
         room = RoomState()
