@@ -172,11 +172,6 @@ export default function GooseGame() {
                 ])
             }
 
-            if (data.type === "game_closed") {
-                setError("Le salon a été supprimé par le créateur.")
-                setGameStatus("CANCELLED")
-            }
-
             if (data.type === "wizard_encounter") {
                 setLogs((prev) => [...prev, `🧙 Le Magicien Gris interroge ${data.target} !`])
                 if (data.paused || data.target === user?.username) {

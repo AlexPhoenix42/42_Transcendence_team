@@ -695,10 +695,4 @@ class GooseGameConsumer(AsyncWebsocketConsumer):
             "message": event["message"],
         }))
 
-    async def broadcast_game_closed(self, event):
-        await self.send(text_data=json.dumps({
-            "type": "game_closed",
-            "message": "Le salon a été supprimé par le créateur.",
-        }))
-        await self.close(code=4003)
 
