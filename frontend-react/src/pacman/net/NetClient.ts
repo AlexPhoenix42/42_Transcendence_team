@@ -25,7 +25,7 @@
  *
  * @class NetClient
  */
-import { getAccessToken } from "../../api/client.ts";
+import { getAccessToken, refreshAccessToken } from "../../api/client.ts";
 
 export interface NetClientOptions {
     /** Room name (alphanumeric, `-` and `_`). */
@@ -202,7 +202,19 @@ class NetClient {
     /**
      * Open the socket.
      */
-    connect(): void {
+    async connect(): Promise<void> {
+        // The access token is short-lived (a few minutes). A round can start
+        // long after login (waiting in the lobby for another player, or just
+        // idling) so the token carried over from page load/last API call can
+        // already be expired by the time this actually opens the game
+        // socket - the backend's JWT middleware then resolves an anonymous
+        // user and closes with code 4001, which shows up in the browser as
+        // "can't establish a connection" (bug report: exactly this, right
+        // after a round start). Refresh right before connecting, same as
+        // `api()` already does reactively on a 401 - here there's no request
+        // to react to, so it's done proactively instead.
+        await refreshAccessToken();
+
         let socket: WebSocket;
         try {
             const token = getAccessToken();

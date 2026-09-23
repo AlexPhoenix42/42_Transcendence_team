@@ -91,6 +91,7 @@ class Game extends View {
     // (checked with `typeof ... === 'function'` below), so it just falls
     // through View's index signature instead.
     private _onReadyCallback?: (() => void) | null;
+    private _refreshIntervalId: ReturnType<typeof setInterval> | null = null;
 
     /**
      * Creates an instance of Game.
@@ -151,6 +152,17 @@ class Game extends View {
      * Removes keyboard, touch, and gamepad event listeners.
      */
     onDestroy(): void {
+        // `waitForResources()` starts this `setInterval` loop once and never
+        // stopped it (bug reported: leaving/ending a game left the siren
+        // sound - and every other `mainLoop` callback - running forever in
+        // the background, invisible since the DOM node is gone, until a
+        // full page reload). Clear it here so the loop actually stops when
+        // the component unmounts / the player leaves the game.
+        if (this._refreshIntervalId !== null) {
+            clearInterval(this._refreshIntervalId);
+            this._refreshIntervalId = null;
+        }
+
         this.keyboard.destroy();
         this.touch.destroy();
         this.gamepad.destroy();
@@ -208,7 +220,7 @@ class Game extends View {
 
             // Launch the refresh loop
             if (this.state === STATE_NEW) {
-                setInterval(this.refresh.bind(this), this.refreshRate);
+                this._refreshIntervalId = setInterval(this.refresh.bind(this), this.refreshRate);
             }
 
             this.state = STATE_RUNNING;
