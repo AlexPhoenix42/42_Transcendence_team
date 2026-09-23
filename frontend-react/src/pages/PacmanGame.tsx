@@ -244,6 +244,9 @@ export default function PacmanGame() {
     function startCountdown(seconds: number) {
         setPhase("countdown")
         setCount(seconds)
+        // les erreurs du salon (personnage pris, prêt refusé...) ne concernent
+        // plus la partie qui se lance
+        setError("")
         if (cdRef.current) clearInterval(cdRef.current)
         cdRef.current = setInterval(() => {
             setCount((c) => {
@@ -326,6 +329,19 @@ export default function PacmanGame() {
         c.connect()
     }
 
+    // Télécharge le moteur dès l'écran "rejoindre" : si l'onglet date d'avant
+    // un rebuild, l'échec (chunk 404) recharge la page ici (cf. main.tsx),
+    // pas au lancement - où on reviendrait en spectateur d'une partie en cours.
+    useEffect(() => {
+        if (phase !== "join") return
+        const load = isSolo
+            ? import("../pacman/Game.ts")
+            : import("../pacman/net/MultiplayerGame.ts")
+        load.catch(() => {
+            /* rechargement géré par vite:preloadError ; sinon erreur au lancement */
+        })
+    }, [phase, isSolo])
+
     // Solo : pas de rôle à choisir ni d'écran d'attente utile (un seul
     // joueur) - on rejoint tout seul dès l'arrivée sur l'écran "rejoindre".
     const autoJoinedRef = useRef(false)
@@ -384,7 +400,11 @@ export default function PacmanGame() {
     const players = roster.filter((r) => r.role !== "spectator")
     const spectators = roster.filter((r) => r.role === "spectator")
     const readyPlayers = players.filter((r) => r.ready)
-    const allReady = players.length > 0 && readyPlayers.length === players.length
+    // un personnage = un seul joueur : sinon la partie ne se lance pas
+    const rolesUnique = new Set(players.map((p) => p.role)).size === players.length
+    const myRoleTaken = !!me && me.role !== "spectator" && takenByOthers.has(me.role)
+    const allReady =
+        players.length > 0 && readyPlayers.length === players.length && rolesUnique
 
     // Lancement AUTO : dès que tous les joueurs sont prêts, un seul client
     // (le 1er du roster, pour éviter les décomptes en double) déclenche
@@ -400,6 +420,8 @@ export default function PacmanGame() {
         // serveur sert de "délai" pour dé-cocher si besoin.
         const ids = roster.map((r) => r.id).sort((a, b) => a.localeCompare(b))
         const iAmStarter = !!me && ids[0] === me.id && me.id !== "me"
+        // lancement refusé par le serveur puis corrigé : pouvoir relancer
+        if (!allReady) autoFiredRef.current = false
         if (allReady && iAmStarter && !autoFiredRef.current) {
             autoFiredRef.current = true
             clientRef.current?.start(3)
@@ -664,7 +686,8 @@ export default function PacmanGame() {
                                     <button
                                         className={me?.ready ? "pm-btn pm-ghost" : "pm-btn"}
                                         onClick={() => clientRef.current?.setReady(!me?.ready)}
-                                        disabled={phase === "countdown"}
+                                        disabled={phase === "countdown" || (!me?.ready && myRoleTaken)}
+                                        title={myRoleTaken ? "personnage déjà pris : choisis-en un autre" : ""}
                                     >
                                         {me?.ready ? "✗ Pas prêt" : "▶️ Je suis prêt"}
                                     </button>

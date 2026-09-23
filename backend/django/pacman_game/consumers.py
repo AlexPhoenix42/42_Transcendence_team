@@ -643,8 +643,12 @@ class GameConsumer(AsyncWebsocketConsumer):
                 stale_pid = room.find_pid_by_user(self.user.pk, exclude_pid=self.channel_name)
                 if stale_pid:
                     room.remove_player(stale_pid)
+                # Pas de personnage tant que le joueur n'en a pas choisi un
+                # (`role_assignment`) : un défaut 'pacman' faisait que deux
+                # arrivants se retrouvaient tous deux Pac-Man côté serveur.
                 room.add_player(
                     self.channel_name,
+                    role='spectator',
                     name=self._display_name(),
                     user_id=self.user.pk,
                 )
@@ -1103,6 +1107,15 @@ class GameConsumer(AsyncWebsocketConsumer):
         )
 
     async def handle_player_ready(self, data):
+        if data.get('ready', True):
+            room = await self._load_room()
+            role = room.players.get(self.channel_name, {}).get('role', 'spectator')
+            if role == 'spectator' or room.role_taken(role, exclude_pid=self.channel_name):
+                await self.send(text_data=json.dumps({
+                    'type': 'ready_rejected',
+                    'reason': "choisis un personnage libre avant d'être prêt",
+                }))
+                return
         await self.channel_layer.group_send(
             self.room_group_name,
             {
@@ -1182,6 +1195,13 @@ class GameConsumer(AsyncWebsocketConsumer):
         countdown = data.get('countdown', 3)
         if not isinstance(countdown, int) or not (0 <= countdown <= 10):
             countdown = 3
+        room = await self._load_room()
+        problem = room.start_problem()
+        if problem:
+            await self.send(text_data=json.dumps({
+                'type': 'start_rejected', 'reason': problem,
+            }))
+            return
         await self.channel_layer.group_send(
             self.room_group_name,
             {'type': 'broadcast_lobby_start', 'countdown': countdown},

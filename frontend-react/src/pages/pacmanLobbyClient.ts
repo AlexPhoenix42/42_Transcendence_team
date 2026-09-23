@@ -168,6 +168,17 @@ export class PacmanLobbyClient {
                 this.hello()
                 this.emitRoster()
                 break
+            case "ready_rejected":
+                // Le serveur refuse "prêt" : pas de personnage, ou personnage
+                // déjà tenu par un autre joueur.
+                this.me.ready = false
+                this.hello()
+                this.emitRoster()
+                this.emit("error", msg.reason || "personnage invalide")
+                break
+            case "start_rejected":
+                this.emit("error", `lancement refusé : ${msg.reason || "personnages invalides"}`)
+                break
             case "lobby_start":
                 this.emit("start", typeof msg.countdown === "number" ? msg.countdown : 3)
                 break

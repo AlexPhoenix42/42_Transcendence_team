@@ -332,6 +332,37 @@ class RoomStateRoleTakenTests(SimpleTestCase):
         self.assertFalse(room.role_taken('baby', exclude_pid='p2'))
 
 
+class RoomStateStartProblemTests(SimpleTestCase):
+    def test_distinct_characters_can_start(self):
+        room = RoomState()
+        room.add_player('p1', 'pacman')
+        room.add_player('g1', 'ghost_blinky')
+        self.assertIsNone(room.start_problem())
+
+    def test_same_character_twice_blocks_start(self):
+        room = RoomState()
+        room.add_player('p1', 'pacman')
+        room.add_player('p2', 'pacman')
+        self.assertIsNotNone(room.start_problem())
+
+    def test_player_without_character_blocks_start(self):
+        room = RoomState()
+        room.add_player('p1', 'pacman')
+        room.add_player('p2', 'spectator')   # arrivé, pas encore choisi
+        self.assertIsNotNone(room.start_problem())
+
+    def test_no_player_blocks_start(self):
+        room = RoomState()
+        room.set_role('s1', 'spectator')
+        self.assertIsNotNone(room.start_problem())
+
+    def test_real_spectators_do_not_block_start(self):
+        room = RoomState()
+        room.add_player('p1', 'pacman')
+        room.set_role('s1', 'spectator')
+        self.assertIsNone(room.start_problem())
+
+
 class RoomStateFindPidByUserTests(SimpleTestCase):
     def test_finds_the_stale_pid_for_the_same_user(self):
         room = RoomState()

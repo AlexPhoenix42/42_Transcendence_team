@@ -414,6 +414,23 @@ class RoomState:
             for pid, p in self.players.items()
         )
 
+    def start_problem(self):
+        """Raison pour laquelle la partie ne peut pas démarrer, ou `None`.
+
+        Chaque joueur (hors spectateurs et bot) doit tenir un personnage, et
+        chaque personnage n'est tenu que par un seul joueur - même contrainte
+        que `role_taken`, revérifiée ici au lancement car c'est le serveur,
+        pas le client, qui fait foi.
+        """
+        roles = [p.get('role') for pid, p in self.players.items() if pid != BOT_PACMAN_ID]
+        if not roles:
+            return "aucun joueur"
+        if 'spectator' in roles:
+            return "un joueur n'a pas de personnage"
+        if len(roles) != len(set(roles)):
+            return "deux joueurs ont le même personnage"
+        return None
+
     def set_role(self, pid, role, name=None):
         """Change le rôle d'un pid. `'spectator'` le sort de la liste des joueurs."""
         if role == 'spectator':
