@@ -165,6 +165,11 @@ class NetClient {
         this._send({ type: "power_used", kind: kind, position: { x: x, y: y } });
     }
 
+    /** We (Pac-Man / Ms Pac-Man) ate the fruit: make it vanish everywhere. */
+    sendFruitEaten(): void {
+        this._send({ type: "fruit_eaten" });
+    }
+
     /**
      * Baby Pac-Man lifecycle, driven by the "papa" client.
      * @param kind
@@ -314,6 +319,9 @@ class NetClient {
                 this._emit("power", msg.player_id, msg.kind, pos.x, pos.y);
                 break;
             }
+            case "fruit_eaten":
+                this._emit("fruit", msg.player_id);
+                break;
             case "baby_action": {
                 const pos = msg.position || {};
                 this._emit("baby", msg.player_id, msg.kind, pos.x, pos.y);

@@ -11,9 +11,13 @@
 # de l'objet Python. Test unitaire pur (pas besoin de WebsocketCommunicator ni
 # de Redis vivant : `cache.lock()` ne se connecte qu'à `acquire()`).
 
+from types import SimpleNamespace
+from unittest.mock import AsyncMock
+
+from asgiref.sync import async_to_sync
 from django.test import SimpleTestCase
 
-from pacman_game.consumers import _RedisRoomLock, _room_lock
+from pacman_game.consumers import GameConsumer, _RedisRoomLock, _room_lock
 
 
 class RoomLockTests(SimpleTestCase):
@@ -29,3 +33,30 @@ class RoomLockTests(SimpleTestCase):
 
     def test_returns_a_redis_room_lock(self):
         self.assertIsInstance(_room_lock('room1'), _RedisRoomLock)
+
+
+class FruitEatenRelayTests(SimpleTestCase):
+    """`fruit_eaten` n'est relayé que pour Pac-Man / Madame Pac-Man."""
+
+    def _consumer(self, role):
+        consumer = GameConsumer.__new__(GameConsumer)
+        consumer.channel_name = 'me'
+        consumer.room_group_name = 'pacman_room'
+        consumer.channel_layer = AsyncMock()
+        room = SimpleNamespace(players={'me': {'role': role}})
+        consumer._load_room = AsyncMock(return_value=room)
+        return consumer
+
+    def test_pacman_roles_relay_to_the_room(self):
+        for role in ('pacman', 'madame_pacman'):
+            consumer = self._consumer(role)
+            async_to_sync(consumer.handle_fruit_eaten)({})
+            consumer.channel_layer.group_send.assert_awaited_once_with(
+                'pacman_room', {'type': 'broadcast_fruit', 'player_id': 'me'},
+            )
+
+    def test_other_roles_are_ignored(self):
+        for role in ('baby', 'blocker', 'builder', 'ghost_pinky', 'spectator'):
+            consumer = self._consumer(role)
+            async_to_sync(consumer.handle_fruit_eaten)({})
+            consumer.channel_layer.group_send.assert_not_awaited()

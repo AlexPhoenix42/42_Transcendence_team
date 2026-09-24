@@ -71,6 +71,9 @@ const OPPOSITE_DIR: Record<Direction, Direction> = { l: "r", r: "l", u: "d", d: 
  * Pac-Man who can never die (imprisoned instead) and builds anti-ghost walls. */
 const PACMAN_ROLES = ["pacman", "madame_pacman", "baby", "blocker"];
 
+/** The only roles allowed to eat the bonus fruit (checked server-side too). */
+const FRUIT_EATER_ROLES = ["pacman", "madame_pacman"];
+
 /** The 4 ghost roles - each a distinct, separately selectable character
  * (own colour + original single-player AI target, see makeGhost.ts), not a
  * single generic "ghost" role anymore. */
@@ -299,6 +302,7 @@ class MultiplayerGame extends JsPacman {
         this.net.on("roundrestart", () => this._restartRound());
         this.net.on("power", (id, kind, x, y) => this._onPower(kind, x, y));
         this.net.on("baby", (id, kind, x, y) => this._onBaby(kind, x, y));
+        this.net.on("fruit", (id) => this._onFruitEaten(id));
         this.net.on("doteaten", (col, row, by) => this._onDotEaten(col, row, by));
         this.net.on("sync", (snapshot) => this._onSync(snapshot));
         this.net.on("roundstarted", () => this._onRoundStarted());
@@ -884,16 +888,40 @@ class MultiplayerGame extends JsPacman {
     // ===================== baby Pac-Man =====================
 
     /**
-     * Attach the "papa ate a fruit" flag to the current bonus sprite (once).
+     * Wire the current bonus sprite (once): a Pac-Man / Ms Pac-Man announces
+     * eating it (and papa gets his "ate a fruit" flag); every other role can't
+     * eat it at all - otherwise the parked, hidden base Pac-Man of a ghost
+     * client would silently eat it on that screen.
      * @private
      */
     _hookBonus(): void {
-        const bonus = this.bonus as (typeof this.bonus & { _babyHooked?: boolean }) | null | undefined;
-        if (this.role !== "pacman" || !bonus || bonus._babyHooked) return;
-        bonus._babyHooked = true;
+        const bonus = this.bonus as (typeof this.bonus & { _netHooked?: boolean }) | null | undefined;
+        if (!bonus || bonus._netHooked) return;
+        bonus._netHooked = true;
+
+        if (!FRUIT_EATER_ROLES.includes(this.role)) {
+            bonus.getPacmanData = () => ({ x: -1, y: -1, tile: null, dir: null });
+            return;
+        }
         bonus.on("item:eaten", () => {
-            this._papaAteFruit = true;
+            if (this._showBonus) return; // Not yet in the maze (same guard as Game.ts)
+            this.net.sendFruitEaten();
+            if (this.role === "pacman") this._papaAteFruit = true;
         });
+    }
+
+    /**
+     * Another Pac-Man ate the fruit: end ours the way the eater's screen does
+     * (score shown briefly, then gone - see Game.ts's `item:eaten`).
+     * @private
+     */
+    _onFruitEaten(id: string): void {
+        const bonus = this.bonus;
+        if (id === this._selfId || !bonus || this._destroyBonus) return;
+        bonus._eatEvent = true;
+        bonus._nextAnimation = bonus.animations[`score${bonus.score}`];
+        bonus.update();
+        this._destroyBonus = 25;
     }
 
     /**
@@ -1281,7 +1309,7 @@ class MultiplayerGame extends JsPacman {
             this._blockPacmanOnBuilderWalls();
             this._hookPacmanDots();
             this._disarmAiGhosts();
-        } else {
+        } else if (!this._isSpectator) {
             this._setupLocalAvatar();
         }
         if (!this._isSpectator) this._styleLocalBody();
@@ -1608,6 +1636,13 @@ class MultiplayerGame extends JsPacman {
      * @private
      */
     _setupLocalAvatar(): void {
+        // Called from both the constructor and `reset()` (which the
+        // constructor itself runs first): drop the previous avatar, or it
+        // stays behind as a frozen extra ghost in the house.
+        if (this.avatar) {
+            this.avatar.destroy();
+            this.avatar = null;
+        }
         this.pacman.hide();
         this.pacman._speed = 0;
         this.pacman.speed = 0;

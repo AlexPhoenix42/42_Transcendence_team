@@ -51,8 +51,12 @@ ACTIVE_ROOMS_KEY        = "pacman_active_rooms"
 # fantôme, aligné sur `_checkGhostCatch()` côté front (`< 18` px).
 BOT_TICK_SECONDS        = 0.22
 BOT_CONTACT_RADIUS_PX   = 18
-# Direction (mot complet, comme envoyé par un client réel) selon le pas.
-_DIRECTION_WORDS = {(0, -1): 'up', (0, 1): 'down', (-1, 0): 'left', (1, 0): 'right'}
+# Direction selon le pas, au format du client (`u`/`d`/`l`/`r`, voir
+# `sendPosition` dans NetClient.ts) : un mot complet ('up'...) n'est reconnu
+# par aucun sprite et le bot restait tourné du mauvais côté.
+_DIRECTION_WORDS = {(0, -1): 'u', (0, 1): 'd', (-1, 0): 'l', (1, 0): 'r'}
+
+FRUIT_EATER_ROLES = ('pacman', 'madame_pacman')
 
 ALLOWED_ROLES = (
     'pacman', 'madame_pacman', 'baby', 'blocker', 'builder',
@@ -484,7 +488,7 @@ async def _bot_move_and_eat(channel_layer, room_name, group_name, current_tile, 
     if abs(dcol) > 1:  # tuile de tunnel qui boucle d'un bord à l'autre
         dcol = -1 if dcol > 0 else 1
     drow = next_tile[1] - current_tile[1]
-    direction = _DIRECTION_WORDS.get((dcol, drow), 'right')
+    direction = _DIRECTION_WORDS.get((dcol, drow), 'r')
     x, y = tile_to_pixel(*next_tile)
 
     await sync_to_async(cache.set, thread_sensitive=False)(
@@ -747,6 +751,7 @@ class GameConsumer(AsyncWebsocketConsumer):
             'request_sync':     self.handle_request_sync,
             'round_restart':    self.handle_round_restart,
             'power_used':       self.handle_power_used,
+            'fruit_eaten':      self.handle_fruit_eaten,
             'baby_action':      self.handle_baby_action,
             'lobby_hello':      self.handle_lobby_hello,
             'lobby_start':      self.handle_lobby_start,
@@ -1002,7 +1007,7 @@ class GameConsumer(AsyncWebsocketConsumer):
             return
         if x < 0 or x > 10000 or y < 0 or y > 10000:
             return
-        direction = data.get('direction', 'right')
+        direction = data.get('direction', 'r')
         # Pur relais vers les autres clients (comme avant) + une écriture
         # best-effort, hors verrou, pour que `_bot_loop` sache où sont les
         # fantômes (voir `_pos_key`). `thread_sensitive=False` est important
@@ -1114,6 +1119,19 @@ class GameConsumer(AsyncWebsocketConsumer):
                 'kind': kind,
                 'position': {'x': float(x), 'y': float(y)},
             },
+        )
+
+    async def handle_fruit_eaten(self, data):
+        # Le fruit reste local à chaque client (apparition, trajet) ; on ne fait
+        # que relayer « mangé » pour qu'il disparaisse partout. Seuls Pac-Man et
+        # Madame Pac-Man peuvent le manger.
+        room = await self._load_room()
+        role = room.players.get(self.channel_name, {}).get('role')
+        if role not in FRUIT_EATER_ROLES:
+            return
+        await self.channel_layer.group_send(
+            self.room_group_name,
+            {'type': 'broadcast_fruit', 'player_id': self.channel_name},
         )
 
     async def handle_player_ready(self, data):
@@ -1319,6 +1337,12 @@ class GameConsumer(AsyncWebsocketConsumer):
             'player_id': event['player_id'],
             'kind': event['kind'],
             'position': event['position'],
+        }))
+
+    async def broadcast_fruit(self, event):
+        await self.send(text_data=json.dumps({
+            'type': 'fruit_eaten',
+            'player_id': event['player_id'],
         }))
 
     async def broadcast_baby(self, event):
