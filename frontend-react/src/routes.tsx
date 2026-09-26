@@ -27,6 +27,9 @@ import Leaderboard from "./pages/Leaderboard.tsx"
 import MatchHistory from "./pages/MatchHistory.tsx"
 import Analytics from "./pages/Analytics.tsx"
 
+import PacmanLobby from "./pages/PacmanLobby.tsx"
+import PacmanGame from "./pages/PacmanGame.tsx"
+
 import GooseLobby from "./pages/GooseLobby.tsx"
 import GooseGame from "./pages/GooseGame.tsx"
 
@@ -83,7 +86,8 @@ export const router = createBrowserRouter([
 					{ path: "/history", element: <MatchHistory /> },
 					{ path: "/history/:username", element: <MatchHistory /> },
 					{ path: "/analytics", element: <Analytics /> },
-
+					{ path: "/pacman", element: <PacmanLobby /> },
+					{ path: "/pacman/:roomName", element: <PacmanGame /> },
 					{ path: "/goose", element: <GooseLobby /> },
                     { path: "/goose/:id", element: <GooseGame /> },
 

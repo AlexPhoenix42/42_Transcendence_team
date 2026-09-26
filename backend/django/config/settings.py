@@ -163,6 +163,7 @@ INSTALLED_APPS = [
     'config',
 
     'chess_game',
+    'pacman_game',
     'goose_game',
 
     'users',
