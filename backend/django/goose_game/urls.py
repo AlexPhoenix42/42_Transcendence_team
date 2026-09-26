@@ -7,6 +7,7 @@ from .views import (
     GooseGameJoinView,
     GooseGameStartView,
     GooseGameLeaveView,
+    GooseGameCancelView,
 )
 
 urlpatterns = [
@@ -15,5 +16,6 @@ urlpatterns = [
     path("<int:pk>/join/",  GooseGameJoinView.as_view(),        name="goose-join"),
     path("<int:pk>/start/", GooseGameStartView.as_view(),       name="goose-start"),
     path("<int:pk>/leave/", GooseGameLeaveView.as_view(),       name="goose-leave"),
+    path("<int:pk>/cancel/", GooseGameCancelView.as_view(),     name="goose-cancel"),
 ]
 

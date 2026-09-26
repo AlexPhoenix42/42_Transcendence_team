@@ -4,7 +4,6 @@ import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { api } from "../api/client.ts"
 import { useAuth } from "../context/AuthContext.tsx"
-import { useI18n } from "../i18n/I18nProvider.tsx"
 
 interface Player {
     username: string
@@ -24,7 +23,6 @@ interface GooseGame {
 }
 
 export default function GooseLobby() {
-    const { t, ts } = useI18n()
     const { user } = useAuth()
     const navigate = useNavigate()
 
@@ -49,21 +47,6 @@ export default function GooseLobby() {
     async function createGame(e: React.FormEvent) {
         e.preventDefault()
         setError("")
-
-		if (!name.trim()) {
-            setError("Game name is required")
-            return
-        }
-        if (name.trim().length > 50) {
-            setError("Game name must be under 50 characters")
-            return
-        }
-        const mp = parseInt(maxPlayers)
-        if (isNaN(mp) || mp < 2 || mp > 8) {
-            setError("Players must be between 2 and 8")
-            return
-        }
-
         try {
             const resp = await api("/api/goose/", {
                 method: "POST",
@@ -77,10 +60,10 @@ export default function GooseLobby() {
                 navigate(`/goose/${data.id}`)
             } else {
                 const data = await resp.json()
-                setError(ts(data.error, "gooseLobby.error.create"))
+                setError(data.error || "Failed to create game")
             }
         } catch {
-            setError(t("common.error.networkShort"))
+            setError("Network error")
         }
     }
 
@@ -91,14 +74,29 @@ export default function GooseLobby() {
                 navigate(`/goose/${gameId}`)
             } else {
                 const data = await resp.json()
-                setError(ts(data.error, "gooseLobby.error.join"))
+                setError(data.error || "Failed to join")
             }
         } catch {}
     }
 
+    async function cancelGame(gameId: number) {
+        setError("")
+        try {
+            const resp = await api(`/api/goose/${gameId}/cancel/`, { method: "DELETE" })
+            if (resp.ok) {
+                fetchGames()
+            } else {
+                const data = await resp.json().catch(() => ({}))
+                setError(data.error || "Failed to delete room")
+            }
+        } catch {
+            setError("Network error")
+        }
+    }
+
     return (
         <div className="max-w-3xl mx-auto">
-            <h1 className="text-3xl font-bold text-white mb-6">{t("gooseLobby.title")}</h1>
+            <h1 className="text-3xl font-bold text-white mb-6">Game of the Goose</h1>
 
             {error && (
                 <div className="bg-red-900/50 border border-red-500 text-red-300 px-4 py-2 rounded mb-4">
@@ -108,20 +106,20 @@ export default function GooseLobby() {
 
             {/* Create game */}
             <div className="bg-gray-800 rounded-lg border border-gray-700 p-5 mb-6">
-                <h2 className="text-lg font-semibold text-white mb-3">{t("gooseLobby.createGame")}</h2>
+                <h2 className="text-lg font-semibold text-white mb-3">Create Game</h2>
                 <form onSubmit={createGame} className="flex gap-3 items-end">
                     <div className="flex-1">
-                        <label className="text-gray-400 text-sm block mb-1">{t("gooseLobby.gameName")}</label>
+                        <label className="text-gray-400 text-sm block mb-1">Game Name</label>
                         <input
                             type="text"
                             value={name}
                             onChange={(e) => setName(e.target.value)}
-                            placeholder={t("gooseLobby.namePlaceholder")}
+                            placeholder="My game"
                             className="w-full px-3 py-2 bg-gray-900 text-white border border-gray-700 rounded focus:outline-none focus:border-blue-500"
                         />
                     </div>
                     <div>
-                        <label className="text-gray-400 text-sm block mb-1">{t("gooseLobby.players")}</label>
+                        <label className="text-gray-400 text-sm block mb-1">Players</label>
                         <select
                             value={maxPlayers}
                             onChange={(e) => setMaxPlayers(e.target.value)}
@@ -136,7 +134,7 @@ export default function GooseLobby() {
                         type="submit"
                         className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
                     >
-                        {t("gooseLobby.create")}
+                        Create
                     </button>
                 </form>
             </div>
@@ -144,7 +142,7 @@ export default function GooseLobby() {
             {/* Game list */}
             <div className="space-y-3">
                 {games.length === 0 && (
-                    <p className="text-gray-400 text-center py-8">{t("gooseLobby.empty")}</p>
+                    <p className="text-gray-400 text-center py-8">No games available. Create one!</p>
                 )}
                 {games.map((game) => {
                     const isInGame = game.players.some((p) => p.username === user?.username)
@@ -166,7 +164,7 @@ export default function GooseLobby() {
                                             ? "bg-yellow-900/50 text-yellow-400"
                                             : "bg-green-900/50 text-green-400"
                                     }`}>
-                                        {game.status === "WAITING" ? t("gooseLobby.waiting") : t("gooseLobby.inProgress")}
+                                        {game.status === "WAITING" ? "Waiting" : "In Progress"}
                                     </span>
                                     <span className="text-gray-500 text-xs">
                                         by {game.created_by}
@@ -175,34 +173,43 @@ export default function GooseLobby() {
                                 <div className="flex gap-1 mt-2">
                                     {game.players.map((p) => (
                                         <span key={p.username} className="text-xs bg-gray-700 text-gray-300 px-2 py-0.5 rounded">
-                                            <bdi>{p.username}</bdi>
+                                            {p.username}
                                         </span>
                                     ))}
                                 </div>
                             </div>
-                            <div>
+                            <div className="flex items-center gap-2">
                                 {isInGame ? (
                                     <button
                                         onClick={() => navigate(`/goose/${game.id}`)}
                                         className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
                                     >
-                                        {game.status === "IN_PROGRESS" ? t("gooseLobby.play") : t("gooseLobby.open")}
+                                        {game.status === "IN_PROGRESS" ? "Play" : "Open"}
                                     </button>
                                 ) : game.status === "WAITING" && !isFull ? (
                                     <button
                                         onClick={() => joinGame(game.id)}
                                         className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
                                     >
-                                        {t("gooseLobby.join")}
+                                        Join
                                     </button>
                                 ) : game.status === "IN_PROGRESS" ? (
                                     <button
                                         onClick={() => navigate(`/goose/${game.id}`)}
                                         className="px-4 py-2 bg-gray-700 text-white rounded hover:bg-gray-600"
                                     >
-                                        {t("gooseLobby.watch")}
+                                        Watch
                                     </button>
                                 ) : null}
+                                {game.created_by === user?.username && (
+                                    <button
+                                        onClick={() => cancelGame(game.id)}
+                                        title="Delete room"
+                                        className="px-3 py-2 bg-red-900/50 text-red-300 border border-red-700 rounded hover:bg-red-900"
+                                    >
+                                        🗑
+                                    </button>
+                                )}
                             </div>
                         </div>
                     )
