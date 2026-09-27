@@ -9,6 +9,8 @@ import { useState, useEffect, useRef } from "react"
 import { useNavigate } from "react-router-dom"
 import { api } from "../api/client.ts"
 import { useAuth } from "../context/AuthContext.tsx"
+import { useI18n, type PluralKey } from "../i18n/I18nProvider.tsx"
+import type { MessageKey } from "../i18n/messages/index.ts"
 import "./pacman.css"
 
 interface PacmanPlayer {
@@ -43,10 +45,14 @@ function Row({
     room,
     live,
     actions,
+    tn,
+    t,
 }: {
     room: RoomData
     live?: boolean
     actions: React.ReactNode
+    tn: (key: PluralKey, count: number, vars?: Record<string, string | number>) => string
+    t: (key: MessageKey, vars?: Record<string, string | number>) => string
 }) {
     return (
         <div className={live ? "pm-item pm-live" : "pm-item"}>
@@ -54,9 +60,9 @@ function Row({
                 <span className="pm-item-name">{room.room_name}</span>
                 <br />
                 <span className="pm-item-meta">
-                    {room.created_by} · {room.player_count} JOUEUR
-                    {room.player_count > 1 ? "S" : ""} · CARTE {room.map_choice}
-                    {live && ` · NIV ${room.level}`}
+                    {room.created_by} · {tn("common.players", room.player_count, { count: room.player_count })}
+                    {" · "}{t("pacmanLobby.mapLabel", { n: room.map_choice })}
+                    {live && ` · ${t("pacmanLobby.levelLabel", { n: room.level })}`}
                 </span>
             </div>
             {actions}
@@ -66,6 +72,7 @@ function Row({
 
 export default function PacmanLobby() {
     const { user } = useAuth()
+    const { t, ts, tn } = useI18n()
     const navigate = useNavigate()
 
     const [openRooms, setOpenRooms] = useState<RoomData[]>([])
@@ -114,7 +121,7 @@ export default function PacmanLobby() {
 
         const name = roomName.trim()
         if (!ROOM_RE.test(name)) {
-            setError("NOM INVALIDE : LETTRES, CHIFFRES, - ET _ (1-100)")
+            setError(t("pacmanLobby.error.invalidName").toUpperCase())
             return
         }
 
@@ -133,11 +140,11 @@ export default function PacmanLobby() {
             } else {
                 const data = await resp.json().catch(() => ({}))
                 setError(
-                    (data.room_name?.[0] || data.error || "CREATION IMPOSSIBLE").toUpperCase(),
+                    ts(data.room_name?.[0] || data.error, "pacmanLobby.error.create").toUpperCase(),
                 )
             }
         } catch {
-            setError("ERREUR RESEAU")
+            setError(t("common.error.network").toUpperCase())
         }
     }
 
@@ -161,10 +168,10 @@ export default function PacmanLobby() {
                 navigate(`/pacman/${name}`)
             } else {
                 const data = await resp.json().catch(() => ({}))
-                setError((data.error || "CREATION IMPOSSIBLE").toUpperCase())
+                setError(ts(data.error, "pacmanLobby.error.create").toUpperCase())
             }
         } catch {
-            setError("ERREUR RESEAU")
+            setError(t("common.error.network").toUpperCase())
         }
     }
 
@@ -176,36 +183,36 @@ export default function PacmanLobby() {
                 fetchAll()
             } else {
                 const data = await resp.json().catch(() => ({}))
-                setError((data.error || "ANNULATION IMPOSSIBLE").toUpperCase())
+                setError(ts(data.error, "pacmanLobby.error.cancel").toUpperCase())
             }
         } catch {
-            setError("ERREUR RESEAU")
+            setError(t("common.error.network").toUpperCase())
         }
     }
 
     return (
         <div className="pm-root">
             <div className="pm-wrap">
-                <div className="pm-header">🎮 PAC-MAN LOBBY</div>
+                <div className="pm-header">{t("pacmanLobby.header")}</div>
 
                 {error && <div className="pm-alert pm-err">{error}</div>}
 
                 <div className="pm-panel">
                     <div className="pm-panel-title">
-                        Salon
+                        {t("pacmanLobby.room")}
                         <button
                             className="pm-btn pm-ghost"
                             style={{ float: "right", marginTop: "-6px" }}
                             onClick={() => setShowCreate((s) => !s)}
                         >
-                            {showCreate ? "Fermer" : "+ Nouveau"}
+                            {showCreate ? t("pacmanLobby.close") : t("pacmanLobby.newRoom")}
                         </button>
                         <button
                             className="pm-btn pm-ghost"
                             style={{ float: "right", marginTop: "-6px", marginRight: 8 }}
                             onClick={createSoloRoom}
                         >
-                            🎮 SOLO
+                            {t("pacmanLobby.quickSolo")}
                         </button>
                     </div>
 
@@ -216,7 +223,7 @@ export default function PacmanLobby() {
                                 type="text"
                                 value={roomName}
                                 onChange={(e) => setRoomName(e.target.value)}
-                                placeholder="nom-du-salon"
+                                placeholder={t("pacmanLobby.roomNamePlaceholder")}
                                 autoFocus
                             />
                             <div className="pm-roles pm-roles-wrap">
@@ -227,7 +234,7 @@ export default function PacmanLobby() {
                                         className={mapChoice === n ? "pm-role active" : "pm-role"}
                                         onClick={() => setMapChoice(n)}
                                     >
-                                        🗺️ Carte {n}
+                                        {t("pacmanLobby.map", { n })}
                                     </button>
                                 ))}
                             </div>
@@ -237,35 +244,37 @@ export default function PacmanLobby() {
                                     className={isSolo ? "pm-role active" : "pm-role"}
                                     onClick={() => setIsSolo(!isSolo)}
                                 >
-                                    {isSolo ? "👤 SOLO" : "👥 MULTI"}
+                                    {isSolo ? t("pacmanLobby.modeSolo") : t("pacmanLobby.modeMulti")}
                                 </button>
                             </div>
                             <button className="pm-btn" type="submit">
-                                Creer &amp; rejoindre
+                                {t("pacmanLobby.createAndJoin")}
                             </button>
                         </form>
                     ) : (
                         <p className="pm-empty">
-                            Crée un salon ou rejoins-en un ci-dessous.
+                            {t("pacmanLobby.emptyCreate")}
                         </p>
                     )}
                 </div>
 
                 {myRooms.length > 0 && (
                     <div className="pm-panel">
-                        <div className="pm-panel-title">Mes salons</div>
+                        <div className="pm-panel-title">{t("pacmanLobby.myRooms")}</div>
                         {myRooms.map((room) => (
                             <Row
                                 key={room.id}
                                 room={room}
                                 live={room.status === "IN_PROGRESS"}
+                                t={t}
+                                tn={tn}
                                 actions={
                                     <>
                                         <button
                                             className="pm-btn"
                                             onClick={() => joinRoom(room.room_name)}
                                         >
-                                            Rejoindre
+                                            {t("pacmanLobby.join")}
                                         </button>
                                         {room.created_by === user?.username && (
                                             <button
@@ -283,21 +292,23 @@ export default function PacmanLobby() {
                 )}
 
                 <div className="pm-panel">
-                    <div className="pm-panel-title">Salons ouverts</div>
+                    <div className="pm-panel-title">{t("pacmanLobby.openRooms")}</div>
                     {openRooms.length === 0 && (
-                        <p className="pm-empty">Aucun salon ouvert.</p>
+                        <p className="pm-empty">{t("pacmanLobby.noOpenRooms")}</p>
                     )}
                     {openRooms.map((room) => (
                         <Row
                             key={room.id}
                             room={room}
+                            t={t}
+                            tn={tn}
                             actions={
                                 <>
                                     <button
                                         className="pm-btn"
                                         onClick={() => joinRoom(room.room_name)}
                                     >
-                                        Rejoindre
+                                        {t("pacmanLobby.join")}
                                     </button>
                                     {room.created_by === user?.username && (
                                         <button
@@ -314,22 +325,24 @@ export default function PacmanLobby() {
                 </div>
 
                 <div className="pm-panel">
-                    <div className="pm-panel-title">Parties en cours</div>
+                    <div className="pm-panel-title">{t("pacmanLobby.liveGames")}</div>
                     {liveRooms.length === 0 && (
-                        <p className="pm-empty">Aucune partie en cours.</p>
+                        <p className="pm-empty">{t("pacmanLobby.noLiveGames")}</p>
                     )}
                     {liveRooms.map((room) => (
                         <Row
                             key={room.id}
                             room={room}
                             live
+                            t={t}
+                            tn={tn}
                             actions={
                                 <>
                                     <button
                                         className="pm-btn pm-watch"
                                         onClick={() => joinRoom(room.room_name)}
                                     >
-                                        Regarder
+                                        {t("pacmanLobby.watch")}
                                     </button>
                                     {room.created_by === user?.username && (
                                         <button

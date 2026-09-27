@@ -10,6 +10,7 @@ import { useState, useEffect, useRef, useCallback } from "react"
 import { useParams, useNavigate } from "react-router-dom"
 import { useAuth } from "../context/AuthContext.tsx"
 import { api } from "../api/client.ts"
+import { useI18n } from "../i18n/I18nProvider.tsx"
 import { PacmanLobbyClient, type RosterEntry } from "./pacmanLobbyClient.ts"
 import "./pacman.css"
 import "../pacman/styles.css"
@@ -33,11 +34,9 @@ const CHARACTERS: { role: string; label: string }[] = [
     { role: "ghost_sue", label: "🟠 SUE" },
 ]
 
-const ROLE_LABEL: Record<string, string> = {
-    spectator: "👁️ Spectateur",
+const STATIC_ROLE_LABEL: Record<string, string> = {
     pacman: "🟡 Pac-Man",
     madame_pacman: "💗 Ms Pac-Man",
-    baby: "🍼 Bébé",
     blocker: "🧱 Blocker",
     builder: "👷 Builder",
     ghost_pinky: "🌸 Pinky",
@@ -50,6 +49,16 @@ export default function PacmanGame() {
     const { roomName = "" } = useParams<{ roomName: string }>()
     const navigate = useNavigate()
     const { user } = useAuth()
+    const { t, ts } = useI18n()
+
+    const roleLabel = useCallback(
+        (role: string) => {
+            if (role === "spectator") return t("pacman.role.spectator")
+            if (role === "baby") return t("pacman.role.baby")
+            return STATIC_ROLE_LABEL[role] || role
+        },
+        [t],
+    )
 
     const [phase, setPhase] = useState<Phase>("loading")
     const [kind, setKind] = useState<"spectator" | "player">("player")
@@ -168,7 +177,7 @@ export default function PacmanGame() {
                         mapChoice,
                     })
                 })
-                .catch(() => setError("Erreur au démarrage du jeu"))
+                .catch(() => setError(t("pacman.error.startFailed")))
         } else {
             // Mode MULTI: charger le jeu multijoueur
             import("../pacman/net/MultiplayerGame.ts")
@@ -181,9 +190,27 @@ export default function PacmanGame() {
                     position: "relative",
                     room: roomName,
                     role: myRole,
-                    playerName: user?.username || "Joueur",
+                    playerName: user?.username || t("pacman.client.defaultName"),
                     mapChoice,
                     autoStart: true,
+                    labels: {
+                        spectatorBanner:   t("pacman.game.spectatorBanner"),
+                        waitingForPlayers: t("pacman.game.waitingForPlayers"),
+                        pacmanWins:        t("pacman.game.pacmanWins"),
+                        ghostsWin:         t("pacman.game.ghostsWin"),
+                        returnHint:        t("pacman.game.returnHint"),
+                        youSuffix:         t("pacman.game.youSuffix"),
+                        extraLife:         t("pacman.game.extraLife"),
+                        defaultPlayerName: t("pacman.game.defaultPlayerName"),
+                        role: {
+                            pacman:        t("pacman.game.role.pacman"),
+                            madame_pacman: t("pacman.game.role.madamePacman"),
+                            baby:          t("pacman.game.role.baby"),
+                            blocker:       t("pacman.game.role.blocker"),
+                            ghost:         t("pacman.game.role.ghost"),
+                            builder:       t("pacman.game.role.builder"),
+                        },
+                    },
                     // Manche terminée, tout le monde revient au salon d'attente
                     // (écran « prêt ») au lieu de rejouer en place : voir le
                     // commentaire de `_restartRound` dans MultiplayerGame.js.
@@ -203,7 +230,7 @@ export default function PacmanGame() {
                 })
                 ;(window as unknown as { __pacman?: unknown }).__pacman = gameRef.current
             })
-            .catch((e) => setError(`MOTEUR : ${String(e?.message || e).toUpperCase()}`))
+            .catch((e) => setError(t("pacman.error.engineLoad", { msg: String(e?.message || e).toUpperCase() })))
         }
 
         return () => {
@@ -278,7 +305,7 @@ export default function PacmanGame() {
                     body: JSON.stringify({ room_name: roomName }),
                 })
                 if (!r.ok && r.status !== 400) {
-                    setError("CREATION DU SALON IMPOSSIBLE")
+                    setError(t("pacman.error.create"))
                     return
                 }
                 if (r.ok) {
@@ -290,16 +317,16 @@ export default function PacmanGame() {
                 }
                 setRoomExists(true)
             } catch {
-                setError("ERREUR RESEAU")
+                setError(t("common.error.network"))
                 return
             }
         }
 
-        const c = new PacmanLobbyClient(roomName)
+        const c = new PacmanLobbyClient(roomName, t)
         clientRef.current = c
 
         c.on("open", () => {
-            c.setName(user?.username || "Joueur")
+            c.setName(user?.username || t("pacman.client.defaultName"))
             c.setRole(myRole)
             setPhase("waiting")
         })
@@ -307,11 +334,11 @@ export default function PacmanGame() {
         c.on("start", (s: number) => startCountdown(s))
         c.on("closed", () => {
             cleanup()
-            navigate("/pacman", { state: { notice: "Salon fermé (inactif 10 min)." } })
+            navigate("/pacman", { state: { notice: t("pacman.notice.roomClosed") } })
         })
-        c.on("error", (m: string) => setError((m || "erreur").toUpperCase()))
+        c.on("error", (m: string) => setError((m ? ts(m, "pacman.error.generic") : t("pacman.error.generic")).toUpperCase()))
         c.on("roleRejected", (currentRole: string) => {
-            setError("PERSONNAGE DEJA PRIS PAR UN AUTRE JOUEUR")
+            setError(t("pacman.error.roleTaken"))
             if (currentRole === "spectator") setKind("spectator")
             else {
                 setKind("player")
@@ -319,11 +346,11 @@ export default function PacmanGame() {
             }
         })
         c.on("close", (code: number) => {
-            if (code === 4001) setError("SESSION EXPIREE — RECONNECTE-TOI")
+            if (code === 4001) setError(t("pacman.error.sessionExpired"))
             else if (code === 4004) {
                 cleanup()
-                navigate("/pacman", { state: { notice: "Ce salon n'existe pas." } })
-            } else if (phase !== "playing") setError("CONNEXION PERDUE")
+                navigate("/pacman", { state: { notice: t("pacman.notice.roomNotFound") } })
+            } else if (phase !== "playing") setError(t("pacman.error.connectionLost"))
         })
 
         c.connect()
@@ -368,7 +395,7 @@ export default function PacmanGame() {
             /* on part quand même */
         }
         cleanup()
-        navigate("/pacman", { state: { notice: "Salon supprimé." } })
+        navigate("/pacman", { state: { notice: t("pacman.notice.roomDeleted") } })
     }
 
     // Quitter la partie -> revient au choix du rôle du MÊME salon (le salon
@@ -439,15 +466,15 @@ export default function PacmanGame() {
     // Voyant d'état du salon
     const lamp =
         phase === "playing" || phase === "countdown"
-            ? { cls: "pm-lamp-green", txt: "Partie en cours" }
+            ? { cls: "pm-lamp-green", txt: t("pacman.status.inProgress") }
             : phase === "waiting"
               ? allReady
-                  ? { cls: "pm-lamp-green", txt: "Tous prêts — lancement…" }
+                  ? { cls: "pm-lamp-green", txt: t("pacman.status.allReady") }
                   : {
                         cls: "pm-lamp-orange",
-                        txt: `En attente — ${readyPlayers.length}/${players.length} prêts`,
+                        txt: t("pacman.status.waiting", { ready: readyPlayers.length, total: players.length }),
                     }
-              : { cls: "pm-lamp-red", txt: "Pas connecté au salon" }
+              : { cls: "pm-lamp-red", txt: t("pacman.status.notConnected") }
 
     // ---------- rendu ----------
 
@@ -465,14 +492,14 @@ export default function PacmanGame() {
                     <div ref={stageRef} className="pm-game-stage js-pacman-playground" />
                     <div className="pm-form pm-center" style={{ justifyContent: "center" }}>
                         <button className="pm-btn pm-quit" onClick={leaveGame}>
-                            ⟲ Changer de rôle
+                            {t("pacman.changeRole")}
                         </button>
                         <button className="pm-btn pm-ghost pm-quit" onClick={leaveToLobby}>
-                            ← Lobby
+                            {t("pacman.backToLobby")}
                         </button>
                         {isCreator && (
                             <button className="pm-btn pm-danger pm-quit" onClick={deleteRoom}>
-                                🗑 Supprimer le salon
+                                {t("pacman.deleteRoom")}
                             </button>
                         )}
                     </div>
@@ -484,7 +511,7 @@ export default function PacmanGame() {
     return (
         <div className="pm-root">
             <div className="pm-wrap">
-                <div className="pm-header">🎮 SALON {roomName}</div>
+                <div className="pm-header">{t("pacman.roomHeader", { room: roomName })}</div>
 
                 <div className="pm-lamp-row">
                     <span className={`pm-lamp ${lamp.cls}`} />
@@ -494,24 +521,24 @@ export default function PacmanGame() {
                 {error && <div className="pm-alert pm-err">{error}</div>}
 
                 {phase === "loading" && (
-                    <p className="pm-empty">Chargement du salon…</p>
+                    <p className="pm-empty">{t("pacman.loadingRoom")}</p>
                 )}
 
                 {phase === "countdown" && (
-                    <div className="pm-countdown">{count || "GO"}</div>
+                    <div className="pm-countdown">{count || t("pacman.go")}</div>
                 )}
 
                 {phase === "join" && (
                     <div className="pm-panel">
-                        <div className="pm-panel-title">{roomExists ? "Rejoindre" : "Créer le salon"}</div>
+                        <div className="pm-panel-title">{roomExists ? t("pacman.joinRoom") : t("pacman.createRoom")}</div>
                         <p className="pm-item-meta" style={{ marginBottom: 14 }}>
-                            Tu joues en tant que{" "}
+                            {t("pacman.playingAs")}{" "}
                             <span className="pm-item-name">{user?.username || "?"}</span>
                         </p>
 
                         {full && (
                             <div className="pm-alert pm-err" style={{ fontSize: 10 }}>
-                                Toutes les places joueur sont prises — entrée en spectateur uniquement.
+                                {t("pacman.roomFull")}
                             </div>
                         )}
 
@@ -520,7 +547,7 @@ export default function PacmanGame() {
                                 className={kind === "spectator" ? "pm-role active" : "pm-role"}
                                 onClick={() => setKind("spectator")}
                             >
-                                👁️ Spectateur
+                                {t("pacman.spectator")}
                             </button>
                             <button
                                 disabled={full}
@@ -533,20 +560,19 @@ export default function PacmanGame() {
                                 }
                                 onClick={() => !full && setKind("player")}
                             >
-                                🎮 Joueur
+                                {t("pacman.player")}
                             </button>
                         </div>
 
                         {kind === "player" && !full && isSolo && (
                             <p className="pm-item-meta" style={{ marginTop: 18 }}>
-                                Mode solo : le jeu Pac-Man original, tu joues Pac-Man — pas de
-                                personnage à choisir.
+                                {t("pacman.soloModeHint")}
                             </p>
                         )}
                         {kind === "player" && !full && !isSolo && (
                             <>
                                 <div className="pm-panel-title" style={{ marginTop: 18 }}>
-                                    Personnage
+                                    {t("pacman.character")}
                                 </div>
                                 <div className="pm-roles pm-roles-wrap">
                                     {CHARACTERS.map((c) => (
@@ -562,17 +588,17 @@ export default function PacmanGame() {
                                     ))}
                                 </div>
                                 <p className="pm-item-meta" style={{ marginTop: 8 }}>
-                                    Le bébé naît en jeu (Pac-Man + Ms Pac-Man).
+                                    {t("pacman.babyHint")}
                                 </p>
                             </>
                         )}
 
                         <div className="pm-form" style={{ marginTop: 18 }}>
                             <button className="pm-btn" onClick={join}>
-                                {roomExists ? "✓ Rejoindre" : "✓ Créer & rejoindre"}
+                                {roomExists ? t("pacman.joinButton") : t("pacman.createAndJoinButton")}
                             </button>
                             <button className="pm-btn pm-ghost" onClick={() => navigate("/pacman")}>
-                                Retour
+                                {t("pacman.back")}
                             </button>
                         </div>
                     </div>
@@ -582,20 +608,19 @@ export default function PacmanGame() {
                     <>
                         <div className="pm-panel">
                             <div className="pm-panel-title">
-                                Mon rôle
+                                {t("pacman.myRole")}
                                 {me && (
                                     <span
                                         className="pm-item-name"
                                         style={{ float: "right", fontSize: 11 }}
                                     >
-                                        {ROLE_LABEL[me.role] || me.role}
+                                        {roleLabel(me.role)}
                                     </span>
                                 )}
                             </div>
                             {isSolo ? (
                                 <p className="pm-item-meta">
-                                    Mode solo : le jeu Pac-Man original, tu joues Pac-Man — pas de
-                                    personnage à choisir.
+                                    {t("pacman.soloModeHint")}
                                 </p>
                             ) : (
                                 <div className="pm-roles pm-roles-wrap">
@@ -606,7 +631,7 @@ export default function PacmanGame() {
                                             pickRole("spectator")
                                         }}
                                     >
-                                        👁️ Spectateur
+                                        {t("pacman.spectator")}
                                     </button>
                                     {CHARACTERS.map((c) => {
                                         const taken = takenByOthers.has(c.role)
@@ -627,7 +652,7 @@ export default function PacmanGame() {
                                                 }}
                                             >
                                                 {c.label}
-                                                {taken && <span className="pm-taken">pris</span>}
+                                                {taken && <span className="pm-taken">{t("pacman.taken")}</span>}
                                             </button>
                                         )
                                     })}
@@ -637,27 +662,27 @@ export default function PacmanGame() {
 
                         <div className="pm-panel">
                             <div className="pm-panel-title">
-                                Joueurs
+                                {t("pacman.playersHeading")}
                                 <span className="pm-item-name" style={{ float: "right", fontSize: 11 }}>
-                                    {readyPlayers.length}/{players.length} prêts
+                                    {t("pacman.readyCount", { ready: readyPlayers.length, total: players.length })}
                                 </span>
                             </div>
                             {players.length === 0 && (
-                                <p className="pm-empty">En attente de joueurs…</p>
+                                <p className="pm-empty">{t("pacman.waitingForPlayers")}</p>
                             )}
                             {players.map((p) => (
                                 <div className="pm-item" key={p.id}>
                                     <span
                                         className={p.ready ? "pm-dot pm-dot-on" : "pm-dot"}
-                                        title={p.ready ? "prêt" : "pas prêt"}
+                                        title={p.ready ? t("pacman.ready") : t("pacman.notReady")}
                                     />
                                     <span className="pm-item-main">
                                         <span className="pm-item-name">
-                                            {p.name} {p.self && "(toi)"}
+                                            {p.name} {p.self && t("pacman.you")}
                                         </span>
                                         <br />
                                         <span className="pm-item-meta">
-                                            {ROLE_LABEL[p.role] || p.role}
+                                            {roleLabel(p.role)}
                                         </span>
                                     </span>
                                 </div>
@@ -666,12 +691,12 @@ export default function PacmanGame() {
 
                         {spectators.length > 0 && (
                             <div className="pm-panel">
-                                <div className="pm-panel-title">Spectateurs</div>
+                                <div className="pm-panel-title">{t("pacman.spectators")}</div>
                                 {spectators.map((s) => (
                                     <div className="pm-item pm-live" key={s.id}>
                                         <span className="pm-item-main">
                                             <span className="pm-item-name">
-                                                {s.name} {s.self && "(toi)"}
+                                                {s.name} {s.self && t("pacman.you")}
                                             </span>
                                         </span>
                                     </div>
@@ -680,32 +705,32 @@ export default function PacmanGame() {
                         )}
 
                         <div className="pm-panel">
-                            <div className="pm-panel-title">Contrôles</div>
+                            <div className="pm-panel-title">{t("pacman.controls")}</div>
                             <div className="pm-form pm-roles-wrap">
                                 {me?.role !== "spectator" && (
                                     <button
                                         className={me?.ready ? "pm-btn pm-ghost" : "pm-btn"}
                                         onClick={() => clientRef.current?.setReady(!me?.ready)}
                                         disabled={phase === "countdown" || (!me?.ready && myRoleTaken)}
-                                        title={myRoleTaken ? "personnage déjà pris : choisis-en un autre" : ""}
+                                        title={myRoleTaken ? t("pacman.roleTakenHint") : ""}
                                     >
-                                        {me?.ready ? "✗ Pas prêt" : "▶️ Je suis prêt"}
+                                        {me?.ready ? t("pacman.setNotReady") : t("pacman.setReady")}
                                     </button>
                                 )}
                                 <button
                                     className="pm-btn"
                                     disabled={!allReady || phase === "countdown"}
                                     onClick={() => clientRef.current?.start(3)}
-                                    title={allReady ? "" : "tous les joueurs doivent être prêts"}
+                                    title={allReady ? "" : t("pacman.startHint")}
                                 >
-                                    🚀 Démarrer
+                                    {t("pacman.start")}
                                 </button>
                                 <button className="pm-btn pm-danger" onClick={leaveToLobby}>
-                                    ❌ Quitter
+                                    {t("pacman.leave")}
                                 </button>
                                 {isCreator && (
                                     <button className="pm-btn pm-danger" onClick={deleteRoom}>
-                                        🗑 Supprimer le salon
+                                        {t("pacman.deleteRoom")}
                                     </button>
                                 )}
                             </div>

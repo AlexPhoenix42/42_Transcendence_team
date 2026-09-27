@@ -89,7 +89,14 @@ chown -R 1000:1000 whiteboard/data
 chmod 750 whiteboard/data
 
 # frontend-react/dist/ must be rebuild since it is already in .gitignore
-cd frontend-react && npm run build && cd ..
+# Runs in a subshell so a build failure (e.g. wrong Node version) aborts this
+# script via `set -e` instead of silently leaving the cwd inside frontend-react/.
+if [ -n "${SUDO_USER:-}" ]; then
+	USER_HOME="$(getent passwd "$SUDO_USER" | cut -d: -f6)"
+	export NVM_DIR="$USER_HOME/.nvm"
+	[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+fi
+(cd frontend-react && npm run build)
 
 # Build images in batches to avoid timeout
 docker compose -f docker-compose-dep.yml --env-file "$PLAIN_ENV" --env-file "$DECRYPTED_SEC_ENV" \

@@ -9,6 +9,13 @@
 // cf. config/ws_auth.py), TypeScript.
 
 import { getAccessToken } from "../api/client.ts"
+import type { MessageKey } from "../i18n/messages/index.ts"
+
+type Translate = (key: MessageKey, vars?: Record<string, string | number>) => string
+
+// Fallback used only if no `t` is supplied (should not happen in practice --
+// PacmanGame.tsx always passes the live i18n translator).
+const identity: Translate = (key) => key
 
 export interface RosterEntry {
     id: string
@@ -44,9 +51,11 @@ export class PacmanLobbyClient {
     private handlers: Record<string, Handler[]> = {}
     private helloTimer: ReturnType<typeof setInterval> | null = null
     private closed = false
+    private t: Translate
 
-    constructor(room: string) {
+    constructor(room: string, t?: Translate) {
         this.room = room
+        this.t = t || identity
     }
 
     on(
@@ -86,7 +95,7 @@ export class PacmanLobbyClient {
         try {
             this.ws = new WebSocket(url)
         } catch (e) {
-            this.emit("error", `connexion impossible : ${(e as Error)?.message}`)
+            this.emit("error", this.t("pacman.client.connectFailed", { msg: (e as Error)?.message || "" }))
             return
         }
 
@@ -99,7 +108,7 @@ export class PacmanLobbyClient {
             if (this.helloTimer) clearInterval(this.helloTimer)
             this.emit("close", ev.code)
         }
-        this.ws.onerror = () => this.emit("error", "erreur socket")
+        this.ws.onerror = () => this.emit("error", this.t("pacman.client.socketError"))
         this.ws.onmessage = (ev) => {
             let msg: any
             try {
@@ -139,7 +148,7 @@ export class PacmanLobbyClient {
             case "lobby_hello":
                 if (msg.player_id === this.selfId) break
                 this.roster.set(msg.player_id, {
-                    name: String(msg.name || "Joueur").slice(0, 20),
+                    name: String(msg.name || this.t("pacman.client.defaultName")).slice(0, 20),
                     role: msg.role || "spectator",
                     ready: !!msg.ready,
                 })
@@ -149,7 +158,7 @@ export class PacmanLobbyClient {
                 if (msg.player_id === this.selfId) break
                 {
                     const cur = this.roster.get(msg.player_id) || {
-                        name: msg.metadata?.name || "Joueur",
+                        name: msg.metadata?.name || this.t("pacman.client.defaultName"),
                         role: "spectator",
                         ready: false,
                     }
@@ -174,10 +183,12 @@ export class PacmanLobbyClient {
                 this.me.ready = false
                 this.hello()
                 this.emitRoster()
-                this.emit("error", msg.reason || "personnage invalide")
+                this.emit("error", msg.reason || this.t("pacman.client.invalidCharacter"))
                 break
             case "start_rejected":
-                this.emit("error", `lancement refusé : ${msg.reason || "personnages invalides"}`)
+                this.emit("error", this.t("pacman.client.startRejected", {
+                    reason: msg.reason || this.t("pacman.client.invalidCharacters"),
+                }))
                 break
             case "lobby_start":
                 this.emit("start", typeof msg.countdown === "number" ? msg.countdown : 3)
@@ -194,7 +205,7 @@ export class PacmanLobbyClient {
         const list: RosterEntry[] = [
             {
                 id: this.selfId || "me",
-                name: this.me.name || "Moi",
+                name: this.me.name || this.t("pacman.client.me"),
                 role: this.me.role,
                 ready: this.me.ready,
                 self: true,
@@ -211,7 +222,7 @@ export class PacmanLobbyClient {
             try {
                 this.ws.send(JSON.stringify(obj))
             } catch (e) {
-                this.emit("error", `envoi impossible : ${(e as Error)?.message}`)
+                this.emit("error", this.t("pacman.client.sendFailed", { msg: (e as Error)?.message || "" }))
             }
         }
     }

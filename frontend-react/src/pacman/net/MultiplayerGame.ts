@@ -114,6 +114,41 @@ const FRIGHTENED_FILTER = "brightness(0.7) sepia(1) hue-rotate(200deg) saturate(
 /** Halo blanc ajouté au perso local pour repérer « soi » d'un coup d'œil. */
 const SELF_GLOW = "drop-shadow(0 0 5px #fff) brightness(1.12)";
 
+/** Translated strings for the canvas/DOM overlay text this class draws itself
+ * (win banners, HUD labels) -- it isn't a React component, so PacmanGame.tsx
+ * resolves these once via `t()` and passes them in. Any field left out falls
+ * back to {@link DEFAULT_LABELS} (English). */
+export interface MultiplayerLabels {
+    spectatorBanner?: string;
+    waitingForPlayers?: string;
+    pacmanWins?: string;
+    ghostsWin?: string;
+    returnHint?: string;
+    youSuffix?: string;
+    extraLife?: string;
+    defaultPlayerName?: string;
+    role?: Partial<Record<"pacman" | "madame_pacman" | "baby" | "blocker" | "ghost" | "builder", string>>;
+}
+
+const DEFAULT_LABELS: Required<Omit<MultiplayerLabels, "role">> & { role: Required<NonNullable<MultiplayerLabels["role"]>> } = {
+    spectatorBanner:   "\u{1F441} SPECTATOR MODE",
+    waitingForPlayers: "waiting for players…",
+    pacmanWins:        "PAC-MAN WINS!",
+    ghostsWin:         "THE GHOSTS WIN!",
+    returnHint:        "Space = return to room",
+    youSuffix:         " (you)",
+    extraLife:         "+1 LIFE",
+    defaultPlayerName: "Player",
+    role: {
+        pacman:        "Pac-Man",
+        madame_pacman: "Ms Pac-Man",
+        baby:          "Baby",
+        blocker:       "Blocker",
+        ghost:         "Ghost",
+        builder:       "Builder",
+    },
+};
+
 export interface MultiplayerGameOptions extends JsPacmanOptions {
     /** Room name. */
     room: string;
@@ -131,6 +166,8 @@ export interface MultiplayerGameOptions extends JsPacmanOptions {
     autoStart?: boolean;
     /** Manche terminée, tout le monde revient au salon d'attente (voir `_restartRound`). */
     onReturnToLobby?: (() => void) | null;
+    /** Translated overlay text -- see {@link MultiplayerLabels}. Defaults to English. */
+    labels?: MultiplayerLabels;
 }
 
 /** A remote player's sprite, plus the ad-hoc network-sync fields this file hangs off it. */
@@ -263,6 +300,7 @@ class MultiplayerGame extends JsPacman {
     _avatarInHouse = false;
     _specBoard: HTMLElement | null = null;
     _resultEl: HTMLElement | null = null;
+    _labels: typeof DEFAULT_LABELS = DEFAULT_LABELS;
 
     /**
      * @param options - {@link JsPacman} options plus room/role/playerName/autoStart/onReturnToLobby.
@@ -273,6 +311,11 @@ class MultiplayerGame extends JsPacman {
         this.role = options.role || "pacman";
         this._isSpectator = this.role === "spectator";
         this._localIsPacman = !this._isSpectator && PACMAN_ROLES.indexOf(this.role) !== -1;
+        this._labels = {
+            ...DEFAULT_LABELS,
+            ...options.labels,
+            role: { ...DEFAULT_LABELS.role, ...options.labels?.role },
+        };
         this._name = String(options.playerName || "").slice(0, 20);
         this._autoStart = !!options.autoStart;
         this._mapChoice = MAP_BY_CHOICE[options.mapChoice as number] ? (options.mapChoice as number) : 1;
@@ -517,7 +560,7 @@ class MultiplayerGame extends JsPacman {
             textAlign: "center",
         });
         box.innerHTML =
-            '<div style="font-weight:bold;letter-spacing:1px">\u{1F441} MODE SPECTATEUR</div>' +
+            `<div style="font-weight:bold;letter-spacing:1px">${this._labels.spectatorBanner}</div>` +
             '<div class="mp-spec-board" style="color:#fff"></div>';
         this.el.appendChild(box);
         this._specBoard = box.querySelector(".mp-spec-board");
@@ -532,7 +575,7 @@ class MultiplayerGame extends JsPacman {
         const rows = this._scoreboardRows();
         this._specBoard.textContent = rows.length
             ? rows.map((r) => `${r.label} ${r.score}`).join("   •   ")
-            : "en attente des joueurs…";
+            : this._labels.waitingForPlayers;
     }
 
     /**
@@ -627,7 +670,7 @@ class MultiplayerGame extends JsPacman {
         });
 
         const title = document.createElement("div");
-        title.textContent = this._resultWinner === "pacman" ? "PAC-MAN A GAGNÉ !" : "LES FANTÔMES ONT GAGNÉ !";
+        title.textContent = this._resultWinner === "pacman" ? this._labels.pacmanWins : this._labels.ghostsWin;
         banner.appendChild(title);
 
         const rows = this._scoreboardRows();
@@ -649,7 +692,7 @@ class MultiplayerGame extends JsPacman {
         }
 
         const hint = document.createElement("div");
-        hint.textContent = "Espace = retour au salon";
+        hint.textContent = this._labels.returnHint;
         Object.assign(hint.style, { marginTop: "16px", fontSize: "13px", color: "#aaa" });
         banner.appendChild(hint);
 
@@ -664,14 +707,7 @@ class MultiplayerGame extends JsPacman {
      * @private
      */
     _scoreboardRows(): { label: string; score: number; isSelf: boolean }[] {
-        const ROLE_LABEL: Record<string, string> = {
-            pacman: "Pac-Man",
-            madame_pacman: "Ms Pac-Man",
-            baby: "Bébé",
-            blocker: "Blocker",
-            ghost: "Fantôme",
-            builder: "Builder",
-        };
+        const ROLE_LABEL = this._labels.role;
         const scores = this._serverScores || {};
         const roles = this._serverRoles || {};
         return Object.keys(scores)
@@ -679,7 +715,7 @@ class MultiplayerGame extends JsPacman {
                 const isSelf = pid === this._selfId;
                 const role = isSelf ? this.role : roles[pid] || this._roles.get(pid);
                 const name = isSelf ? this._name : this._names.get(pid);
-                const label = (name || ROLE_LABEL[role as string] || "Joueur") + (isSelf ? " (toi)" : "");
+                const label = (name || ROLE_LABEL[role as keyof typeof ROLE_LABEL] || this._labels.defaultPlayerName) + (isSelf ? this._labels.youSuffix : "");
                 return { label: label, score: scores[pid], isSelf: isSelf };
             })
             .sort((a, b) => b.score - a.score);
@@ -1114,7 +1150,7 @@ class MultiplayerGame extends JsPacman {
 
         if (escaped && this._localIsPacman) {
             this.model.lives++;
-            this._flash("+1 VIE");
+            this._flash(this._labels.extraLife);
         }
     }
 
