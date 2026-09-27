@@ -33,6 +33,11 @@ cleanup() {
 }
 trap cleanup EXIT
 
+# Prepare Django media directory
+mkdir -p backend/django/media
+chown -R 1000:1000 backend/django/media
+chmod 750 backend/django/media
+
 # 6. Prepare Vault directories
 mkdir -p vault/certs vault/approle vault/secrets
 chown -R 100:100 vault/certs vault/approle vault/secrets
