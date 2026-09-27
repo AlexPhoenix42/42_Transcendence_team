@@ -89,7 +89,8 @@ chown -R 1000:1000 whiteboard/data
 chmod 750 whiteboard/data
 
 # frontend-react/dist/ must be rebuild since it is already in .gitignore
-cd frontend-react && npm run build && cd ..
+#cd frontend-react && npm run build && cd ..
+sudo -u "${SUDO_USER:-$(whoami)}" sh -c 'cd frontend-react && npm run build'
 
 # Build images in batches to avoid timeout
 docker compose -f docker-compose-dep.yml --env-file "$PLAIN_ENV" --env-file "$DECRYPTED_SEC_ENV" \

@@ -155,6 +155,19 @@ export default function PacmanGame() {
 
         let cancelled = false
 
+		// Preserve high score and settings, clear stale game state (lives: 0)
+        try {
+            const saved = localStorage.getItem("jsPacman")
+            if (saved) {
+                const data = JSON.parse(saved)
+                localStorage.setItem("jsPacman", JSON.stringify({
+                    highScore: data.highScore || 0,
+                    soundEnabled: data.soundEnabled ?? true,
+                    overlayEnabled: data.overlayEnabled ?? true,
+                }))
+            }
+        } catch { /* ignore */ }
+
         if (isSolo) {
             // Mode SOLO: charger juste le jeu original
             import("../pacman/Game.ts")
@@ -168,6 +181,7 @@ export default function PacmanGame() {
                         mapChoice,
                     })
                 })
+				el.querySelector<HTMLElement>('.game-over')?.style.setProperty('display', 'none')
                 .catch(() => setError("Erreur au démarrage du jeu"))
         } else {
             // Mode MULTI: charger le jeu multijoueur
@@ -184,9 +198,6 @@ export default function PacmanGame() {
                     playerName: user?.username || "Joueur",
                     mapChoice,
                     autoStart: true,
-                    // Manche terminée, tout le monde revient au salon d'attente
-                    // (écran « prêt ») au lieu de rejouer en place : voir le
-                    // commentaire de `_restartRound` dans MultiplayerGame.js.
                     onReturnToLobby: () => {
                         try {
                             gameRef.current?.onDestroy()
@@ -204,6 +215,7 @@ export default function PacmanGame() {
                 ;(window as unknown as { __pacman?: unknown }).__pacman = gameRef.current
             })
             .catch((e) => setError(`MOTEUR : ${String(e?.message || e).toUpperCase()}`))
+			el.querySelector<HTMLElement>('.game-over')?.style.setProperty('display', 'none')
         }
 
         return () => {

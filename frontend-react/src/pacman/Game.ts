@@ -253,7 +253,7 @@ class JsPacman extends Game {
             return;
         }
 
-        // Game over - loop is already running, just reset and continue.
+        //Game over - loop is already running, just reset and continue.
         if (this.model.status === STATUS_SPLASH && this._gameOver) {
             this._gameOver = false;
             this.model.level = 1;
@@ -275,6 +275,7 @@ class JsPacman extends Game {
      * Resets the game state, destroying all characters and items.
      */
     reset(): void {
+		hide(this.elements.gameOver);
         this.model.mode = null;
 
         this.pinky.destroy();
