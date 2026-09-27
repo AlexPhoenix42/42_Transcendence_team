@@ -138,11 +138,11 @@ fclean:
 	@printf "$(NUKE_ICON) $(RED)$(BOLD)Full cleanup: containers, volumes, images, data...$(RESET)\n"
 	@$(COMPOSE) down --volumes --rmi all --remove-orphans 2>/dev/null || true
 	@printf "$(CLEAN_ICON) $(BLUE)Wiping data directory:$(RESET) $(YELLOW)$(DATA_DIR)$(RESET)\n"
-	@rm -rf $(DATA_DIR)/trans_db_server_data
-	@rm -rf $(DATA_DIR)/trans_vault_data
-	@rm -rf $(DATA_DIR)/trans_prometheus_data
-	@rm -rf $(DATA_DIR)/trans_grafana_data
-	@rm -rf $(DATA_DIR)/trans_backups
+	@sudo rm -rf $(DATA_DIR)/trans_db_server_data
+	@sudo rm -rf $(DATA_DIR)/trans_vault_data
+	@sudo rm -rf $(DATA_DIR)/trans_prometheus_data
+	@sudo rm -rf $(DATA_DIR)/trans_grafana_data
+	@sudo rm -rf $(DATA_DIR)/trans_backups
 	@printf "$(SUCCESS_ICON) $(GREEN)Full cleanup complete.$(RESET)\n"
 
 # ── Logs ──────────────────────────────────────────────────────────
