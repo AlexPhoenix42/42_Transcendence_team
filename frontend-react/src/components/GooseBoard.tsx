@@ -296,19 +296,21 @@ export default function GooseBoard({ players, lastMove, wizardPosition = 0, wiza
             })}
 
             {/* Player tokens */}
-            {players.filter(p => p.is_active).map((player) => {
+			{/*{players.filter(p => p.is_active).map((player) => {*/}
+			{players.map((player) => {
                 const isAnimating = animatingPlayer === player.username && animPos
                 const pos = isAnimating ? animPos : positions[player.position]
                 if (!pos) return null
 
-                const sameSquarePlayers = players.filter(p => p.position === player.position && p.is_active)
+				const sameSquarePlayers = players.filter(p => p.position === player.position)
                 const sameIdx = sameSquarePlayers.indexOf(player)
                 const offsetX = sameSquarePlayers.length > 1 ? (sameIdx - (sameSquarePlayers.length - 1) / 2) * 12 : 0
 
                 return (
                     <div
                         key={player.username}
-                        className="absolute transition-all duration-300 ease-in-out pointer-events-none"
+                        //className="absolute transition-all duration-300 ease-in-out pointer-events-none"
+						className={`absolute transition-all duration-300 ease-in-out pointer-events-none ${!player.is_active ? "opacity-40" : ""}`}
                         style={{
                             left: pos.x + offsetX - 14,
                             top: pos.y - 28,

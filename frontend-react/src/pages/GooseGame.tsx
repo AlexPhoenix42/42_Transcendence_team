@@ -191,7 +191,8 @@ export default function GooseGame() {
                 if (data.paused) setWizardPaused(true)
             }
 
-            if (data.type === "wizard_result") {
+			if (data.type === "wizard_result") {
+				setRolling(false)
                 setPlayers(data.players || [])
                 setLogs((prev) => [...prev, data.message])
                 setWizardReaction(data.correct ? "correct" : "wrong")
@@ -200,14 +201,21 @@ export default function GooseGame() {
                 if (data.paused) setWizardPaused(false)
 
                 if (data.paused || data.target === user?.username) {
+                    const resultTarget = data.target
                     setWizardResult({
                         correct: data.correct,
                         correctIndex: data.correct_index,
                         answeredIndex: data.answered_index,
                     })
                     setTimeout(() => {
-                        setWizardEncounter(null)
-                        setWizardResult(null)
+                        setWizardEncounter((prev) => {
+                            if (prev && prev.target === resultTarget) return null
+                            return prev
+                        })
+                        setWizardResult((prev) => {
+                            if (prev) return null
+                            return prev
+                        })
                     }, 2000)
                 }
             }
