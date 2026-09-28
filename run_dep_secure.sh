@@ -97,6 +97,32 @@ chmod 750 whiteboard/data
 #cd frontend-react && npm run build && cd ..
 sudo -u "${SUDO_USER:-$(whoami)}" sh -c 'cd frontend-react && npm run build'
 
+# Auto-detect server IP and hostname
+SERVER_IP=$(hostname -I | awk '{print $1}')
+HOSTNAME=$(hostname)
+
+TAILSCALE_IP=$(tailscale ip -4 2>/dev/null || echo "")
+
+sed -i "s/^SERVER_IP=.*/SERVER_IP=${SERVER_IP}/" "$PLAIN_ENV"
+sed -i "s/^ALLOWED_HOSTS=.*/ALLOWED_HOSTS=localhost,127.0.0.1,${HOSTNAME},${SERVER_IP},${SERVER_IP}.nip.io,trans_backend_django,backend-django/" "$PLAIN_ENV"
+sed -i "s|^FRONTEND_URL=.*|FRONTEND_URL=https://${HOSTNAME}:4443|" "$PLAIN_ENV"
+sed -i "s|^BACKEND_URL=.*|BACKEND_URL=https://${HOSTNAME}:4443|" "$PLAIN_ENV"
+
+if [ -n "$TAILSCALE_IP" ]; then
+    sed -i "s|^CORS_ALLOWED_ORIGINS=.*|CORS_ALLOWED_ORIGINS=https://${HOSTNAME}:4443,https://${TAILSCALE_IP}:4444|" "$PLAIN_ENV"
+    sed -i "s|^CSRF_TRUSTED_ORIGINS=.*|CSRF_TRUSTED_ORIGINS=https://${HOSTNAME}:4443,https://${TAILSCALE_IP}:4444|" "$PLAIN_ENV"
+    sed -i "s/^ALLOWED_HOSTS=.*/ALLOWED_HOSTS=localhost,127.0.0.1,${HOSTNAME},${SERVER_IP},${SERVER_IP}.nip.io,${TAILSCALE_IP},trans_backend_django,backend-django/" "$PLAIN_ENV"
+else
+    sed -i "s|^CORS_ALLOWED_ORIGINS=.*|CORS_ALLOWED_ORIGINS=https://${HOSTNAME}:4443|" "$PLAIN_ENV"
+    sed -i "s|^CSRF_TRUSTED_ORIGINS=.*|CSRF_TRUSTED_ORIGINS=https://${HOSTNAME}:4443|" "$PLAIN_ENV"
+fi
+
+# Start Tailscale port forward for mobile access
+if [ -n "$TAILSCALE_IP" ] && command -v socat >/dev/null 2>&1; then
+    pkill -f "socat TCP-LISTEN:4444" >/dev/null 2>&1 || true
+    socat TCP-LISTEN:4444,fork,bind=${TAILSCALE_IP} TCP:127.0.0.1:4443 &>/dev/null &
+fi
+
 # Build images in batches to avoid timeout
 docker compose -f docker-compose-dep.yml --env-file "$PLAIN_ENV" --env-file "$DECRYPTED_SEC_ENV" \
     build postgres vault vault-init

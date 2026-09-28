@@ -119,20 +119,40 @@ LOGGING = {
     'loggers': {
         'django': {
             'handlers': ['console'],
-            'level': 'DEBUG',
+            'level': 'WARNING' if not DEBUG else 'DEBUG',
         },
         'allauth': {
             'handlers': ['console'],
-            'level': 'DEBUG',
+            'level': 'WARNING' if not DEBUG else 'DEBUG',
         },
-        'django.db.backends': {'handlers': ['console'], 'level': 'DEBUG'},
-        #'daphne.access': {
-        #    'handlers': ['console'],
-        #    'level': 'INFO',
-        #    'filters': ['skip_healthcheck'],
-        #    'propagate': False,
-        #},
+        'django.db.backends': {
+            'handlers': ['console'],
+            'level': 'WARNING' if not DEBUG else 'DEBUG',
+        },
     },
+    'root': {
+        'handlers': ['console'],
+        'level': 'INFO' if not DEBUG else 'DEBUG',
+    },
+
+    #'loggers': {
+    #    'django': {
+    #        'handlers': ['console'],
+    #        'level': 'DEBUG',
+    #    },
+    #    'allauth': {
+    #        'handlers': ['console'],
+    #        'level': 'DEBUG',
+    #    },
+    #    'django.db.backends': {'handlers': ['console'], 'level': 'DEBUG'},
+    #    #'daphne.access': {
+    #    #    'handlers': ['console'],
+    #    #    'level': 'INFO',
+    #    #    'filters': ['skip_healthcheck'],
+    #    #    'propagate': False,
+    #    #},
+    #},
+
     'root': {
         'handlers': ['console'],
         'level': 'DEBUG',
@@ -307,9 +327,9 @@ REST_FRAMEWORK = {
 
     # will add this later only for deployment to avoid the nice browsable HTML
     # interface used by Django for testing during development
-    #'DEFAULT_RENDERER_CLASSES': (
-    #    'rest_framework.renderers.JSONRenderer', # Only JSON, no browsable API in dep
-    #),
+    'DEFAULT_RENDERER_CLASSES': (
+        'rest_framework.renderers.JSONRenderer', # Only JSON, no browsable API in dep
+    ),
 
     # When to use: ⚠️ Use with caution — Avoid if you need file uploads 
     # (which you do for avatars).
@@ -425,7 +445,6 @@ STATIC_URL = 'static/'
 
 
 # =============================================
-# for dev time testing frontend
 INSTALLED_APPS.append('corsheaders')
 
 MIDDLEWARE.insert(0, 'corsheaders.middleware.CorsMiddleware')

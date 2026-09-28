@@ -25,8 +25,8 @@ services:
       FRONTEND_URL:         ${FRONTEND_URL}
       VAULT_ADDR:           ${VAULT_URL}
       VAULT_CACERT:         /vault/certs/ca-cert.pem
-    ports:
-      - "${DB_PORT}:5432"   # The internal port stays hard-coded (internal confs deps)
+    #ports:
+    #  - "${DB_PORT}:5432"   # The internal port stays hard-coded (internal confs deps)
     volumes:
       - ${HOME}/goinfre/trans_data/trans_db_server_data:/var/lib/postgresql
       - ./vault/certs:/vault/certs:ro
@@ -114,8 +114,8 @@ services:
       VAULT_MODE:               dep
       VAULT_ADDR:               ${VAULT_URL}
       VAULT_CACERT:             /vault/certs/ca-cert.pem
-    ports:
-      - "8200:8200"
+    #ports:
+    #  - "8200:8200"
     volumes:
       - ./vault/certs:/vault/certs:ro
       #- ./vault/config/config-dev.hcl:/vault/config/config.hcl
@@ -142,7 +142,8 @@ services:
     restart:          unless-stopped
     ports:
       - "8025:8025" # web UI
-      - "1025:1025" # SMTP server
+    expose:
+      - "1025" # SMTP server
     networks:
       - trans_net
 
@@ -153,6 +154,7 @@ services:
       target:       build
       pull:         false
     container_name: engine-builder
+    restart:        "no"
     volumes:
       - ./backend/chess_engine/srcs:/app/srcs:ro
       - ./backend/chess_engine/incs:/app/incs:ro
@@ -243,8 +245,8 @@ services:
       VAULT_CACERT: /vault/certs/ca-cert.pem
       BEHIND_PROXY:   "true"
       PYTHONUNBUFFERED: "1"
-    ports:
-      - "9000:9000"
+    #ports:
+    #  - "9000:9000"
     volumes:
       - ./backend/django:/django
       - ./vault/certs:/vault/certs:ro
@@ -330,12 +332,15 @@ services:
       - ./frontend-react/dist:/usr/share/nginx/html:ro   # this for dep
       #- ./frontend-Alex/public:/usr/share/nginx/html:ro  # this for dev
       - ./vault/certs:/vault/certs:ro
+      - ./backend/django/media:/usr/share/nginx/media:ro
       #- ./frontend/docker_conf/nginx.conf:/etc/nginx/nginx.conf:ro
       #- ./frontend/docker_conf/nginx.conf:/etc/nginx/conf.d/default.conf:ro
-      - ./frontend/docker_conf/nginx-dep.conf:/etc/nginx/templates/nginx.conf.template:ro
-      - ./frontend/docker_conf/modsecurity/modsecurity-override.conf:/etc/nginx/templates/modsecurity.d/modsecurity-override.conf.template:ro
-      - ./frontend/docker_conf/modsecurity/exclusions.conf:/etc/modsecurity.d/owasp-crs/rules/RESPONSE-999-EXCLUSION-RULES-AFTER-CRS.conf:ro
-      - ./backend/django/media:/usr/share/nginx/media:ro
+      
+      # These are for dev.
+      #- ./frontend/docker_conf/nginx-dep.conf:/etc/nginx/templates/nginx.conf.template:ro
+      #- ./frontend/docker_conf/modsecurity/modsecurity-override.conf:/etc/nginx/templates/modsecurity.d/modsecurity-override.conf.template:ro
+      #- ./frontend/docker_conf/modsecurity/exclusions.conf:/etc/modsecurity.d/owasp-crs/rules/RESPONSE-999-EXCLUSION-RULES-AFTER-CRS.conf:ro
+      
     depends_on:
       backend_django:
         condition:  service_healthy
@@ -416,9 +421,9 @@ services:
       - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - ./monitoring/prometheus/alert_rules.yml:/etc/prometheus/alert_rules.yml:ro
       - ${HOME}/goinfre/trans_data/trans_prometheus_data:/prometheus
-    ports:
-      # Publish 9090 so you can open http://localhost:9090/targets from the host.
-      - "9090:9090"
+    #ports:
+    #  # Publish 9090 so you can open http://localhost:9090/targets from the host.
+    #  - "9090:9090"
     networks:
       - trans_net
 
@@ -443,9 +448,9 @@ services:
       - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
       - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
       - ${HOME}/goinfre/trans_data/trans_grafana_data:/var/lib/grafana
-    ports:
-      # Direct access for testing: http://localhost:3001 (container listens on 3000).
-      - "3001:3000"
+    #ports:
+    #  # Direct access for testing: http://localhost:3001 (container listens on 3000).
+    #  - "3001:3000"
     depends_on:
       - prometheus
     networks:
