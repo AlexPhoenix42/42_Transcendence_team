@@ -56,7 +56,7 @@ All api endpoints require authentication, with some api endpoints requiring admi
 |:--------|:------------|
 | [GET /api/me/](#get-apime) | Returns information about the currently authenticated user |
 | [GET /api/leaderboard/](#get-apileaderboard) | Returns the top 50 active users ordered by rating and number of wins |
-| [GET /api/match-history/](#get-apimatch-history) | Returns the most recent completed games for the authenticated user |
+| [GET /api/match-history/](#get-apimatch-history-and-get-apimatch-historyusername) | Returns the most recent completed games for the authenticated user |
 | [GET /api/match-history/\<username\>/](#get-apimatch-history-and-get-apimatch-historyusername) | Returns the match history for the user |
 | [GET /api/analytics/](#get-apianalytics) | Returns statistical information about the authenticated user's completed games |
 | [GET /api/achievements/](#get-apiachievements-and-get-apiachievementsusername) | Returns achivements and achievement progress for the authenticated user |
@@ -438,7 +438,7 @@ Authorization: Bearer <access_token>
 
 |Endpoint - No Admin Required | Description|
 |:----------------------------|:-----------|
-|[GET /api/2fa/status/](#get-api2fastatus) | Returns whether two-factor authentication is enabled for the authenticated user|
+|[GET /api/2fa/status/](#get-api2fastatus) Returns whether two-factor authentication is enabled for the authenticated user|
 |[POST /api/2fa/enable/](#post-api2faenable) | Creates a new inactive TOTP device and returns the provisioning information|
 |[POST /api/2fa/confirm-enable/](#post-api2faconfirm-enable) | Confirms the TOTP setup and enables two-factor authentication|
 |[POST /api/2fa/verify/](#post-api2faverify) | Verifies a TOTP or recovery code and completes authentication|
@@ -641,7 +641,7 @@ Content-Type: application/json
 |[POST /api/friends/requests/send/](#post-apifriendsrequestssend) | Sends a friend request to another user |
 |[PATCH /api/friends/requests/<request_id>/](#patch-apifriendsrequestsrequestid) | Accepts or declines a pending friend request |
 |[DELETE /api/friends/requests/<request_id>/cancel/](#delete-apifriendsrequestsrequestidcancel) | Cancels a pending friend request sent by the authenticated user |
-|[DELETE /api/friends/<friend_id>/](#delete-apifriendsfriendid) | Removes a user from the authenticated user's friends |
+|[DELETE /api/friends/<friend_id>/](#delete-apifriendsfriendid)| Removes a user from the authenticated user's friends |
 
 
 #### `GET /api/friends/`
@@ -1213,11 +1213,11 @@ Content-Type: application/json
 
 | Endpoint - No Admin Required | Description|
 |:-----------------------------|:-----------|
-|[GET /api/tournaments/](#get-apitournaments-and-get-apitournamenttournamentid) | Returns a list of tournaments|
+|[GET /api/tournaments/](#get-apitournaments-and-get-apitournamentstournamentid) | Returns a list of tournaments|
 |[POST /api/tournaments/](#post-apitournaments) | Creates a tournament|
-|[GET /api/tournaments/<tournament_id>/](#get-apitournaments-and-get-apitournamenttournamentid) | Returns information about a specific tournament|
-|[GET /api/tournaments/<tournament_id>/participants/](#get-apitournamentstournamentidparticipants) | Returns the participants of a tournament|
-|[POST /api/tournaments/<tournament_id>/join/](#post-apitournamentstournamentidjoin-and-delete-apitournamentstournamentidleave) | Joins an open tournament|
+|[GET /api/tournaments/<tournament_id>/](#get-apitournaments-and-get-apitournamentstournamentid)| Returns information about a specific tournament|
+|[GET /api/tournaments/<tournament_id>/participants/](#get-apitournamentstournamentidparticipants)| Returns the participants of a tournament|
+|[POST /api/tournaments/<tournament_id>/join/](#post-apigoose-gamesgameidjoin) | Joins an open tournament|
 |[DELETE /api/tournaments/<tournament_id>/leave/](#delete-apitournamentstournamentiddelete) | Leaves an open tournament|
 |[GET /api/tournaments/<tournament_id>/matches/](#get-apitournamentstournamentidmatches) | Returns all matches in a tournament|
 |[POST /api/tournaments/<tournament_id>/matches/<match_id>/start/](#post-apitournamentstournamentidmatchesmatchidstart) | Starts a tournament match and creates the associated chess game|
@@ -1595,9 +1595,9 @@ Content-Type: application/json
 |[GET /api/goose-games/](#get-apigoose-games-and-get-apigoose-gamesgameid)| Returns all waiting and in-progress Goose games|
 |[POST /api/goose-games/](#post-apigoose-games) | Creates a new Goose game|
 |[GET /api/goose-games/<game_id>/](#get-apigoose-games-and-get-apigoose-gamesgameid) | Returns information about a specific Goose game|
-|[POST /api/goose-games/<game_id>/join/](#post-apigoose-gamespkjoin) | Joins a waiting Goose game|
-|[POST /api/goose-games/<game_id>/start/](#post-apigoose-gamespkstart-and-post-apigoose-gamespkleave) | Starts a waiting Goose game|
-|[POST /api/goose-games/<game_id>/leave/](#post-apigoose-gamespkstart-and-post-apigoose-gamespkleave) | Leaves a waiting Goose game|
+|[POST /api/goose-games/<game_id>/join/](#post-apigoose-gamesgameidjoin)| Joins a waiting Goose game|
+|[POST /api/goose-games/<game_id>/start/](#post-apigoose-gamesgameidstart-and-post-apigoose-gamesgameidleave) | Starts a waiting Goose game|
+|[POST /api/goose-games/<game_id>/leave/](#post-apigamesgameidjoin-and-post-apigamesgameidleave) | Leaves a waiting Goose game|
 
 
 #### `GET /api/goose-games/` and `GET /api/goose-games/<game_id>`
@@ -1807,7 +1807,7 @@ Authorization: Bearer <access_token>
 |[POST /api/pacman/](#post-apipacman) | Creates a new Pac-Man game room|
 |[GET /api/pacman/<id>/](#get-apipacmanid) | Returns information about a Pac-Man game|
 |[DELETE /api/pacman/<id>/cancel/](#delete-apipacmanidcancel) | Deletes a Pac-Man game room. Only the creator can perform this action|
-|[GET /api/pacman/room/<room_name>/](#get-apipacmanroomroomname)#get) | Returns information about a Pac-Man game room by its room name|
+|[GET /api/pacman/room/<room_name>/](#get-apipacmanroomroomname) | Returns information about a Pac-Man game room by its room name|
 
 
 #### `GET /api/pacman/`
