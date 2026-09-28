@@ -95,7 +95,15 @@ chmod 750 whiteboard/data
 
 # frontend-react/dist/ must be rebuild since it is already in .gitignore
 #cd frontend-react && npm run build && cd ..
-sudo -u "${SUDO_USER:-$(whoami)}" sh -c 'cd frontend-react && sudo rm -rf dist/ && npm run build'
+#sudo -u "${SUDO_USER:-$(whoami)}" sh -c 'cd frontend-react && sudo rm -rf dist/ && npm run build'
+
+SUDO_USER_HOME="$(getent passwd "${SUDO_USER:-$(whoami)}" | cut -d: -f6)"
+NODE_BIN="$(dirname "$(find "$SUDO_USER_HOME" -name "sfw" -type f -o -name "sfw" -type l 2>/dev/null | head -1)")"
+
+echo "📦 Installing frontend dependencies and building (this may take a minute)..."
+sudo -u "${SUDO_USER:-$(whoami)}" bash -c "
+    export PATH=\"$NODE_BIN:\$PATH\"
+    cd frontend-react && sfw npm install && sudo rm -rf dist/ && npm run build"
 
 # Auto-detect server IP and hostname
 SERVER_IP=$(ip a | grep inet | awk 'NR==3 {print $2}' | cut -d/ -f1)
