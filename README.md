@@ -24,11 +24,11 @@ Born2Transcend is operates under the GNU GPL v3 license. Consult it [here](/LICE
 ```bash
 git clone <url> Born2Transcend
 cd Born2Transcend
-cp .env.example . #fill in your credentials
-cp ../.env.secrets.enc
-make
+cp $path/.env   # You can check .env.example
+cp $path/.env.secrets.enc
+make build #or just call make and choose your option
 ```
-Go to https://localhost:3000 and accept certificate.
+Go to https://<server-ip>:4443 and accept certificate.
 
 #### Other commands
 
