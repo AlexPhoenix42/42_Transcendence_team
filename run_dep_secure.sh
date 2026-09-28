@@ -95,11 +95,12 @@ chmod 750 whiteboard/data
 
 # frontend-react/dist/ must be rebuild since it is already in .gitignore
 #cd frontend-react && npm run build && cd ..
-sudo -u "${SUDO_USER:-$(whoami)}" sh -c 'cd frontend-react && npm run build'
+sudo -u "${SUDO_USER:-$(whoami)}" sh -c 'cd frontend-react && sudo rm -rf dist/ && npm run build'
 
 # Auto-detect server IP and hostname
 SERVER_IP=$(ip a | grep inet | awk 'NR==3 {print $2}' | cut -d/ -f1)
-hostname=$(cut -d. -f1 < /sys/class/dmi/id/product_name)
+HOSTNAME=$(cut -d. -f1 < /sys/class/dmi/id/product_name)
+TAILSCALE_IP=""
 
 if command -v tailscale >/dev/null 2>&1; then
 	TAILSCALE_IP=$(tailscale ip -4 2>/dev/null || echo "")
@@ -114,8 +115,6 @@ if [ -n "$TAILSCALE_IP" ]; then
     sed -i "s/__TAILSCALE_IP__/${TAILSCALE_IP}/g" .env.dep
 else
     sed -i "s/,__TAILSCALE_IP__//g" .env.dep
-    sed -i "s/__TAILSCALE_IP__,//g" .env.dep
-    sed -i "s/__TAILSCALE_IP__//g" .env.dep
 fi
 
 # Start Tailscale port forward for mobile access
