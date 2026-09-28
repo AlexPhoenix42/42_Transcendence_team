@@ -98,23 +98,24 @@ chmod 750 whiteboard/data
 sudo -u "${SUDO_USER:-$(whoami)}" sh -c 'cd frontend-react && npm run build'
 
 # Auto-detect server IP and hostname
-SERVER_IP=$(hostname -I | awk '{print $1}')
-HOSTNAME=$(hostname)
+SERVER_IP=$(ip a | grep inet | awk 'NR==3 {print $2}' | cut -d/ -f1)
+hostname=$(cut -d. -f1 < /sys/class/dmi/id/product_name)
 
-TAILSCALE_IP=$(tailscale ip -4 2>/dev/null || echo "")
+if command -v tailscale >/dev/null 2>&1; then
+	TAILSCALE_IP=$(tailscale ip -4 2>/dev/null || echo "")
+fi
 
-sed -i "s/^SERVER_IP=.*/SERVER_IP=${SERVER_IP}/" "$PLAIN_ENV"
-sed -i "s/^ALLOWED_HOSTS=.*/ALLOWED_HOSTS=localhost,127.0.0.1,${HOSTNAME},${SERVER_IP},${SERVER_IP}.nip.io,trans_backend_django,backend-django/" "$PLAIN_ENV"
-sed -i "s|^FRONTEND_URL=.*|FRONTEND_URL=https://${HOSTNAME}:4443|" "$PLAIN_ENV"
-sed -i "s|^BACKEND_URL=.*|BACKEND_URL=https://${HOSTNAME}:4443|" "$PLAIN_ENV"
+cp .env.dep.template .env.dep
+
+sed -i "s/__SERVER_IP__/${SERVER_IP}/g" .env.dep
+sed -i "s/__HOSTNAME__/${HOSTNAME}/g" .env.dep
 
 if [ -n "$TAILSCALE_IP" ]; then
-    sed -i "s|^CORS_ALLOWED_ORIGINS=.*|CORS_ALLOWED_ORIGINS=https://${HOSTNAME}:4443,https://${TAILSCALE_IP}:4444|" "$PLAIN_ENV"
-    sed -i "s|^CSRF_TRUSTED_ORIGINS=.*|CSRF_TRUSTED_ORIGINS=https://${HOSTNAME}:4443,https://${TAILSCALE_IP}:4444|" "$PLAIN_ENV"
-    sed -i "s/^ALLOWED_HOSTS=.*/ALLOWED_HOSTS=localhost,127.0.0.1,${HOSTNAME},${SERVER_IP},${SERVER_IP}.nip.io,${TAILSCALE_IP},trans_backend_django,backend-django/" "$PLAIN_ENV"
+    sed -i "s/__TAILSCALE_IP__/${TAILSCALE_IP}/g" .env.dep
 else
-    sed -i "s|^CORS_ALLOWED_ORIGINS=.*|CORS_ALLOWED_ORIGINS=https://${HOSTNAME}:4443|" "$PLAIN_ENV"
-    sed -i "s|^CSRF_TRUSTED_ORIGINS=.*|CSRF_TRUSTED_ORIGINS=https://${HOSTNAME}:4443|" "$PLAIN_ENV"
+    sed -i "s/,__TAILSCALE_IP__//g" .env.dep
+    sed -i "s/__TAILSCALE_IP__,//g" .env.dep
+    sed -i "s/__TAILSCALE_IP__//g" .env.dep
 fi
 
 # Start Tailscale port forward for mobile access

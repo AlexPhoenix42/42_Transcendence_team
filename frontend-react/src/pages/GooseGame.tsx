@@ -6,6 +6,7 @@ import { api, getAccessToken } from "../api/client.ts"
 import { useAuth } from "../context/AuthContext.tsx"
 import GooseBoard, { PLAYER_HOP_MS, WIZARD_HOP_MS } from "../components/GooseBoard.tsx"
 import WizardQuiz from "../components/WizardQuiz.tsx"
+import { useI18n } from "../i18n/I18nProvider.tsx"
 
 interface PlayerData {
     username: string
@@ -33,6 +34,7 @@ export default function GooseGame() {
     const { id } = useParams()
     const { user } = useAuth()
     const navigate = useNavigate()
+    const { t, ts } = useI18n()
 
     const [players, setPlayers] = useState<PlayerData[]>([])
     const [currentTurn, setCurrentTurn] = useState<string | null>(null)
@@ -230,10 +232,10 @@ export default function GooseGame() {
             }
         }
 
-        ws.onerror = () => setError("WebSocket error")
+        ws.onerror = () => setError(t("goose.error.websocket"))
 
         ws.onclose = () => {
-            setError("Connexion perdue")
+            setError(t("goose.error.connectionLost"))
             wsRef.current = null
         }
 
@@ -276,7 +278,7 @@ export default function GooseGame() {
                 wsRef.current?.send(JSON.stringify({ action: "get_state" }))
             } else {
                 const data = await resp.json()
-                setError(data.error || "Failed to start")
+                setError(ts(data.error, "goose.error.start"))
             }
         } catch {}
     }
@@ -288,7 +290,7 @@ export default function GooseGame() {
                 navigate("/goose")
             } else {
                 const data = await resp.json()
-                setError(data.error || "Failed to leave")
+                setError(ts(data.error, "goose.error.leave"))
             }
         } catch {}
     }
