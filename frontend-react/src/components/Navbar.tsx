@@ -51,7 +51,7 @@ export default function Navbar() {
         const interval = setInterval(() => {
             fetchRequestCount()
             fetchUnreadChats()
-        }, 5000)
+        }, 30000)
 
         function handleChatRead() {
             fetchUnreadChats()
