@@ -25,7 +25,7 @@
  *
  * @class NetClient
  */
-import { getAccessToken, refreshAccessToken } from "../../api/client.ts";
+import { refreshAccessToken } from "../../api/client.ts";
 
 export interface NetClientOptions {
     /** Room name (alphanumeric, `-` and `_`). */
@@ -222,10 +222,8 @@ class NetClient {
 
         let socket: WebSocket;
         try {
-            const token = getAccessToken();
-            socket = new WebSocket(
-                `${this.url}/ws/pacman/${encodeURIComponent(this.room)}/` +
-                    (token ? `?token=${encodeURIComponent(token)}` : ""),
+			socket = new WebSocket(
+                `${this.url}/ws/pacman/${encodeURIComponent(this.room)}/`,
             );
         } catch (e) {
             this._fail(`connect failed: ${e && (e as Error).message}`);

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react"
 import { useParams, useNavigate } from "react-router-dom"
-import { api, getAccessToken } from "../api/client.ts"
+import { api } from "../api/client.ts"
 import { useAuth } from "../context/AuthContext.tsx"
 import GooseBoard, { PLAYER_HOP_MS, WIZARD_HOP_MS } from "../components/GooseBoard.tsx"
 import WizardQuiz from "../components/WizardQuiz.tsx"
@@ -121,8 +121,7 @@ export default function GooseGame() {
 
         const proto = window.location.protocol === "https:" ? "wss" : "ws"
         const wsHost = window.location.host
-        const token = getAccessToken()
-        const ws = new WebSocket(`${proto}://${wsHost}/ws/goose/${id}/${token ? `?token=${encodeURIComponent(token)}` : ""}`)
+		const ws = new WebSocket(`${proto}://${wsHost}/ws/goose/${id}/`)
 
         ws.onmessage = (event) => {
             const data = JSON.parse(event.data)
