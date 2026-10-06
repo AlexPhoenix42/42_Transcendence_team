@@ -295,6 +295,7 @@ class UserListView(APIView):
 
         search = request.query_params.get("search", "").strip()
         users = User.objects.all().order_by("-date_joined")
+        users = users.exclude(username__startswith="stockfish_ai")
 
         if search:
             users = users.filter(

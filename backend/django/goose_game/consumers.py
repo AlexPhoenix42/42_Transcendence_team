@@ -4,7 +4,6 @@ import json
 import random
 import logging
 import asyncio
-import time
 
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
@@ -694,5 +693,4 @@ class GooseGameConsumer(AsyncWebsocketConsumer):
             "players": event["players"],
             "message": event["message"],
         }))
-
 

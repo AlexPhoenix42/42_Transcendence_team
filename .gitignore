@@ -1,42 +1,45 @@
 # ── Secrets — never commit these ─────────
-#.env
-.swp
-.swo
+*.env
+*.env.bak
+*.env.secrets
 
 # ── JavaScript ───────────────────────────
-frontend/node_modules/
-frontend/dist/
+node_modules/
+frontend-react/dist/
 
 # ── Python ───────────────────────────────
-backend/__pycache__/
-backend/**/__pycache__/
-backend/*.pyc
-backend/**/*.pyc
-backend/venv/
-backend/.venv/
+__pycache__/
+*.pyc
+.venv/
+.mypy_cache/
 
 # ── C++ build output ─────────────────────
 engine/engine
 engine/*.o
 engine/*.so
-engine/include/chess.hpp   # downloaded separately, not committed
+engine/include/chess.hpp
 
-# ── OS junk ──────────────────────────────
+# ── OS / editor junk ────────────────────
 .DS_Store
 Thumbs.db
+*.swp
+*.swo
+*~
+*.css.bak
 
-# ── Django tmp junk  ─────────────────────
-backend/django/django_tmp
-backend/django/.mypy_cache
+# ── Django ───────────────────────────────
+backend/django/django_tmp/
 backend/django/requirements.txt.txt
+
 backend/django/media/
+!backend/django/media/avatars/
+!backend/django/media/avatars/default_avatar.png
 
-.mypy_cache/
-
-# ── Vault secrets  ─────────────────────
+# ── Vault secrets ────────────────────────
 vault/approle/
 vault/certs/
 vault/secrets/
 
+# ── Runtime data ─────────────────────────
 whiteboard/data/
 

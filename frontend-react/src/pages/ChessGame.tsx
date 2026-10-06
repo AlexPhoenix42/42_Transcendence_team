@@ -842,7 +842,9 @@ export default function ChessGame() {
             {gameOver && gameOverInfo && (
                 <div className="bg-blue-900/50 border border-blue-500 text-blue-300 px-4 py-4 rounded mb-4 text-center">
                     <p className="text-xl font-bold mb-1">{t("chess.gameOver")}</p>
-                    <p>{gameOverInfo.reason}</p>
+					<p>
+                        {gameOverInfo.winner} {t("chess.wins")} — {t(`chess.reason.${gameOverInfo.reason.toLowerCase()}`, gameOverInfo.reason)}
+                    </p>
                 </div>
             )}
 

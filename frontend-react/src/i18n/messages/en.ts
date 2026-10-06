@@ -279,6 +279,13 @@ export const en = {
     // -- Chess game ----------------------------------------------------
     "chess.spectating":         "Spectating",
     "chess.gameOver":           "Game Over",
+	"chess.reason.disconnect":  "Opponent disconnected",
+    "chess.reason.checkmate":   "Checkmate",
+    "chess.reason.resignation": "Resignation",
+    "chess.reason.timeout":     "Time ran out",
+    "chess.reason.stalemate":   "Stalemate",
+    "chess.reason.draw":        "Draw",
+    "chess.wins":               "wins",
     "chess.yourTurn":           "Your turn",
     "chess.promoteTo":          "Promote to:",
     "chess.undo":               "Undo",

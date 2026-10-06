@@ -47,3 +47,4 @@ class GooseGameModelTest(TestCase):
         self.game.save()
         self.game.refresh_from_db()
         self.assertEqual(self.game.wizard_pending_count, 2)
+

@@ -32,6 +32,7 @@ const KIND_ICONS: Record<string, string> = {
     secrets:  "🔐",
     proxy:    "🌐",
     service:  "♟️",
+	whiteboard: "🎨",
     email:    "📧",
 }
 

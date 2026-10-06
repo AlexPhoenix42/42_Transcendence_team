@@ -23,3 +23,5 @@ docker compose exec postgres psql -U alephoen -d trans_server_db
 \i delete_oauth_user.sql
 */
 
+/* Please Note: This is not used anymore. its left for reference only. */
+

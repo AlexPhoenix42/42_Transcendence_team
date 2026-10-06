@@ -84,6 +84,21 @@ export default function Chat() {
     }
 
     // Fetch friends for DM tab
+    //useEffect(() => {
+    //    async function fetchFriends() {
+    //        try {
+    //            const resp = await api("/api/friends/")
+    //            if (resp.ok) {
+    //                const data = await resp.json()
+    //                setFriends(data.results)
+    //            }
+    //        } catch {
+    //            // Silent fail
+    //        }
+    //    }
+    //    fetchFriends()
+    //}, [])
+	// Fetch friends for DM tab
     useEffect(() => {
         async function fetchFriends() {
             try {
@@ -97,6 +112,8 @@ export default function Chat() {
             }
         }
         fetchFriends()
+        const interval = setInterval(fetchFriends, 10000)
+        return () => clearInterval(interval)
     }, [])
 
     // Connect to global room on mount

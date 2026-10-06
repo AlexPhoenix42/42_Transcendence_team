@@ -1,19 +1,3 @@
-#import logging
-#from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
-#
-#logger = logging.getLogger(__name__)
-#
-#class CustomSocialAccountAdapter(DefaultSocialAccountAdapter):
-#    def populate_user(self, request, sociallogin, data):
-#        user = super().populate_user(request, sociallogin, data)
-#        logger.debug(f"Populated user: username={user.username}, email={user.email}")
-#        # Ensure username is set
-#        if  not user.username and user.email:
-#            user.username = user.email.split('@')[0]
-#
-#        return user
-#
-
 import logging
 from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
 

@@ -68,7 +68,7 @@ def verify_totp_code(secret: str, code: str) -> bool:
 # ===========================================================================
 
 
-# ==================================i=========================================
+# ===========================================================================
 def generate_recovery_codes(device, cnt=8):
     """Generate `count` plain recovery codes, hash them, store them, and return the plain codes."""
     plain_codes = []

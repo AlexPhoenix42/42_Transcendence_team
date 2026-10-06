@@ -26,7 +26,7 @@ PHOENIX_ICON	:= 🐦‍🔥
 RAINBOW_ICON	:= 🌈
 
 NAME			:= Born2Transcendence
-COMPOSE_FILE	:= docker-compose-dep.yml
+COMPOSE_FILE	:= docker-compose.yml
 COMPOSE			:= docker compose -f $(COMPOSE_FILE)
 DATA_DIR		:= $(HOME)/goinfre/trans_data
 

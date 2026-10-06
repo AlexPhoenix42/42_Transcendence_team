@@ -9,6 +9,8 @@ https://docs.djangoproject.com/en/6.0/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
+# Quick-start development settings - unsuitable for production
+# See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # config/settings.py
 
@@ -27,37 +29,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 load_dotenv(Path(BASE_DIR).resolve().parent.parent / ".env")
 
-
 SECRET_KEY = get_vault_secret('django', 'secret_key')
-
-# tmp for migration. avoid conflict with Vault
-#SECRET_KEY = "tmp"
-
-
-#print("BASE_DIR:", BASE_DIR)
-#print("Looking for .env at:", Path(BASE_DIR).resolve().parent.parent / ".env")
-#print("File exists:", (Path(BASE_DIR).resolve().parent.parent / ".env").exists())
-
-
-#print("TRYING TO LOAD:", Path(BASE_DIR).resolve().parent.parent / ".env")
-#print("EXISTS:", (Path(BASE_DIR).resolve().parent.parent / ".env").exists())
-#print("DB_HOST VALUE =", os.environ.get("DB_SERVER_DB"))
-#print("hello:")
-#print("DB_HOST VALUE =", os.environ["DB_HOST"])
-
-
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
-
-# SECURITY WARNING: keep the secret key used in production secret!
-#SECRET_KEY      = os.environ["SECRET_KEY"]
-#SECRET_KEY = os.environ.get("SECRET_KEY", "test-secret-key")
-#SECRET_KEY = get_vault_secret('django', 'secret_key')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG           = os.environ["DEBUG"] == "True"
 
-DEBUG_PROPAGATE_EXCEPTIONS = True
+#DEBUG_PROPAGATE_EXCEPTIONS = True  # This only for Dev.
 
 ALLOWED_HOSTS   = os.environ["ALLOWED_HOSTS"].split(",")
 
@@ -74,9 +51,6 @@ CHESS_ENGINE_URL    = os.environ.get("CHESS_ENGINE_URL", "http://engine:4190/val
 STOCKFISH_AI_URL    = os.environ.get("STOCKFISH_AI_URL", "http://stockfish_ai:4191/bestmove")
 OLLAMA_URL          = os.environ.get("OLLAMA_URL", "http://localhost:11434")
 OLLAMA_MODEL        = os.environ.get("OLLAMA_MODEL", "mistral")
-
-# This was replaced by the timeout checker now using cache which uses db=1
-#TIMEOUT_REDIS_URL   = os.environ.get("TIMEOUT_REDIS_URL", "redis://redis:6379/2")
 
 # Default avatar image
 # You will need to create: media/avatars/default.png
@@ -96,24 +70,12 @@ SOCIALACCOUNT_ADAPTER = 'users.adapters.CustomSocialAccountAdapter'
 if  DEBUG:
     print(f"SOCIALACCOUNT_ADAPTER = {SOCIALACCOUNT_ADAPTER}")
 
-#class HealthCheckFilter(logging.Filter):
-#    def filter(self, record):
-#        return '/healthz' not in record.getMessage()
-
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
-    #'filters': {
-    #    'skip_healthcheck': {
-    #        #'()': 'config.settings.HealthCheckFilter',
-    #        '()': 'django.utils.log.CallbackFilter',
-    #        'callback': lambda record: '/healthz' not in record.getMessage(),
-    #    },
-    #},
     'handlers': {
         'console': {
             'class': 'logging.StreamHandler',
-            #'filters': ['skip_healthcheck'],
         },
     },
     'loggers': {
@@ -133,29 +95,6 @@ LOGGING = {
     'root': {
         'handlers': ['console'],
         'level': 'INFO' if not DEBUG else 'DEBUG',
-    },
-
-    #'loggers': {
-    #    'django': {
-    #        'handlers': ['console'],
-    #        'level': 'DEBUG',
-    #    },
-    #    'allauth': {
-    #        'handlers': ['console'],
-    #        'level': 'DEBUG',
-    #    },
-    #    'django.db.backends': {'handlers': ['console'], 'level': 'DEBUG'},
-    #    #'daphne.access': {
-    #    #    'handlers': ['console'],
-    #    #    'level': 'INFO',
-    #    #    'filters': ['skip_healthcheck'],
-    #    #    'propagate': False,
-    #    #},
-    #},
-
-    'root': {
-        'handlers': ['console'],
-        'level': 'DEBUG',
     },
 }
 
@@ -224,14 +163,12 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
-                #'allauth.account.context_processors.account',
             ],
         },
     },
 ]
 
 WSGI_APPLICATION = 'config.wsgi.application'
-
 
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
@@ -269,23 +206,6 @@ else:
             'OPTIONS'   :   { 'connect_timeout': 5 }
         },
     }
-
-#DATABASES = {
-#    'default':
-#    {
-#        'ENGINE':   'django.db.backends.postgresql',
-#        'NAME':     os.environ["DB_SERVER_DB"],
-#        'USER':     os.environ["DB_SERVER_USER"],
-#        'PASSWORD': os.environ["DB_SERVER_PASS"],
-#        'HOST':     os.environ["DB_HOST"],
-#        'PORT':     os.environ["DB_PORT"],
-#    },
-#
-#    'SQLITE': {
-#        'ENGINE': 'django.db.backends.sqlite3',
-#        'NAME': BASE_DIR / 'db.sqlite3',
-#    }
-#}
 
 AUTH_USER_MODEL = "users.User"
 
@@ -351,17 +271,6 @@ AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',        
     'allauth.account.auth_backends.AuthenticationBackend',
 ]
-
-# 42 OAuth
-#SOCIALACCOUNT_PROVIDERS = {
-#    'forty_two': {
-#        'APP': {
-#            'client_id'     :   os.environ['FT_CLIENT_ID'],
-#            'secret'        :   os.environ['FT_CLIENT_SECRET'],
-#            'key'           :   '',
-#        }
-#    }
-#}
 
 EMAIL_BACKEND       = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST          = "mailpit"

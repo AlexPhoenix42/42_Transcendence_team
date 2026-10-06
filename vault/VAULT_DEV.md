@@ -93,7 +93,7 @@ vim .env
 ## Step 4: Start the stack
 
 ```bash
-docker compose -f docker-compose-dep.yml up -d
+docker compose -f docker-compose.yml up -d
 ```
 
 This will:
@@ -148,7 +148,7 @@ A helper script `scripts_dev/setup-vault-approle.sh` automates this.
 4. **Restart Django** to use the new credentials:
 
    ```bash
-   docker compose -f docker-compose-dep.yml restart backend_django
+   docker compose -f docker-compose.yml restart backend_django
    ```
 
 5. **Verify** that Django can still read secrets:
@@ -167,7 +167,7 @@ Run the following checks:
 
 ```bash
 # All containers running/healthy?
-docker compose -f docker-compose-dep.yml ps
+docker compose -f docker-compose.yml ps
 
 # Vault unsealed and reachable?
 curl -s --cacert vault/certs/ca-cert.pem https://localhost:8200/v1/sys/health | jq '.'
@@ -211,7 +211,7 @@ All should return `healthy` / `200` / `true` as appropriate.
 - Check that `seed_vault.sh` ran successfully: `docker logs trans_backend_django | grep "All secrets stored"`.
 - If not, run it manually:
   ```bash
-  docker compose -f docker-compose-dep.yml exec -T vault-init /app/seed_vault.sh
+  docker compose -f docker-compose.yml exec -T vault-init /app/seed_vault.sh
   ```
 
 ---
@@ -220,7 +220,7 @@ All should return `healthy` / `200` / `true` as appropriate.
 
 - **TLS certificates** are generated with `sudo ./scripts_dev/gen_vault_cert.sh`.
 - **Environment** is configured in `.env` (AppRole credentials needed).
-- **Stack starts** with `docker compose -f docker-compose-dep.yml up -d`.
+- **Stack starts** with `docker compose -f docker-compose.yml up -d`.
 - **AppRole** is set up with `scripts_dev/setup-vault-approle.sh`.
 - **Tokens** (unseal keys, root token) are persisted in `vault/tokens/` and **must not be committed to Git**.
 

@@ -226,9 +226,17 @@ export default function Login() {
 
     return (
         <div className="w-full max-w-sm">
+			{/*
             <h1 className="text-3xl font-bold text-white text-center mb-8">
                 ♟ Born2Transcend ♟ 
             </h1>
+		   */}
+			<div className="text-center mb-8">
+                <img src="/angry_unicorn.png" alt="" className="w-20 h-20 mx-auto mb-4" />
+                <h1 className="text-3xl font-bold text-white">
+                    ♟ Born2Transcend ♟
+                </h1>
+            </div>
 
             {/* Username Conflict Dialog */}
             {showUsernameConflict && (

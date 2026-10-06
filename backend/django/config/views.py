@@ -87,6 +87,7 @@ _CHECKS = [
     ("Nginx",         "proxy",    True,  lambda: _check_tcp("trans_frontend_nginx", 4443)),
     ("Chess Engine",  "service",  False, lambda: _check_tcp("chess_engine", 4190)),
     ("Stockfish AI",  "service",  False, lambda: _check_tcp("stockfish_ai", 4191)),
+    ("Whiteboard",    "whiteboard", False, lambda: _check_tcp("trans_whiteboard", 80)),
     ("Mailpit SMTP",  "email",    False, lambda: _check_tcp("mailpit", 1025)),
 ]
 

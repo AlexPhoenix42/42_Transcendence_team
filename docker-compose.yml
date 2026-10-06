@@ -1,0 +1,451 @@
+# docker-compose.yml
+
+services:
+  postgres:
+    build:
+      context:              db_server
+      dockerfile:           docker_conf/Dockerfile
+      target:               dep
+      pull:                 false
+      cache_from:
+        - type=local,src=${HOME}/goinfre/trans_cache/postgres
+      cache_to:
+        - type=local,dest=${HOME}/goinfre/trans_cache/postgres,mode=max
+    container_name:         trans_db_server
+    restart:                unless-stopped
+    depends_on:
+      vault:
+        condition:          service_healthy
+      vault-init:
+        condition:          service_completed_successfully
+    environment:
+      #POSTGRES_USER:       ${DB_SERVER_USER}
+      #POSTGRES_PASSWORD:   ${DB_SERVER_PASS}
+      POSTGRES_DB:          ${DB_SERVER_DB}
+      FRONTEND_URL:         ${FRONTEND_URL}
+      VAULT_ADDR:           ${VAULT_URL}
+      VAULT_CACERT:         /vault/certs/ca-cert.pem
+    volumes:
+      - ${HOME}/goinfre/trans_data/trans_db_server_data:/var/lib/postgresql
+      - ./vault/certs:/vault/certs:ro
+      - ./vault/approle:/vault/approle:ro
+    entrypoint: ["/usr/local/bin/vault-entrypoint.sh"]
+    command:    ["postgres"]
+    stop_grace_period:      "30s"
+    networks:
+      - trans_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$(cat /dev/shm/vault-postgres-user)\" -d \"${DB_SERVER_DB}\""]
+      interval:     5s
+      timeout:      5s
+      retries:      5
+      start_period: 300s
+
+  redis:
+    image:            redis:8-alpine
+    container_name:   trans_redis
+    restart:          unless-stopped
+    networks:
+      - trans_net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout:  5s
+      retries:  5
+
+  vault-init:
+    build:
+      context:      vault-init
+      dockerfile:   Dockerfile
+      pull:         false
+      cache_from:
+        - type=local,src=${HOME}/goinfre/trans_cache/vault-init
+      cache_to:
+        - type=local,dest=${HOME}/goinfre/trans_cache/vault-init,mode=max
+    depends_on:
+      vault:
+        condition:  service_started
+    environment:
+      VAULT_ADDR:               ${VAULT_URL}
+      VAULT_CACERT:             /vault/certs/ca-cert.pem
+      SERVER_IP:                ${SERVER_IP}
+    volumes:
+      - ./vault/certs:/vault/certs
+      - ./vault/secrets:/vault/secrets
+      - ./vault/approle:/vault/approle
+      - ${DECRYPTED_SEC_FILE:-/dev/null}:/vault/decrypted-secrets.env:ro
+    restart:        "no"
+    networks:
+      - trans_net
+
+  vault:
+    build:
+      context:      vault
+      dockerfile:   docker_conf/Dockerfile
+      target:       dep
+      pull:         false
+      cache_from:
+        - type=local,src=${HOME}/goinfre/trans_cache/vault
+      cache_to:
+        - type=local,dest=${HOME}/goinfre/trans_cache/vault,mode=max
+    container_name:             trans_vault
+    restart:                    unless-stopped
+    environment:
+      VAULT_MODE:               dep
+      VAULT_ADDR:               ${VAULT_URL}
+      VAULT_CACERT:             /vault/certs/ca-cert.pem
+    volumes:
+      - ./vault/certs:/vault/certs:ro
+      - ./vault/config/config-dep.hcl:/vault/config/config.hcl
+      - ${HOME}/goinfre/trans_data/trans_vault_data:/vault/data
+    networks:
+      - trans_net
+    healthcheck:
+      test: ["CMD", "sh", "-c", "VAULT_CACERT=/vault/certs/ca-cert.pem vault status > /dev/null 2>&1"]
+      interval:     10s
+      timeout:      5s
+      retries:      5
+      start_period: 300s
+
+  mailpit:
+    image:            axllent/mailpit
+    container_name:   mailpit
+    restart:          unless-stopped
+    ports:
+      - "8025:8025" # web UI
+    expose:
+      - "1025" # SMTP server
+    networks:
+      - trans_net
+
+  engine-builder:
+    build:
+      context:      backend/chess_engine
+      dockerfile:   docker_conf/Dockerfile
+      target:       build
+      pull:         false
+    container_name: engine-builder
+    restart:        "no"
+    volumes:
+      - ./backend/chess_engine/srcs:/app/srcs:ro
+      - ./backend/chess_engine/incs:/app/incs:ro
+      - ./backend/chess_engine/Makefile:/app/Makefile:ro
+      - ./backend/chess_engine/bin:/app/bin
+    command: sh -c "make clean && make"
+    networks:
+      - trans_net
+
+  chess_engine:
+    build:
+      context:      backend/chess_engine
+      dockerfile:   docker_conf/Dockerfile
+      pull:         false
+      cache_from:
+        - type=local,src=${HOME}/goinfre/trans_cache/chess_engine
+      cache_to:
+        - type=local,dest=${HOME}/goinfre/trans_cache/chess_engine,mode=max
+    container_name: chess_engine
+    restart:        unless-stopped
+    environment:
+      ENGINE_PORT: 4190
+    expose:
+      - "4190"
+    networks:
+      - trans_net
+
+  stockfish_ai:
+    build:
+      context:      backend/stockfish_ai
+      dockerfile:   docker_conf/Dockerfile
+      pull:         false
+      cache_from:
+        - type=local,src=${HOME}/goinfre/trans_cache/stockfish_ai
+      cache_to:
+        - type=local,dest=${HOME}/goinfre/trans_cache/stockfish_ai,mode=max
+    container_name: stockfish_ai
+    restart:        unless-stopped
+    environment:
+      ENGINE_PORT: 4191
+    expose:
+      - "4191"
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+    deploy:
+      resources:
+        limits:
+          cpus:           "1.0"
+          memory: 512M
+          #mem_limit:      512M
+          #memswap_limit:  -1
+    networks:
+      - trans_net
+
+  #django:
+  backend_django:
+    build:
+      context:      backend/django
+      dockerfile:   docker_conf/Dockerfile
+      #target:       dev
+      target:       dep
+      pull:         false
+      cache_from:
+        - type=local,src=${HOME}/goinfre/trans_cache/backend_django
+      cache_to:
+        - type=local,dest=${HOME}/goinfre/trans_cache/backend_django,mode=max
+    container_name: trans_backend_django
+    restart:        unless-stopped
+    env_file:
+      - .env
+    environment:
+      DB_HOST:      trans_db_server
+      DB_PORT:      "5432"
+      REDIS_HOST:   trans_redis
+      REDIS_PORT:   "6379"
+      VAULT_URL:    ${VAULT_URL}
+      VAULT_AUTH_METHOD:  approle
+      VAULT_CACERT: /vault/certs/ca-cert.pem
+      BEHIND_PROXY:   "true"
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - ./backend/django:/django
+      - ./vault/certs:/vault/certs:ro
+      - ./vault/approle:/vault/approle:ro
+    depends_on:
+      postgres:
+        condition:  service_healthy
+      redis:
+        condition:  service_healthy
+      vault:
+        condition:  service_healthy
+      vault-init:
+        condition:  service_completed_successfully
+    networks:
+      trans_net:
+        aliases:
+          - backend-django    # this fixes the problem with Grafana/Prometheus
+    healthcheck:
+      test: ["CMD", "python", "manage.py", "healthcheck"]
+      interval:     10s
+      timeout:      30s
+      retries:      5
+      start_period: 60s
+
+  timeout_checker:
+    build:
+      context:      backend
+      dockerfile:   timeout_checker/docker_conf/Dockerfile
+      pull:         false
+      cache_from:
+        - type=local,src=${HOME}/goinfre/trans_cache/timeout_checker
+      cache_to:
+        - type=local,dest=${HOME}/goinfre/trans_cache/timeout_checker,mode=max
+    container_name: trans_timeout_checker
+    restart:        unless-stopped
+    env_file:
+      - .env
+    environment:
+      DB_HOST:      trans_db_server
+      DB_PORT:      "5432"
+      REDIS_HOST:   trans_redis
+      REDIS_PORT:   ${REDIS_PORT}
+      DB_USER_FILE: /dev/shm/vault-db-user
+      DB_PASS_FILE: /dev/shm/vault-db-pass
+      VAULT_ADDR:   ${VAULT_URL}
+      VAULT_CACERT: /vault/certs/ca-cert.pem
+    entrypoint:     ["/usr/local/bin/vault-entrypoint.sh"]
+    volumes:
+      - ./vault/certs:/vault/certs:ro
+      - ./vault/approle:/vault/approle:ro
+    depends_on:
+      postgres:
+        condition:  service_healthy
+      redis:
+        condition:  service_healthy
+      vault:
+        condition:  service_healthy
+      vault-init:
+        condition:  service_completed_successfully
+    networks:
+      - trans_net
+     
+  frontend_nginx:
+    build:
+      context:      frontend
+      dockerfile:   docker_conf/Dockerfile
+      pull:         false
+      cache_from:
+        - type=local,src=${HOME}/goinfre/trans_cache/frontend_nginx
+      cache_to:
+        - type=local,dest=${HOME}/goinfre/trans_cache/frontend_nginx,mode=max
+    container_name: trans_frontend_nginx
+    restart:        unless-stopped
+    ports:
+      - "4443:4443"
+      - "8000:8000"
+    volumes:
+      - ./frontend/logs/modsecurity:/var/log/modsecurity
+      - ./frontend-react/dist:/usr/share/nginx/html:ro
+      - ./vault/certs:/vault/certs:ro
+      - ./backend/django/media:/usr/share/nginx/media:ro
+      - ./frontend/docker_conf/nginx-dep.conf:/etc/nginx/templates/nginx.conf.template:ro
+    depends_on:
+      backend_django:
+        condition:  service_healthy
+      vault-init:
+        condition:  service_completed_successfully
+    environment:
+      FRONTEND_URL: ${FRONTEND_URL}
+    networks:
+      - trans_net
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-check-certificate --quiet --tries=1 --spider https://127.0.0.1:4443/health || exit 1"]
+      interval:     30s
+      timeout:      10s
+      retries:      3
+      start_period: 5s
+
+  backup:
+    build:
+      context:              backup
+      dockerfile:           Dockerfile
+      pull:                 false
+      cache_from:
+        - type=local,src=${HOME}/goinfre/trans_cache/backup
+      cache_to:
+        - type=local,dest=${HOME}/goinfre/trans_cache/backup,mode=max
+    container_name:         trans_backup
+    restart:                unless-stopped
+    environment:
+      VAULT_ADDR:           ${VAULT_URL}
+      VAULT_CACERT:         /vault/certs/ca-cert.pem
+      DB_NAME:              ${DB_SERVER_DB}
+      RUN_INITIAL_BACKUP:   "false"
+      RESTIC_REPOSITORY:    /backup-repo
+      SHELL:                /bin/sh
+    volumes:
+      - ./vault/certs:/vault/certs:ro
+      - ./vault/approle:/vault/approle:ro
+      - ${HOME}/goinfre/trans_data/trans_backups/restic-repo:/backup-repo
+      - ./backend/django/media:/media:ro
+      - ./.env.secrets.enc:/app/.env.secrets.enc:ro
+    depends_on:
+      postgres:
+        condition:  service_healthy
+      vault:
+        condition:  service_healthy
+      vault-init:
+        condition:  service_completed_successfully
+    networks:
+      - trans_net
+
+
+# ── WBO: white board for all ──
+  whiteboard:
+    image:                lovasoa/wbo:latest
+    container_name:       trans_whiteboard
+    restart:              unless-stopped
+    volumes:
+      - ./whiteboard/data:/opt/app/server-data
+    networks:
+      - trans_net
+
+
+# ── Monitoring: prometheus, grafana, exporters ──
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: trans_prometheus
+    restart: unless-stopped
+    # Prometheus runs as UID 65534 (nobody). The bind-mounted data dir must be
+    # owned 65534:65534 or it crashes with "permission denied" on the TSDB.
+    user: "65534:65534"
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.enable-lifecycle"
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/prometheus/alert_rules.yml:/etc/prometheus/alert_rules.yml:ro
+      - ${HOME}/goinfre/trans_data/trans_prometheus_data:/prometheus
+    #ports:
+    #  # Publish 9090 so you can open http://localhost:9090/targets from the host.
+    #  - "9090:9090"
+    networks:
+      - trans_net
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: trans_grafana
+    restart: unless-stopped
+    # Grafana runs as UID 472. Own the data dir 472:472 (472:0 also works but
+    # GID 0 = root group, which you flagged; 472:472 is fine in plain Docker).
+    user: "472:472"
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-}
+      #GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?set GRAFANA_ADMIN_PASSWORD in .env}
+      # Served behind nginx under /grafana/ (see nginx snippet). These two make
+      # Grafana generate correct links/redirects under the subpath.
+      GF_SERVER_ROOT_URL: "%(protocol)s://%(domain)s:%(http_port)s/grafana/"
+      GF_SERVER_SERVE_FROM_SUB_PATH: "true"
+      # No sign-up, no anonymous access.
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - ${HOME}/goinfre/trans_data/trans_grafana_data:/var/lib/grafana
+    #ports:
+    #  # Direct access for testing: http://localhost:3001 (container listens on 3000).
+    #  - "3001:3000"
+    depends_on:
+      - prometheus
+    networks:
+      - trans_net
+
+  # Exposes nginx stub_status as Prometheus metrics.
+  # Needs the stub_status server block added to your nginx config (see snippet).
+  nginx-exporter:
+    image: nginx/nginx-prometheus-exporter:latest
+    container_name: trans_nginx_exporter
+    restart: unless-stopped
+    command:
+      - "--nginx.scrape-uri=http://trans_frontend_nginx:8081/stub_status"
+    networks:
+      - trans_net
+
+  # Read-only Postgres metrics via the dedicated prometheus_monitor user
+  # created by the Postgres entrypoint from Vault (secret/monitoring)
+  # (created by monitoring/postgres/init_monitoring_user.sql). <= this is deprecated
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:latest
+    container_name: trans_postgres_exporter
+    restart: unless-stopped
+    environment:
+      #DATA_SOURCE_NAME: "postgresql://prometheus_monitor:${MONITOR_PASS}@trans_db_server:5432/${DB_SERVER_DB}?sslmode=disable"  # cause malformed password in the url because of the password containing special characters.
+      DATA_SOURCE_URI: "trans_db_server:5432/${DB_SERVER_DB}?sslmode=disable"
+      DATA_SOURCE_USER: "prometheus_monitor"
+      DATA_SOURCE_PASS: "${MONITOR_PASS:-}"
+    depends_on:
+      - prometheus
+    networks:
+      - trans_net
+
+  redis-exporter:
+    image: oliver006/redis_exporter:latest
+    container_name: trans_redis_exporter
+    restart: unless-stopped
+    environment:
+      REDIS_ADDR: "redis://trans_redis:6379"
+    depends_on:
+      - prometheus
+    networks:
+      - trans_net
+
+networks:
+  trans_net:
+    driver: bridge
+

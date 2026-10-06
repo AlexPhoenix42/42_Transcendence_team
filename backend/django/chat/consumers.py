@@ -11,7 +11,6 @@ import json
 
 import logging
 
-#from chat.signals import force_disconnect_on_logout
 
 logger = logging.getLogger(__name__)
 
@@ -50,8 +49,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
         # Join a private user-group so we can force-disconnect on logout
         self.user_group_name = f"user_{self.user.pk}"
-
-        #logger.info("User %s joined private group %s", self.user.pk, self.user_group_name)
 
         await self.channel_layer.group_add(
             self.user_group_name,
@@ -128,27 +125,29 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
         return False
 
+    
     @database_sync_to_async
     def _set_online(self, user):
-        key = f"online_count:{user.pk}"
-        try:
-            cache.incr(key)
-        except ValueError:
-            cache.set(key, 1, timeout=None)
-        user.is_online = True
-        user.save(update_fields=["is_online"])
+        key = f"online_channels:{user.pk}"
+        channels = cache.get(key, set())
+        channels.add(self.channel_name)
+        cache.set(key, channels, timeout=None)
+        if not user.is_online:
+            user.is_online = True
+            user.save(update_fields=["is_online"])
 
     @database_sync_to_async
     def _set_offline(self, user):
-        key = f"online_count:{user.pk}"
-        try:
-            cnt = cache.decr(key)
-        except ValueError:
-            cnt = 0
-        if cnt <= 0:
+        key = f"online_channels:{user.pk}"
+        channels = cache.get(key, set())
+        channels.discard(self.channel_name)
+        if channels:
+            cache.set(key, channels, timeout=None)
+        else:
             cache.delete(key)
-            user.is_online = False
-            user.save(update_fields=["is_online"])
+            if user.is_online:
+                user.is_online = False
+                user.save(update_fields=["is_online"])
 
 
     async def receive(self, text_data=None, bytes_data=None):
@@ -297,8 +296,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
         }
 
 
-    #async def chat_message(self, event):
-    #    await self.send(text_data=json.dumps(event["payload"]))
     async def chat_message(self, event):
         # Check if current user has blocked the sender
         sender_username = event["payload"].get("sender")

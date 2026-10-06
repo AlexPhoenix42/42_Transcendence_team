@@ -9,6 +9,8 @@ import AppLayout from "./layouts/AppLayout.tsx"
 import LegalLayout from "./layouts/LegalLayout.tsx"
 import ProtectedRoute from "./components/ProtectedRoute.tsx"
 
+import Docs from "./pages/Docs.tsx"
+
 import Login from "./pages/Login.tsx"
 import Register from "./pages/Register.tsx"
 import Dashboard from "./pages/Dashboard.tsx"
@@ -55,6 +57,7 @@ export const router = createBrowserRouter([
     },
 
 	{ path: "/status", element: <Status /> },
+	{ path: "/docs", element: <Docs /> },
 
 	{
 		element: <LegalLayout />,

@@ -8,8 +8,27 @@ from .views         import (
 
 
 urlpatterns = [
-    path('',                 GameListCreateView.as_view(), name="pacman-game-list-create"),
-    path('<int:pk>/',        GameDetailView.as_view(),     name="pacman-game-detail"),
-    path('<int:pk>/cancel/', GameCancelView.as_view(),     name="pacman-game-cancel"),
-    path('room/<slug:room_name>/', GameByRoomView.as_view(),  name="pacman-game-by-room"),
+    path(
+        '',
+        GameListCreateView.as_view(),
+        name="pacman-game-list-create"
+    ),
+
+    path(
+        '<int:pk>/',
+        GameDetailView.as_view(),
+        name="pacman-game-detail"
+    ),
+
+    path(
+        '<int:pk>/cancel/',
+        GameCancelView.as_view(),
+        name="pacman-game-cancel"
+    ),
+
+    path(
+        'room/<slug:room_name>/',
+        GameByRoomView.as_view(),
+        name="pacman-game-by-room"
+    ),
 ]

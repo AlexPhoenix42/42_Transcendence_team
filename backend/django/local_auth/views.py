@@ -246,30 +246,6 @@ class PasswordResetRequestConfirmView(APIView):
         user.save(update_fields=["password"])
 
         return Response({"status": "Password has been reset."})
-
-        #token           = request.data.get("token")
-        #uid             = request.data.get("uid")
-        #new_password    = request.data.get("new_password")
-
-        #if  not token or not uid or not new_password:
-        #    return Response(
-        #        {"error": "token, uid, and new_password, are required."},
-        #        status=400,
-        #    )
-
-        #try:
-        #    user = User.objects.get(pk=uid)
-        #except User.DoesNotExist:
-        #    return Response({"error": "Invalid or expired token."}, status=400)
-
-        #if  not verify_reset_token(user, "password", token):
-        #    return Response({"error": "Invalid or expired token."}, status=400)
-
-        ## Apply the new password
-        #user.set_password(new_password)
-        #user.save(update_fields=["password"])
-
-        #return Response({"status": "Password has been reset."})
 # ===========================================================================
 
 

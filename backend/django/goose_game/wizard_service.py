@@ -118,3 +118,4 @@ async def generate_question(excluded: list[str]) -> dict:
         pass
 
     return _pick_fallback(excluded_normalized)
+

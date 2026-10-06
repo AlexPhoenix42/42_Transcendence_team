@@ -6,7 +6,8 @@ import { api, getAccessToken, mediaUrl } from "../api/client.ts"
 import { useNavigate } from "react-router-dom"
 import { useI18n } from "../i18n/I18nProvider.tsx"
 import Achievements from "../components/Achievements.tsx"
-import { validateMaxLength } from '../utils/validate'
+import { validateMaxLength, validate2FACode } from '../utils/validate'
+import { QRCodeSVG } from "qrcode.react"
 
 interface ProfileData {
     username: string
@@ -39,6 +40,7 @@ export default function Profile() {
     const [totpSecret, setTotpSecret] = useState("")
     const [confirmCode, setConfirmCode] = useState("")
     const [recoveryCodes, setRecoveryCodes] = useState<string[]>([])
+	const [confirming2FA, setConfirming2FA] = useState(false)
     const [disablePassword, setDisablePassword] = useState("")
     const [showDisable, setShowDisable] = useState(false)
 	const [disableCode, setDisableCode] = useState("")
@@ -169,10 +171,12 @@ export default function Profile() {
     async function handleConfirm2FA(e: React.FormEvent) {
         e.preventDefault()
         setError("")
+		setConfirming2FA(true)
 
 		const err = validate2FACode(confirmCode)
         if (err) {
             setError(err)
+			setConfirming2FA(true)
             return
         }
 
@@ -184,45 +188,24 @@ export default function Profile() {
 
             const data = await resp.json()
 
-            if (resp.ok) {
+			if (resp.ok) {
                 setHas2FA(true)
                 setEnabling2FA(false)
                 setQrUri("")
                 setTotpSecret("")
                 setConfirmCode("")
                 setRecoveryCodes(data.recovery_codes || [])
+                setError("")
                 setSuccess("2FA enabled successfully!")
             } else {
                 setError(ts(data.error, "twofa.error.invalidCode"))
             }
         } catch {
             setError(t("common.error.network"))
+        } finally {
+            setConfirming2FA(false)
         }
     }
-
-    //async function handleDisable2FA(e: React.FormEvent) {
-    //    e.preventDefault()
-    //    setError("")
-
-    //    try {
-    //        const resp = await api("/api/auth/2fa/disable/", {
-    //            method: "POST",
-    //            body: JSON.stringify({ password: disablePassword }),
-    //        })
-
-    //        if (resp.ok) {
-    //            setHas2FA(false)
-    //            setShowDisable(false)
-    //            setDisablePassword("")
-    //            setSuccess("2FA disabled")
-    //        } else {
-    //            const data = await resp.json()
-    //            setError(ts(data.error))
-    //        }
-    //    } catch {
-    //        setError(t("common.error.network"))
-    //    }
-    //}
 
     async function handleDisable2FA(e: React.FormEvent) {
         e.preventDefault()
@@ -413,7 +396,7 @@ export default function Profile() {
                         <p className="text-gray-400">Scan this QR code with your authenticator app, or enter the secret manually:</p>
 
                         <div className="bg-white p-4 rounded inline-block">
-                            <img src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrUri)}`} alt={t("profile.2fa.qrAlt")} />
+							<QRCodeSVG value={qrUri} size={200} />
                         </div>
 
                         <div>
@@ -432,10 +415,10 @@ export default function Profile() {
                                 required
                             />
                             <div className="flex gap-2">
-                                <button type="submit" className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
-                                    {t("common.confirm")}
+								<button type="submit" disabled={confirming2FA} className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                                    {confirming2FA ? t("common.loading") : t("common.confirm")}
                                 </button>
-                                <button type="button" onClick={() => setEnabling2FA(false)} className="px-4 py-2 bg-gray-700 text-white rounded hover:bg-gray-600">
+								<button type="button" onClick={() => setEnabling2FA(false)} disabled={confirming2FA} className="px-4 py-2 bg-gray-700 text-white rounded hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed">
                                     {t("common.cancel")}
                                 </button>
                             </div>
