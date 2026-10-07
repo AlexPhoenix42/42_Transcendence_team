@@ -167,7 +167,9 @@ export const he: MessageTable = {
     "games.goose.title":  "משחק האווז",
     "games.goose.body":   "משחק לוח קלאסי — 2-6 שחקנים",
     "games.pacman.title": "פקמן",
-    "games.pacman.body":  "בקרוב",
+    "games.pacman.body":  "מרובה משתתפים — מבוך, תפקידים, רוחות רפאים",
+    "games.whiteboard.title": "לוח ציור",
+    "games.whiteboard.body":  "לוח ציור שיתופי",
 
     // -- Leaderboard ---------------------------------------------------
     "leaderboard.title":      "טבלת מובילים",
@@ -792,4 +794,72 @@ export const he: MessageTable = {
     "srv.winnerRequired":           "נדרש לציין מנצח.",
     "srv.winnerNotPlayer":          "המנצח חייב להיות אחד משחקני המשחק.",
     "srv.winnerNotFound":           "המנצח לא נמצא.",
+
+    // -- Goose lobby -- additions ---------------------------------------
+    "gooseLobby.deleteRoom":     "מחק חדר",
+    "gooseLobby.error.delete":   "מחיקת החדר נכשלה",
+    "gooseLobby.playerCountFmt": "{count}/{max} שחקנים",
+    "gooseLobby.by":             "מאת {name}",
+
+    // -- Goose game -- additions -----------------------------------------
+    "goose.turnOf":               "התור של {name}",
+    "goose.rollShort":            "🎲 הטל",
+    "goose.leave":                "עזוב",
+    "goose.waitingForPlayersCount": "ממתין ל-{count}/{max} שחקנים...",
+    "goose.winner":               "המנצח!",
+    "goose.waitingForTurn":       "ממתין ל-{name}...",
+
+    // -- Goose game -- Grey Wizard -----------------------------------------
+    "goose.wizard.interrogates":   "🧙 הקוסם האפור חוקר את {target}!",
+    "goose.wizard.wins":           "🧙 הקוסם האפור מנצח!",
+    "goose.wizard.winsDetail":     "כל השחקנים בכלא, אף אחד לא הצליח לסיים את המשחק.",
+    "goose.wizard.waitingShort":   "🧙 ממתין...",
+    "goose.wizard.waitingFull":    "🧙 ממתין לקוסם...",
+    "goose.wizard.watchingAnswer": "🧙 הקוסם האפור חוקר מישהו, ממתין לתשובה...",
+
+    // -- Goose board -- legend --------------------------------------------
+    "goose.legend.goose":  "אווז (כפול)",
+    "goose.legend.bridge": "גשר (→12)",
+    "goose.legend.inn":    "פונדק (דלג 1)",
+    "goose.legend.well":   "באר (דלג 1)",
+    "goose.legend.maze":   "מבוך (→30)",
+    "goose.legend.prison": "כלא (דלג 2)",
+    "goose.legend.death":  "מוות (→התחלה)",
+    "goose.legend.finish": "סיום (63)",
+
+    // -- Grey Wizard quiz modal --------------------------------------------
+    "wizard.askingYou":       "🧙 הקוסם האפור בוחן אותך!",
+    "wizard.askingOther":     "🧙 הקוסם האפור בוחן את {target}!",
+    "wizard.correct":         "👍 תשובה נכונה!",
+    "wizard.wrong":           "👎 תשובה שגויה...",
+    "wizard.otherCorrect":    "👍 {target} צדק!",
+    "wizard.otherWrong":      "👎 {target} טעה...",
+    "wizard.waitingVerdict":  "ממתין לפסיקת הקוסם...",
+    "wizard.waitingAnswer":   "ממתין לתשובת {target}...",
+
+    // -- Achievements -- per-badge content ---------------------------------
+    "achievements.first_blood.name":        "דם ראשון",
+    "achievements.first_blood.description":  "נצח במשחק הראשון שלך",
+    "achievements.veteran.name":             "ותיק",
+    "achievements.veteran.description":      "נצח ב-10 משחקים",
+    "achievements.warrior.name":             "לוחם",
+    "achievements.warrior.description":      "נצח ב-50 משחקים",
+    "achievements.played_10.name":           "התחלה טובה",
+    "achievements.played_10.description":    "שחק 10 משחקים",
+    "achievements.played_100.name":          "מסור",
+    "achievements.played_100.description":   "שחק 100 משחקים",
+    "achievements.tournament_player.name":        "מתחרה",
+    "achievements.tournament_player.description":  "הצטרף לטורניר",
+    "achievements.tournament_champion.name":       "אלוף",
+    "achievements.tournament_champion.description": "נצח בטורניר",
+    "achievements.rating_1300.name":         "כוכב עולה",
+    "achievements.rating_1300.description":  "הגע לדירוג 1300",
+    "achievements.rating_1500.name":         "מומחה",
+    "achievements.rating_1500.description":  "הגע לדירוג 1500",
+    "achievements.streak_5.name":            "בלהבות",
+    "achievements.streak_5.description":     "נצח ב-5 משחקים ברצף",
+    "achievements.streak_10.name":           "בלתי ניתן לעצירה",
+    "achievements.streak_10.description":    "נצח ב-10 משחקים ברצף",
+    "achievements.ai_slayer.name":           "קוטל הבינה המלאכותית",
+    "achievements.ai_slayer.description":    "נצח את הבינה המלאכותית",
 }

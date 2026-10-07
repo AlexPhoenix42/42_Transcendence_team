@@ -170,7 +170,9 @@ export const ar: MessageTable = {
     "games.goose.title":  "لعبة الإوزة",
     "games.goose.body":   "لعبة لوحية كلاسيكية — من 2 إلى 6 لاعبين",
     "games.pacman.title": "باكمان",
-    "games.pacman.body":  "قريبًا",
+    "games.pacman.body":  "متعدد اللاعبين — متاهة، أدوار، أشباح",
+    "games.whiteboard.title": "السبورة",
+    "games.whiteboard.body":  "لوحة رسم تعاونية",
 
     // -- Leaderboard ---------------------------------------------------
     "leaderboard.title":      "لوحة المتصدرين",
@@ -795,4 +797,72 @@ export const ar: MessageTable = {
     "srv.winnerRequired":           "مطلوب تحديد فائز.",
     "srv.winnerNotPlayer":          "يجب أن يكون الفائز أحد لاعبي المباراة.",
     "srv.winnerNotFound":           "الفائز غير موجود.",
+
+    // -- Goose lobby -- additions ---------------------------------------
+    "gooseLobby.deleteRoom":     "حذف الغرفة",
+    "gooseLobby.error.delete":   "فشل حذف الغرفة",
+    "gooseLobby.playerCountFmt": "{count}/{max} لاعبين",
+    "gooseLobby.by":             "بواسطة {name}",
+
+    // -- Goose game -- additions -----------------------------------------
+    "goose.turnOf":               "دور {name}",
+    "goose.rollShort":            "🎲 ارمِ",
+    "goose.leave":                "مغادرة",
+    "goose.waitingForPlayersCount": "في انتظار {count}/{max} لاعبين...",
+    "goose.winner":               "الفائز!",
+    "goose.waitingForTurn":       "في انتظار {name}...",
+
+    // -- Goose game -- Grey Wizard -----------------------------------------
+    "goose.wizard.interrogates":   "🧙 الساحر الرمادي يستجوب {target}!",
+    "goose.wizard.wins":           "🧙 الساحر الرمادي يفوز!",
+    "goose.wizard.winsDetail":     "جميع اللاعبين في السجن، لم يتمكن أحد من إنهاء اللعبة.",
+    "goose.wizard.waitingShort":   "🧙 في الانتظار...",
+    "goose.wizard.waitingFull":    "🧙 في انتظار الساحر...",
+    "goose.wizard.watchingAnswer": "🧙 الساحر الرمادي يستجوب أحدهم، في انتظار الإجابة...",
+
+    // -- Goose board -- legend --------------------------------------------
+    "goose.legend.goose":  "الإوزة (مضاعفة)",
+    "goose.legend.bridge": "الجسر (→12)",
+    "goose.legend.inn":    "النزل (تخطَّ 1)",
+    "goose.legend.well":   "البئر (تخطَّ 1)",
+    "goose.legend.maze":   "المتاهة (→30)",
+    "goose.legend.prison": "السجن (تخطَّ 2)",
+    "goose.legend.death":  "الموت (→البداية)",
+    "goose.legend.finish": "النهاية (63)",
+
+    // -- Grey Wizard quiz modal --------------------------------------------
+    "wizard.askingYou":       "🧙 الساحر الرمادي يختبرك!",
+    "wizard.askingOther":     "🧙 الساحر الرمادي يختبر {target}!",
+    "wizard.correct":         "👍 إجابة صحيحة!",
+    "wizard.wrong":           "👎 إجابة خاطئة...",
+    "wizard.otherCorrect":    "👍 أجاب {target} بشكل صحيح!",
+    "wizard.otherWrong":      "👎 أخطأ {target}...",
+    "wizard.waitingVerdict":  "في انتظار حكم الساحر...",
+    "wizard.waitingAnswer":   "في انتظار إجابة {target}...",
+
+    // -- Achievements -- per-badge content ---------------------------------
+    "achievements.first_blood.name":        "الدم الأول",
+    "achievements.first_blood.description":  "فز بأول مباراة لك",
+    "achievements.veteran.name":             "محارب قديم",
+    "achievements.veteran.description":      "فز بـ 10 مباريات",
+    "achievements.warrior.name":             "محارب",
+    "achievements.warrior.description":      "فز بـ 50 مباراة",
+    "achievements.played_10.name":           "بداية الطريق",
+    "achievements.played_10.description":    "العب 10 مباريات",
+    "achievements.played_100.name":          "مُتفانٍ",
+    "achievements.played_100.description":   "العب 100 مباراة",
+    "achievements.tournament_player.name":        "منافس",
+    "achievements.tournament_player.description":  "انضم إلى بطولة",
+    "achievements.tournament_champion.name":       "بطل",
+    "achievements.tournament_champion.description": "فز ببطولة",
+    "achievements.rating_1300.name":         "نجم صاعد",
+    "achievements.rating_1300.description":  "صل إلى تصنيف 1300",
+    "achievements.rating_1500.name":         "خبير",
+    "achievements.rating_1500.description":  "صل إلى تصنيف 1500",
+    "achievements.streak_5.name":            "في قمة الأداء",
+    "achievements.streak_5.description":     "فز بـ 5 مباريات متتالية",
+    "achievements.streak_10.name":           "لا يُقهر",
+    "achievements.streak_10.description":    "فز بـ 10 مباريات متتالية",
+    "achievements.ai_slayer.name":           "قاهر الذكاء الاصطناعي",
+    "achievements.ai_slayer.description":    "اهزم الذكاء الاصطناعي",
 }
