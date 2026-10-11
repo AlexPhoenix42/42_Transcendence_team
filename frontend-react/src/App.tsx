@@ -16,7 +16,7 @@ export default function App() {
         return <div className="min-h-screen bg-gray-900"></div>
     }
 
-    if (token && uid && window.location.pathname !== "/reset") {
+	if (token && uid && window.location.pathname !== "/reset" && window.location.pathname !== "/delete-account") {
         window.location.replace(`/reset${window.location.search}`)
         return <div className="min-h-screen bg-gray-900"></div>
     }

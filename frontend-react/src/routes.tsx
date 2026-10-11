@@ -35,6 +35,8 @@ import PacmanGame from "./pages/PacmanGame.tsx"
 import GooseLobby from "./pages/GooseLobby.tsx"
 import GooseGame from "./pages/GooseGame.tsx"
 
+import DeleteAccount from "./pages/DeleteAccount.tsx"
+
 import PrivacyPolicy from "./pages/PrivacyPolicy"
 import TermsOfService from "./pages/TermsOfService"
 
@@ -50,6 +52,7 @@ export const router = createBrowserRouter([
             { path: "/login", element: <Login /> },
             { path: "/register", element: <Register /> },
 			{ path: "/forgot-password", element: <ForgotPassword /> },
+			{ path: "/delete-account", element: <DeleteAccount /> },
 			{ path: "/reset", element: <ResetPassword /> },
 			{ path: "/2fa", element: <Verify2FA /> },
 
@@ -93,7 +96,6 @@ export const router = createBrowserRouter([
 					{ path: "/pacman/:roomName", element: <PacmanGame /> },
 					{ path: "/goose", element: <GooseLobby /> },
                     { path: "/goose/:id", element: <GooseGame /> },
-
                 ],
             },
         ],

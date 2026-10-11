@@ -239,6 +239,7 @@ REST_FRAMEWORK = {
     },
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'users.api_key.APIKeyAuthentication',
     ],
 
     'DEFAULT_PERMISSION_CLASSES': [

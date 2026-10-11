@@ -45,9 +45,15 @@ export default function Profile() {
     const [showDisable, setShowDisable] = useState(false)
 	const [disableCode, setDisableCode] = useState("")
 
+	// API Key state
+    const [hasApiKey, setHasApiKey] = useState(false)
+    const [apiKeyPrefix, setApiKeyPrefix] = useState("")
+    const [newApiKey, setNewApiKey] = useState("")
+
     useEffect(() => {
         fetchProfile()
         check2FAStatus()
+		checkApiKeyStatus()
     }, [])
 
     async function fetchProfile() {
@@ -106,6 +112,17 @@ export default function Profile() {
         } catch {
             setError(t("common.error.network"))
         }
+    }
+
+	async function checkApiKeyStatus() {
+        try {
+            const resp = await api("/api/me/api-key/")
+            if (resp.ok) {
+                const data = await resp.json()
+                setHasApiKey(data.has_key)
+                setApiKeyPrefix(data.prefix || "")
+            }
+        } catch {}
     }
 
     async function handleAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -474,6 +491,157 @@ export default function Profile() {
                         </button>
                     </div>
                 )}
+            </div>
+			{/* GDPR Section */}
+            <div className="bg-gray-800 rounded-lg p-6 border border-gray-700 mt-6">
+                <h2 className="text-xl text-white font-semibold mb-4">Your Data</h2>
+
+                <div className="space-y-4">
+                    <div>
+                        <p className="text-gray-400 mb-2">Download a copy of all your data in JSON format.</p>
+                        <button
+                            onClick={async () => {
+                                try {
+                                    const resp = await api("/api/me/export/")
+                                    if (resp.ok) {
+                                        const blob = await resp.blob()
+                                        const url = URL.createObjectURL(blob)
+                                        const a = document.createElement("a")
+                                        a.href = url
+                                        a.download = "my_data.json"
+                                        a.click()
+                                        URL.revokeObjectURL(url)
+                                        setSuccess("Data exported successfully.")
+                                    } else {
+                                        setError("Failed to export data.")
+                                    }
+                                } catch {
+                                    setError("Network error.")
+                                }
+                            }}
+                            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                        >
+                            Export my data
+                        </button>
+                    </div>
+
+                    <hr className="border-gray-700" />
+
+                    <div>
+                        <p className="text-gray-400 mb-2">Permanently delete your account. A confirmation email will be sent.</p>
+                        <button
+                            onClick={async () => {
+                                try {
+                                    const resp = await api("/api/me/delete/", { method: "POST" })
+                                    if (resp.ok) {
+                                        setSuccess("Confirmation email sent. Check your inbox.")
+                                    } else {
+                                        const data = await resp.json()
+                                        setError(data.error || "Failed to send confirmation.")
+                                    }
+                                } catch {
+                                    setError("Network error.")
+                                }
+                            }}
+                            className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+                        >
+                            Delete my account
+                        </button>
+                    </div>
+                </div>
+            </div>
+			{/* API Key Section */}
+            <div className="bg-gray-800 rounded-lg p-6 border border-gray-700 mt-6">
+                <h2 className="text-xl text-white font-semibold mb-4">API Key</h2>
+
+				{newApiKey && (
+                    <div className="bg-yellow-900/50 border border-yellow-500 text-yellow-300 px-4 py-4 rounded mb-4">
+                        <p className="font-bold mb-2">Save this key — it won't be shown again:</p>
+                        <div className="flex items-center gap-2">
+                            <code className="text-green-400 bg-gray-900 px-3 py-1 rounded text-sm block break-all flex-1">{newApiKey}</code>
+                            <button
+                                onClick={() => {
+                                    navigator.clipboard.writeText(newApiKey)
+                                    setSuccess("API key copied to clipboard.")
+                                }}
+                                className="px-3 py-1 bg-gray-700 text-white rounded hover:bg-gray-600 text-sm shrink-0"
+                            >
+                                Copy
+                            </button>
+                        </div>
+                    </div>
+                )}
+
+                {hasApiKey ? (
+                    <div>
+                        <p className="text-gray-400 mb-2">Active key: <code className="text-green-400">{apiKeyPrefix}...</code></p>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={async () => {
+                                    try {
+                                        const resp = await api("/api/me/api-key/generate/", { method: "POST" })
+                                        if (resp.ok) {
+                                            const data = await resp.json()
+                                            setNewApiKey(data.api_key)
+                                            setHasApiKey(true)
+                                            setApiKeyPrefix(data.api_key.substring(0, 8))
+                                            setSuccess("New API key generated.")
+                                        }
+                                    } catch { setError("Network error.") }
+                                }}
+                                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                            >
+                                Regenerate
+                            </button>
+                            <button
+                                onClick={async () => {
+                                    try {
+                                        const resp = await api("/api/me/api-key/revoke/", { method: "POST" })
+                                        if (resp.ok) {
+                                            setHasApiKey(false)
+                                            setApiKeyPrefix("")
+                                            setNewApiKey("")
+                                            setSuccess("API key revoked.")
+                                        }
+                                    } catch { setError("Network error.") }
+                                }}
+                                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+                            >
+                                Revoke
+                            </button>
+                        </div>
+                    </div>
+                ) : (
+                    <div>
+                        <p className="text-gray-400 mb-4">Generate an API key to access the API from scripts or external tools.</p>
+                        <button
+                            onClick={async () => {
+                                try {
+                                    const resp = await api("/api/me/api-key/generate/", { method: "POST" })
+                                    if (resp.ok) {
+                                        const data = await resp.json()
+                                        setNewApiKey(data.api_key)
+                                        setHasApiKey(true)
+                                        setApiKeyPrefix(data.api_key.substring(0, 8))
+                                        setSuccess("API key generated.")
+                                    }
+                                } catch { setError("Network error.") }
+                            }}
+                            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                        >
+                            Generate API Key
+                        </button>
+                    </div>
+                )}
+
+                <div className="mt-4 text-gray-500 text-sm">
+				    <p className="mb-2">Available endpoints:</p>
+                    <div className="space-y-1 font-mono text-xs text-gray-400">
+                        {["/api/me/", "/api/leaderboard/", "/api/match-history/", "/api/analytics/", "/api/achievements/", "/api/me/export/"].map((ep) => (
+                            <p key={ep}>curl -sk -H "X-API-Key: YOUR_KEY" {window.location.origin}{ep}</p>
+                        ))}
+                    </div>
+                </div>
             </div>
         </div>
     )

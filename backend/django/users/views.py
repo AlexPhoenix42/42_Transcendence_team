@@ -6,6 +6,7 @@ from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.authentication import SessionAuthentication
 from rest_framework_simplejwt.authentication import JWTAuthentication
+from users.api_key import APIKeyAuthentication
 
 from rest_framework.response import Response
 from rest_framework.request import Request
@@ -34,6 +35,7 @@ from typing import cast
 # ===========================================================================
 class MeView(APIView):
     permission_classes = [IsAuthenticated]
+    authentication_classes  = [JWTAuthentication, SessionAuthentication, APIKeyAuthentication]
 
     def get(self, request:Request, format=None):
         user = cast(User, request.user)
@@ -55,7 +57,7 @@ class MeView(APIView):
 # ===========================================================================
 class LeaderboardView(APIView):
     permission_classes = [IsAuthenticated]
-    authentication_classes  = [JWTAuthentication, SessionAuthentication]
+    authentication_classes  = [JWTAuthentication, SessionAuthentication, APIKeyAuthentication]
 
     def get(self, request: Request, format=None):
 
@@ -88,7 +90,7 @@ class LeaderboardView(APIView):
 # ===========================================================================
 class MatchHistoryView(APIView):
     permission_classes = [IsAuthenticated]
-    authentication_classes  = [JWTAuthentication, SessionAuthentication]
+    authentication_classes  = [JWTAuthentication, SessionAuthentication, APIKeyAuthentication]
 
     def get(self, request: Request, username: str | None = None, format=None):
         if username:
@@ -139,7 +141,7 @@ class MatchHistoryView(APIView):
 # ===========================================================================
 class UserAnalyticsView(APIView):
     permission_classes = [IsAuthenticated]
-    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    authentication_classes  = [JWTAuthentication, SessionAuthentication, APIKeyAuthentication]
 
     def get(self, request: Request, format=None):
         from chess_game.models import Game, GameStatus
@@ -397,7 +399,7 @@ class UserDeleteView(APIView):
 # ===========================================================================
 class AchievementsView(APIView):
     permission_classes      = [IsAuthenticated]
-    authentication_classes  = [JWTAuthentication, SessionAuthentication]
+    authentication_classes  = [JWTAuthentication, SessionAuthentication, APIKeyAuthentication]
 
     def get(self, request: Request, username: str | None = None, format=None):
         from chess_game.models import Game, GameStatus
