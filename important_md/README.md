@@ -8,7 +8,7 @@ Born2Transcend is a full-stack web application which hosts and serves a chess ga
 
 Besides the awesome entertainment it provides, Born2Transcend aims to seamlessly service a secure website with fluid UX and an intuitive UI. The back-end is split into loosely-coupled micro-services, launched with Docker to increase the scalability of the project, and the security of launching several dependencies. The database in PostgreSQL is managed via an ORM in Django, to handle CRUD, and prevent SQL-injection security risks. The website is served by Nginx through HTTPS, with an SSL certificate with a TLSv1.3 protocol. Security is further enhanced with remote authentication with OAuth 2.0, 2FA, ModSecurity with HashiCorp vault for Secrets. The gaming and UX are enhanced by the remote multiplayer user experience, tournaments, a variety of user-to-user actions (invitations, friending, chatting), and a complete LLM chess coach interface. A minimalist, but intuitive UI is built with React, and uses a dark colour theme with readable font, and a visible links to the license and Terms and Conditions of use.
 
-Born2Transcend is operating under the GNU GPL v3 license. Consult it [here](/LICENSE.md)
+Born2Transcend is operating under the GNU GPL v3 license. Consult it [here](/docs/LICENSE.md)
 
 ---
 
