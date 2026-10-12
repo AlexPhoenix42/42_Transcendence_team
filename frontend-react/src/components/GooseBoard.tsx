@@ -1,7 +1,9 @@
 // frontend-react/src/components/GooseBoard.tsx
 
 import { useEffect, useRef, useState } from "react"
-import { useT } from "../i18n/I18nProvider.tsx"
+import Wizard3D from "./Wizard3D.tsx"
+import { useI18n } from "../i18n/I18nProvider.tsx"
+import type { MessageKey } from "../i18n/messages/index.ts"
 
 interface PlayerData {
     username: string
@@ -15,31 +17,36 @@ interface PlayerData {
 interface Props {
     players: PlayerData[]
     lastMove?: { player: string; from: number; to: number } | null
+    wizardPosition?: number
+    wizardMove?: { from: number; step: number } | null
+    wizardReaction?: "correct" | "wrong" | null
 }
 
 const PLAYER_TOKENS = ["🐸", "🦊", "🐻", "🐰", "🦉", "🐱"]
+export const PLAYER_HOP_MS = 260 // per-square hop duration, slowed down so moves are easy to follow
+export const WIZARD_HOP_MS = 420 // slower than player moves so each hop is clearly visible
 
-const SPECIAL_SQUARES: Record<number, { icon: string; label: string; bg: string; border: string }> = {
-    5:  { icon: "🪿", label: "square.goose",  bg: "#166534", border: "#22c55e" },
-    6:  { icon: "🌉", label: "square.bridge", bg: "#1e3a5f", border: "#60a5fa" },
-    9:  { icon: "🪿", label: "square.goose",  bg: "#166534", border: "#22c55e" },
-    14: { icon: "🪿", label: "square.goose",  bg: "#166534", border: "#22c55e" },
-    18: { icon: "🪿", label: "square.goose",  bg: "#166534", border: "#22c55e" },
-    19: { icon: "🏨", label: "square.inn",    bg: "#78350f", border: "#f59e0b" },
-    23: { icon: "🪿", label: "square.goose",  bg: "#166534", border: "#22c55e" },
-    27: { icon: "🪿", label: "square.goose",  bg: "#166534", border: "#22c55e" },
-    31: { icon: "🕳️", label: "square.well",   bg: "#164e63", border: "#22d3ee" },
-    32: { icon: "🪿", label: "square.goose",  bg: "#166534", border: "#22c55e" },
-    36: { icon: "🪿", label: "square.goose",  bg: "#166534", border: "#22c55e" },
-    41: { icon: "🪿", label: "square.goose",  bg: "#166534", border: "#22c55e" },
-    42: { icon: "🌀", label: "square.maze",   bg: "#4c1d95", border: "#a78bfa" },
-    45: { icon: "🪿", label: "square.goose",  bg: "#166534", border: "#22c55e" },
-    50: { icon: "🪿", label: "square.goose",  bg: "#166534", border: "#22c55e" },
-    52: { icon: "⛓️", label: "square.prison", bg: "#374151", border: "#9ca3af" },
-    54: { icon: "🪿", label: "square.goose",  bg: "#166534", border: "#22c55e" },
-    58: { icon: "💀", label: "square.death",  bg: "#7f1d1d", border: "#f87171" },
-    59: { icon: "🪿", label: "square.goose",  bg: "#166534", border: "#22c55e" },
-    63: { icon: "🏁", label: "square.finish", bg: "#713f12", border: "#facc15" },
+const SPECIAL_SQUARES: Record<number, { icon: string; labelKey: MessageKey; bg: string; border: string }> = {
+    5:  { icon: "🪿", labelKey: "square.goose",  bg: "#166534", border: "#22c55e" },
+    6:  { icon: "🌉", labelKey: "square.bridge", bg: "#1e3a5f", border: "#60a5fa" },
+    9:  { icon: "🪿", labelKey: "square.goose",  bg: "#166534", border: "#22c55e" },
+    14: { icon: "🪿", labelKey: "square.goose",  bg: "#166534", border: "#22c55e" },
+    18: { icon: "🪿", labelKey: "square.goose",  bg: "#166534", border: "#22c55e" },
+    19: { icon: "🏨", labelKey: "square.inn",    bg: "#78350f", border: "#f59e0b" },
+    23: { icon: "🪿", labelKey: "square.goose",  bg: "#166534", border: "#22c55e" },
+    27: { icon: "🪿", labelKey: "square.goose",  bg: "#166534", border: "#22c55e" },
+    31: { icon: "🕳️", labelKey: "square.well",   bg: "#164e63", border: "#22d3ee" },
+    32: { icon: "🪿", labelKey: "square.goose",  bg: "#166534", border: "#22c55e" },
+    36: { icon: "🪿", labelKey: "square.goose",  bg: "#166534", border: "#22c55e" },
+    41: { icon: "🪿", labelKey: "square.goose",  bg: "#166534", border: "#22c55e" },
+    42: { icon: "🌀", labelKey: "square.maze",   bg: "#4c1d95", border: "#a78bfa" },
+    45: { icon: "🪿", labelKey: "square.goose",  bg: "#166534", border: "#22c55e" },
+    50: { icon: "🪿", labelKey: "square.goose",  bg: "#166534", border: "#22c55e" },
+    52: { icon: "⛓️", labelKey: "square.prison", bg: "#374151", border: "#9ca3af" },
+    54: { icon: "🪿", labelKey: "square.goose",  bg: "#166534", border: "#22c55e" },
+    58: { icon: "💀", labelKey: "square.death",  bg: "#7f1d1d", border: "#f87171" },
+    59: { icon: "🪿", labelKey: "square.goose",  bg: "#166534", border: "#22c55e" },
+    63: { icon: "🏁", labelKey: "square.finish", bg: "#713f12", border: "#facc15" },
 }
 
 /**
@@ -126,12 +133,14 @@ function getNeighborGap(positions: { x: number; y: number }[], index: number): n
     return gap
 }
 
-export default function GooseBoard({ players, lastMove }: Props) {
-    const t = useT()
+export default function GooseBoard({ players, lastMove, wizardPosition = 0, wizardMove, wizardReaction }: Props) {
+    const { t } = useI18n()
     const containerRef = useRef<HTMLDivElement>(null)
     const [size, setSize] = useState({ width: 600, height: 600 })
     const [animatingPlayer, setAnimatingPlayer] = useState<string | null>(null)
     const [animPos, setAnimPos] = useState<{ x: number; y: number } | null>(null)
+    const [wizardHopping, setWizardHopping] = useState(false)
+    const [wizardAnimPos, setWizardAnimPos] = useState<{ x: number; y: number } | null>(null)
 
     useEffect(() => {
         function updateSize() {
@@ -175,10 +184,44 @@ export default function GooseBoard({ players, lastMove }: Props) {
             const pos = positions[steps[stepIndex]]
             setAnimPos(pos)
             stepIndex++
-        }, 150)
+        }, PLAYER_HOP_MS)
 
         return () => clearInterval(interval)
     }, [lastMove, size])
+
+    // Grey Wizard: hops (leapfrog-style) square by square. He picks his own
+    // direction each turn (forward or backward), wrapping around the board.
+    useEffect(() => {
+        if (!wizardMove || wizardMove.step === 0) return
+
+        const positions = calculateSpiralPositions(size.width, size.height)
+        const totalSquares = positions.length
+        const { from, step } = wizardMove
+        const dir = Math.sign(step)
+
+        const steps: number[] = []
+        let cur = from
+        for (let i = 0; i < Math.abs(step); i++) {
+            cur = (cur + dir + totalSquares) % totalSquares
+            steps.push(cur)
+        }
+
+        setWizardHopping(true)
+
+        let stepIndex = 0
+        const interval = setInterval(() => {
+            if (stepIndex >= steps.length) {
+                clearInterval(interval)
+                setWizardHopping(false)
+                setWizardAnimPos(null)
+                return
+            }
+            setWizardAnimPos(positions[steps[stepIndex]])
+            stepIndex++
+        }, WIZARD_HOP_MS)
+
+        return () => clearInterval(interval)
+    }, [wizardMove, size])
 
     const positions = calculateSpiralPositions(size.width, size.height)
 
@@ -188,13 +231,7 @@ export default function GooseBoard({ players, lastMove }: Props) {
     const circleSize = Math.max(16, Math.min(medianGap * 0.75, size.width / 14))
 
     return (
-        // dir="ltr": the spiral track's numbering is part of the game's
-        // geometry, not the interface's reading order. Squares are positioned
-        // with inline left/top (physical, so already direction-immune), but
-        // pinning the container keeps any text inside — square numbers,
-        // player labels — from being reordered by the bidi algorithm.
         <div
-            dir="ltr"
             ref={containerRef}
             className="w-full aspect-square relative rounded-xl overflow-hidden"
             style={{
@@ -242,8 +279,7 @@ export default function GooseBoard({ players, lastMove }: Props) {
                                 ? `0 0 6px ${special.border}40`
                                 : "none",
                         }}
-                        title={`${t("goose.square")} ${sq}${special ? ` — ${t(special.label as never)}` : ""}`}
-                        //title={`Square ${sq}${special ? ` — ${special.label}` : ""}`}
+                        title={`${t("goose.square")} ${sq}${special ? ` — ${t(special.labelKey)}` : ""}`}
                     >
                         {special ? (
                             <span style={{ fontSize: circleSize * 0.48 }}>{special.icon}</span>
@@ -263,19 +299,21 @@ export default function GooseBoard({ players, lastMove }: Props) {
             })}
 
             {/* Player tokens */}
-            {players.filter(p => p.is_active).map((player) => {
+			{/*{players.filter(p => p.is_active).map((player) => {*/}
+			{players.map((player) => {
                 const isAnimating = animatingPlayer === player.username && animPos
                 const pos = isAnimating ? animPos : positions[player.position]
                 if (!pos) return null
 
-                const sameSquarePlayers = players.filter(p => p.position === player.position && p.is_active)
+				const sameSquarePlayers = players.filter(p => p.position === player.position)
                 const sameIdx = sameSquarePlayers.indexOf(player)
                 const offsetX = sameSquarePlayers.length > 1 ? (sameIdx - (sameSquarePlayers.length - 1) / 2) * 12 : 0
 
                 return (
                     <div
                         key={player.username}
-                        className="absolute transition-all duration-300 ease-in-out pointer-events-none"
+                        //className="absolute transition-all duration-300 ease-in-out pointer-events-none"
+						className={`absolute transition-all duration-300 ease-in-out pointer-events-none ${!player.is_active ? "opacity-40" : ""}`}
                         style={{
                             left: pos.x + offsetX - 14,
                             top: pos.y - 28,
@@ -299,6 +337,35 @@ export default function GooseBoard({ players, lastMove }: Props) {
                     </div>
                 )
             })}
+
+            {/* Grey Wizard */}
+            {(() => {
+                const pos = wizardHopping && wizardAnimPos ? wizardAnimPos : positions[wizardPosition]
+                if (!pos) return null
+
+                const wizardSize = Math.max(30, circleSize * 1.8)
+
+                return (
+                    <div
+                        className="absolute transition-all ease-out pointer-events-none"
+                        style={{
+                            left: pos.x - wizardSize / 2,
+                            top: pos.y - wizardSize,
+                            zIndex: 20,
+                            transitionDuration: `${WIZARD_HOP_MS - 60}ms`,
+                        }}
+                    >
+                        <div className="flex flex-col items-center">
+                            <Wizard3D size={wizardSize} hopping={wizardHopping} reaction={wizardReaction ?? null} />
+                            {wizardReaction && (
+                                <span className="text-lg -mt-2">
+                                    {wizardReaction === "correct" ? "👍" : "👎"}
+                                </span>
+                            )}
+                        </div>
+                    </div>
+                )
+            })()}
 
             {/* Center decoration */}
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">

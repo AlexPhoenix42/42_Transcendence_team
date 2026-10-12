@@ -40,9 +40,12 @@ class Enable2FAView(APIView):
     def post(self, request: Request) -> Response:
         user = request.user
 
-        # Check if a device already exists
-        if TOTPDevice.objects.filter(user=user).exists():   # type: ignore[attr-defined, misc]
+        # Block if an active device already exists
+        if TOTPDevice.objects.filter(user=user, is_active=True).exists():   # type: ignore[attr-defined, misc]
             return Response({"error": "A 2FA device is already configured."}, status=409)
+
+        # Clean up any abandoned inactive device from a previous failed setup
+        TOTPDevice.objects.filter(user=user, is_active=False).delete()   # type: ignore[attr-defined, misc]
 
         # Generate a new secret
         plain_secret    = generate_totp_secret()
@@ -102,37 +105,6 @@ class Disable2FAView(APIView):
         TOTPDevice.objects.filter(user=request.user).delete()   # type: ignore[attr-defined, misc]
 
         return Response({"status": "2fa disabled"})
-# ===========================================================================
-
-
-# ===========================================================================
-#class ConfirmEnable2FAView(APIView):
-#    permission_classes = [IsAuthenticated]
-#
-#    def post(self, request: Request) -> Response:
-#        user = request.user
-#        code = request.data.get("code")
-#
-#        if  not code:
-#            return Response({"error": "TOTP code required."}, status=400)
-#
-#        # Retrive the user's inactive device
-#        try:
-#            device = TOTPDevice.objects.get(user=user, is_active=False) # type: ignore[attr-defined]
-#        except TOTPDevice.DoesNotExist:
-#            raise NotFound("No pending 2FA setup found.")
-#
-#        # Decrypt the secret and verify the code
-#        plain_secret = decrypt_secret(device.encrypted_secret)
-#
-#        if  not verify_totp_code(plain_secret, code):
-#            return Response({"error": "Invalid TOTP code"}, status=400)
-#
-#        # Activate the device
-#        device.is_active = True
-#        device.save(update_fields=["is_active"])
-#
-#        return Response({"status": "2fa enabled"})
 # ===========================================================================
 
 
@@ -200,10 +172,6 @@ class Verify2FAView(APIView):
         if  user_pk is None:
             return Response({"error": "Invalid or expired temporary token."}, status=400)
 
-        # This been moved down!
-        # Consume the token immediately (single-use)
-        #cache.delete(cache_key)
-
         # Load the user
         try:
             user: User = User.objects.get(pk=user_pk)
@@ -240,10 +208,6 @@ class Verify2FAView(APIView):
 
         if  not code_ok:
             return Response({"error": "Invalid TOTP code"}, status=400)
-
-        # This is replaced by the 'code_ok' check above to handle 2FA recovery.
-        #if  not verify_totp_code(plain_secret, code):
-        #if  return Response({"error": "Invalid TOTP code"}, status=400)
 
         # Consume the token immediately (single-use)
         cache.delete(cache_key)

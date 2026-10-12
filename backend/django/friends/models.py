@@ -40,21 +40,6 @@ class FriendRequest(models.Model):
 
     class Meta:
         constraints = [
-            # Only one pending request per direction at a time
-            #models.UniqueConstraint(
-            #    fields=["from_user", "to_user"],
-            #    condition=models.Q(status="pending"),
-            #    name="unique_pending_request",
-            #),
-
-            # Also prevent the reverse direction having a pending request
-            # simultaneously
-            #models.UniqueConstraint(
-            #    fields=["to_user", "from_user"],
-            #    condition=models.Q(status="pending"),
-            #    name="unique_pending_request_reverse",
-            #),
-
             models.UniqueConstraint(
                 fields=["from_user", "to_user"],
                 condition=models.Q(status="pending"),
@@ -79,5 +64,4 @@ class FriendRequest(models.Model):
 
     def __str__(self):
         return f"{self.from_user} -> {self.to_user} ({self.status})"
-
 

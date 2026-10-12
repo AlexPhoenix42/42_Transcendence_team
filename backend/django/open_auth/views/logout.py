@@ -37,8 +37,6 @@ class LogoutView(APIView):
         if  user_id:
             channel_layer = get_channel_layer()
             if  channel_layer:
-                group_name = f"user_{user_id}"
-                #logger.info("Sending force_disconnect to group %s", group_name)
                 try:
                     async_to_sync(channel_layer.group_send)(
                         f"user_{user_id}",
@@ -46,25 +44,6 @@ class LogoutView(APIView):
                     )
                 except Exception:
                     logger.exception("Failed to send force_disconnect for user %s", user_id)
-                    #pass
-
-        # Force-disconnect all WebSocket connections for this user
-        #if  request.user.is_authenticated:
-        #    channel_layers  = get_channel_layer()
-        #    logger.info("DEBUG: user authenticated=%s, channel_layer=%s",
-        #             request.user.is_authenticated,
-        #             get_channel_layer() is not None)
-        #    if  channel_layers is not None:
-        #        group_name  = f"user_{request.user.pk}"
-        #        try:
-        #            logger.info("Sending force_disconnect to group %s", group_name)
-        #            async_to_sync(channel_layers.group_send)(
-        #                group_name,
-        #                {"type": "force_disconnect", "reason": "logged_out"},
-        #            )
-        #        except Exception as e:
-        #            logger.exception("Failed to send force_disconnect for user %s", request.user.pk)
-        #            #pass # best-effort
 
         if  request.user.is_authenticated:
             request.user.is_online = False

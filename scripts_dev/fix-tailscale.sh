@@ -65,8 +65,13 @@ if [[ -n "${UPTIME:-}" && "$UPTIME" -lt 2 ]]; then
     warn "Reported uptime is ${UPTIME}s — process may be wedged."
 fi
 
-# --- kill everything ---------------------------------------------------------
-info "Sending SIGTERM to any tailscaled processes..."
+# --- stop the service first so runit doesn't respawn -------------------------
+info "Stopping runit service..."
+sv down "$SERVICE" 2>/dev/null || true
+sleep 2
+
+# --- kill anything left over -------------------------------------------------
+info "Sending SIGTERM to any remaining tailscaled processes..."
 pkill -x tailscaled 2>/dev/null || true
 
 # give them a moment to exit cleanly
@@ -95,8 +100,8 @@ if [[ -S "$RUN_DIR/tailscaled.sock" ]]; then
 fi
 
 # --- restart the runit service ----------------------------------------------
-info "Restarting runit service '$SERVICE'..."
-sv restart "$SERVICE" >/dev/null
+info "Starting runit service '$SERVICE'..."
+sv up "$SERVICE" >/dev/null
 sleep 2
 
 # --- verify ------------------------------------------------------------------

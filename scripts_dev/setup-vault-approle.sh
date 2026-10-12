@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-COMPOSE_FILE="../docker-compose-dep.yml"
+COMPOSE_FILE="../docker-compose.yml"
 JSON_KEYS_FILE="../vault/secrets/tokens.json"
 
 # Check if jq is installed
@@ -74,7 +74,7 @@ echo "Add these to your .env file and restart your stack."
 ##!/usr/bin/env bash
 #set -e
 #
-#COMPOSE_FILE="../docker-compose-dep.yml"
+#COMPOSE_FILE="../docker-compose.yml"
 #
 ## 1. Enable AppRole (idempotent)
 #docker compose -f "$COMPOSE_FILE" exec -T vault vault auth enable approle 2>/dev/null || \

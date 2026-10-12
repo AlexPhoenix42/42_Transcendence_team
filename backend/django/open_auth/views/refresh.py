@@ -32,17 +32,15 @@ class TokenRefreshView(APIView):
         # Blacklist the old token (rotation: one-time use)
         old_token.blacklist()
 
-        # Issue a new refresh token for the same user
-        # the token stores a reference to the user
-        #user        = old_token.user    # type: ignore[attr-defined]  # exists at runtime    
-
-        #user_id     = old_token.payload.get("user_id")
-        #user        = User.objects.get(pk=user_id)
-
         user_id     = old_token.payload.get("user_id")
         if  user_id is None:
             return Response({"error": "Invalid token payload"}, status=401)
-        user        = User.objects.get(pk=user_id)
+        try:
+            user        = User.objects.get(pk=user_id)
+        except User.DoesNotExist:
+            resp = Response({"error": "User not found."}, status=401)
+            resp.delete_cookie("refresh_token")
+            return resp
 
         # Check if the user is still active
         if  not user.is_active:
@@ -63,10 +61,6 @@ class TokenRefreshView(APIView):
             httponly=True,
             secure=is_production,
             samesite="Strict",
-            # this is not needed even during testing, it works with 'Strict' as well.
-            # this is only for testing during dev. 
-            # check open_auth/views/refresh.py too
-            #samesite="Lax",     
             max_age=60 * 60 * 24 * 7,
         )
 

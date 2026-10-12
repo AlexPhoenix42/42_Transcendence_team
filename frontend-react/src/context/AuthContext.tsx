@@ -78,6 +78,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             }
 
             setAccessToken(data.access)
+			localStorage.setItem("has_session", "1")
             await fetchMe()
             return { success: true }
         } catch {
@@ -105,6 +106,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             }
 
             setAccessToken(data.access)
+			localStorage.setItem("has_session", "1")
             await fetchMe()
             return { success: true }
         } catch {
@@ -128,6 +130,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             }
 
             setAccessToken(data.access)
+			localStorage.setItem("has_session", "1")
             await fetchMe()
             return { success: true }
         } catch {

@@ -7,7 +7,7 @@ if ! command -v jq &> /dev/null; then
     exit 1
 fi
 
-COMPOSE_FILE="../docker-compose-dep.yml"
+COMPOSE_FILE="../docker-compose.yml"
 MD_KEYS_FILE="../vault/secrets/tokens.md"
 JSON_KEYS_FILE="../vault/secrets/tokens.json"
 DATA_DIR="../vault/data"

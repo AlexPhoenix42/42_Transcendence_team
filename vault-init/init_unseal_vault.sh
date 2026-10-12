@@ -50,6 +50,14 @@ done
 
 echo "✅ Vault is ready."
 
+# If vault is already running and ready, skip everything
+SEAL_CHECK=$(vault status -format=json | jq -r '.sealed')
+INIT_CHECK=$(vault status -format=json | jq -r '.initialized')
+if [ "$INIT_CHECK" = "true" ] && [ "$SEAL_CHECK" = "false" ] && [ -f /vault/approle/credentials.json ]; then
+    echo "✅ Vault already initialized, unsealed, and credentials exist. Nothing to do."
+    exit 0
+fi
+
 INIT_STATUS=$(vault status -format=json | jq -r '.initialized')
 
 if [ "$INIT_STATUS" = "false" ]; then
@@ -98,43 +106,6 @@ if [ "$SEAL_STATUS" = "true" ]; then
 else
     echo "ℹ️ Vault is already unsealed."
 fi
-
-#echo "⏳ Waiting for Vault to become active..."
-#atmpt=0
-#max_atmpts=30
-##max_atmpts=15
-#while [ $atmpt -lt $max_atmpts ]; do
-#    #if vault status -format=json | jq -e '.ha_mode == "active"' > /dev/null 2>&1; then
-#	if	vlt kv list secret/ > /dev/null 2>&1; then
-#        echo "✅ Vault is active."
-#        break
-#    fi
-#    atmpt=$((atmpt+1))
-#    sleep 1
-#done
-#if [ $atmpt -eq $max_atmpts ]; then
-#    echo "❌ Vault is not responding to requests." >&2
-#    exit 1
-#fi
-#if [ $atmpt -eq $max_atmpts ]; then
-#    echo "⚠️  Vault did not become active within timeout. Proceeding anyway."
-#fi
-
-#echo "⏳ Waiting for Vault to become active..."
-#atmpt=0
-#max_atmpts=60
-#while [ $atmpt -lt $max_atmpts ]; do
-#    if vlt kv list secret/ > /dev/null 2>&1; then
-#        echo "✅ Vault is active."
-#        break
-#    fi
-#    atmpt=$((atmpt+1))
-#    sleep 2
-#done
-#if [ $atmpt -eq $max_atmpts ]; then
-#    echo "❌ Vault is not responding to requests." >&2
-#    exit 1
-#fi
 
 ROOT_TOKEN=$(echo "$JSON_OUTPUT" | jq -r '.root_token')
 if [ -z "$ROOT_TOKEN" ]; then

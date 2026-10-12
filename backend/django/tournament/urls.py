@@ -2,12 +2,6 @@
 
 from django.urls        import path
 
-#from .views             import (
-#    TournamentCancelView, TournamentDeleteView, TournamentForfeitView, TournamentListCreateView, TournamentParticipantListView, TournamentJoinView, TournamentLeaveView, TournamentStartView,
-#    MatchResultUpdateView, TournamentDisqualifyView, TournamentMatchListView,
-#    MatchStartView, TournamentDetailView,
-#)
-
 from .views import (
     TournamentAddAIView, TournamentForfeitView, TournamentListCreateView, TournamentDetailView,
     TournamentParticipantListView, TournamentCancelView, TournamentDeleteView,

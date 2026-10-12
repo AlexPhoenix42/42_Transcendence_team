@@ -13,6 +13,7 @@ export function getAccessToken(): string | null {
 
 export function clearAccessToken(): void {
     accessToken = null
+	localStorage.removeItem("has_session")
 }
 
 function isTokenExpiringSoon(): boolean {
@@ -30,20 +31,6 @@ function isTokenExpiringSoon(): boolean {
 interface ApiOptions extends RequestInit {
     headers?: Record<string, string>
 }
-
-//export function mediaUrl(url: string | null | undefined): string | null {
-//    if (!url) return null
-//    try {
-//        const parsed = new URL(url)
-//        return `${window.location.protocol}//${window.location.hostname}:9000${parsed.pathname}`
-//    } catch {
-//        // Already a relative path
-//        if (url.startsWith("/")) {
-//            return `${window.location.protocol}//${window.location.hostname}:9000${url}`
-//        }
-//        return url
-//    }
-//}
 
 export function mediaUrl(url: string | null | undefined): string | null {
     if (!url) return null
@@ -95,6 +82,7 @@ export async function api(url: string, options: ApiOptions = {}): Promise<Respon
 }
 
 export async function refreshAccessToken(): Promise<boolean> {
+	if (!localStorage.getItem("has_session")) return false
     // Prevent multiple simultaneous refresh attempts
     if (refreshPromise) return refreshPromise
 
@@ -109,13 +97,19 @@ export async function refreshAccessToken(): Promise<boolean> {
                 credentials: "include",
             })
 
+			if (resp.status == 401) {
+				clearAccessToken()
+				return false
+			}
             if (!resp.ok) {
-                clearAccessToken()
+                //clearAccessToken()
+				// Transient error (503 rate limit, network), dont logout
                 return false
             }
 
             const data = await resp.json()
             accessToken = data.access
+			localStorage.setItem("has_session", "1")
             return true
         } catch {
             clearAccessToken()

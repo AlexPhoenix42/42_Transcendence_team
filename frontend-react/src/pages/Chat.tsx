@@ -83,7 +83,7 @@ export default function Chat() {
         } catch {}
     }
 
-    // Fetch friends for DM tab
+	// Fetch friends for DM tab
     useEffect(() => {
         async function fetchFriends() {
             try {
@@ -97,6 +97,8 @@ export default function Chat() {
             }
         }
         fetchFriends()
+        const interval = setInterval(fetchFriends, 10000)
+        return () => clearInterval(interval)
     }, [])
 
     // Connect to global room on mount
@@ -182,12 +184,6 @@ export default function Chat() {
         }
     }
 
-	//useEffect(() => {
-    //    fetchUnreadCounts()
-    //    const interval = setInterval(fetchUnreadCounts, 15000)
-    //    return () => clearInterval(interval)
-    //}, [])
-
 	    useEffect(() => {
         fetchUnreadCounts()
         const interval = setInterval(() => {
@@ -195,21 +191,9 @@ export default function Chat() {
             if (currentRoomId && tab === "dm") {
                 fetchReadStatus(currentRoomId)
             }
-        }, 5000)
+        }, 30000)
         return () => clearInterval(interval)
     }, [currentRoomId, tab])
-
-    //async function loadHistory(id: number) {
-    //    try {
-    //        const resp = await api(`/api/chat/rooms/${id}/messages/`)
-    //        if (resp.ok) {
-    //            const data = await resp.json()
-    //            setMessages(data.results)
-    //        }
-    //    } catch {
-    //        // Silent fail — WebSocket will deliver new messages
-    //    }
-    //}
 
 	async function loadHistory(id: number) {
         console.log("loadHistory called with room:", id)
@@ -531,7 +515,6 @@ export default function Chat() {
                                 key={msg.id}
                                 className={`flex flex-col ${msg.sender === user?.username ? "items-end" : "items-start"}`}
                             >
-								{/*<div className={`max-w-xs px-4 py-2 rounded-lg ${msg.sender === user?.username ? "bg-blue-600 text-white" : "bg-gray-700 text-white"}`}>*/}
 								<div className={`max-w-[70%] md:max-w-xs px-3 py-1.5 md:px-4 md:py-2 rounded-lg ${msg.sender === user?.username ? "bg-blue-600 text-white" : "bg-gray-700 text-white"}`}>
                                     {msg.sender !== user?.username && (
                                         <p className="text-xs mb-1">
@@ -645,7 +628,6 @@ export default function Chat() {
                 )}
 
                 {/* Input */}
-				{/*<form onSubmit={handleSend} className="p-4 border-t border-gray-700 flex gap-2">*/}
 				<form onSubmit={handleSend} className="p-2 md:p-4 border-t border-gray-700 flex gap-2">
                     <input
                         type="text"
@@ -668,12 +650,6 @@ export default function Chat() {
                             ⚔️
                         </button>
                     )}
-					{/*<button
-                        type="submit"
-                        className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                    >
-                        {t("common.send")}
-                    </button>*/}
 					<button
                         type="submit"
                         className="px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm shrink-0"

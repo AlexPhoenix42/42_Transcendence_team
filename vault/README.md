@@ -1,5 +1,3 @@
-You're right – that's exactly the right approach. Your project already uses `target: dev` and `target: dep` for other services, and Vault should follow the same pattern. This gives you:
-
 - A **lightweight dev Vault** for fast iteration (no TLS, simple configuration, in‑memory storage, easy to reset).
 - A **production‑ready Vault** with encryption, persistence, HA, and security hardening.
 
@@ -241,15 +239,4 @@ project-root/
 6. **Document production deployment** (TLS certificates, unsealing, HA cluster).
 
 ---
-
-### 7. Questions to Confirm
-
-- **Do you want Vault to be included in `docker-compose.yml` with a `target` like other services?**
-- **Do you want to use AppRole for Django authentication in production?**
-- **Should the Django app fall back to `.env` in dev or always use Vault (if running) in dev?**
-- **Are you ready to start writing the Dockerfile, or do you want to refine the plan first?**
-
----
-
-**Please tell me what to change, approve, or ask for more detail.** I will only address what you specify.
 

@@ -10,7 +10,10 @@ class GoosePlayerSerializer(serializers.ModelSerializer):
 
     class Meta:
         model  = GoosePlayer
-        fields = ["id", "username", "position", "turn_order", "skip_turns", "is_active", "avatar"]
+        fields = [
+            "id", "username", "position", "turn_order", "skip_turns", 
+            "is_active", "wizard_strikes", "avatar"
+        ]
 
     def get_avatar(self, obj) -> str | None:
         request = self.context.get("request")
@@ -30,7 +33,7 @@ class GooseGameSerializer(serializers.ModelSerializer):
         fields = [
             "id", "name", "status", "min_players", "max_players",
             "created_by", "winner", "winner_name", "current_turn",
-            "player_count", "players", "created_at",
+            "player_count", "players", "created_at", "wizard_position",
         ]
 
     def get_player_count(self, obj) -> int:

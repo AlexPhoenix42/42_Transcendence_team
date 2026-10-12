@@ -28,11 +28,17 @@ export default function Games() {
                     <p className="text-gray-400">{t("games.goose.body")}</p>
                 </Link>
 
-                <div className="bg-gray-800 p-8 rounded-lg border border-gray-700 text-center opacity-50">
+				<Link to="/pacman" className="bg-gray-800 p-8 rounded-lg border border-gray-700 hover:border-blue-500 transition text-center">
                     <span className="text-4xl block mb-3">👾</span>
                     <h2 className="text-xl font-semibold text-white mb-2">{t("games.pacman.title")}</h2>
                     <p className="text-gray-400">{t("games.pacman.body")}</p>
-                </div>
+                </Link>
+
+				<a href="/wbo/boards/community" target="_blank" rel="noopener noreferrer" className="md:col-span-2 bg-gray-800 p-8 rounded-lg border border-gray-700 hover:border-purple-500 transition text-center">
+                    <span className="text-4xl block mb-3">🎨</span>
+                    <h2 className="text-xl font-semibold text-white mb-2">{t("games.whiteboard.title")}</h2>
+                    <p className="text-gray-400">{t("games.whiteboard.body")}</p>
+                </a>
             </div>
         </div>
     )

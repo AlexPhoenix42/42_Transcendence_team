@@ -22,3 +22,4 @@ make
 
 Django calls the engine via ctypes (shared library) or subprocess.
 See backend/chess_app/game/ for the Python bridge.
+

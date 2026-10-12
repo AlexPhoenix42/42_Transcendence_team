@@ -2,7 +2,7 @@
 set -e
 
 # ── Config ────────────────────────────────────────────────────────────────
-COMPOSE_FILE="../docker-compose-dep.yml"
+COMPOSE_FILE="../docker-compose.yml"
 JSON_KEYS_FILE="../vault/secrets/tokens.json"
 ENV_FILE="../.env"
 

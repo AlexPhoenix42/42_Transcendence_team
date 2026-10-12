@@ -36,12 +36,9 @@ def send_reset_email(user, plain_token: str, token_type: str):
     """
     Build the reset link for the given token type and send it via email.
     """
-    # Determine the frontend path based on token type
-    #path        = "reset-password" if token_type == "password" else "reset-2fa"
-
     base_url    = settings.FRONTEND_URL
     reset_url   = (
-        f"{base_url}"
+        f"{base_url}/reset"
         f"?token={plain_token}&uid={user.pk}&type={token_type}"
     )
 
@@ -88,8 +85,4 @@ def verify_reset_token(user, token_type: str, submitted_token: str) -> bool:
 
     return False
 # ============================================================================
-
-
-
-
 

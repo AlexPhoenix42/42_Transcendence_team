@@ -8,9 +8,6 @@ from rest_framework.response        import Response
 from rest_framework.request         import Request
 from rest_framework.permissions     import IsAuthenticated
 
-#from typing                         import cast
-#from django.contrib.auth.models     import AbstractUser
-
 from django.core.cache              import cache
 from django.db                      import IntegrityError
 
@@ -48,9 +45,6 @@ class LinkAccountView(APIView):
             return Response({"error": "Authentication required."}, status=401)
 
         user = cast(User, request.user)
-
-        #if  user.email != oauth_data["email"]:
-        #    return Response({"error": "Email mismatch."}, status=403)
 
         # Determine the matching field based on the conflict type
         conflict_type = oauth_data.get("conflict_type", "email")

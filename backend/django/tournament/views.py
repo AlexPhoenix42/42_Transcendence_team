@@ -8,7 +8,7 @@ from rest_framework.request         import Request
 from rest_framework                 import status
 
 from rest_framework                 import generics
-from rest_framework.permissions     import IsAdminUser, IsAuthenticated
+from rest_framework.permissions     import IsAuthenticated
 from users.permissions              import IsModeratorOrAdmin
 from rest_framework.authentication  import SessionAuthentication
 
@@ -49,14 +49,6 @@ else:
     User = get_user_model()
 
 # ==========================================================================
-    #class TournamentListCreateView(generics.ListCreateAPIView):
-    #    queryset            = Tournament.objects.all()
-    #    serializer_class    = TournamentSerializer
-    #    permission_classes  = [IsAdminUser]
-    #
-    #    def perform_create(self, serializer):
-    #        serializer.save(created_by=self.request.user)
-
 class TournamentListCreateView(generics.ListCreateAPIView):
     queryset            = Tournament.objects.all()
     serializer_class    = TournamentSerializer
@@ -259,15 +251,6 @@ class MatchResultUpdateView(APIView):
             match.status    = MatchStatus.FINISHED
             match.save()    # The Match post_save signal will call advance_winner and finish tournament automatically
 
-        #advanced_bracket(match)
-
-        #if  not Match.objects.filter(
-        #        tournament=match.tournament,
-        #        status__in=[MatchStatus.PENDING, MatchStatus.IN_PROGRESS],
-        #    ).exists():
-        #    match.tournament.status = TournamentStatus.FINISHED
-        #    match.tournament.save(update_fields=["status", "updated_at"])
-
         return Response(
             {"status": "Match result recorded", "match_id": match.pk},)
 # ==========================================================================
@@ -298,11 +281,6 @@ class BaseForfeitView(APIView):
             m.status = MatchStatus.FINISHED
             m.save()    # The Match signal will call advance_winner automatically
             updated_ids.append(m.pk)
-
-        # 4. Advance the bracket for each finished match
-            #for match_id in updated_ids:
-            #for match = Match.objects.get(pk=match_id)
-            #for advanced_bracket(match)
 
         # 4. Remove the player from the tournament
         TournamentParticipant.objects.filter(
@@ -351,13 +329,6 @@ class TournamentForfeitView(BaseForfeitView):
                     {"error": "No active matches to forfeit."},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
-
-                #if  not Match.objects.filter(
-                #if      tournament=tournament,
-                #if      status__in=[MatchStatus.PENDING, MatchStatus.IN_PROGRESS]
-                #if  ).exists():
-                #if  tournament.status = TournamentStatus.FINISHED
-                #if  tournament.save(update_fields=["status", "updated_at"])
 
             return Response(
                 {
@@ -421,14 +392,6 @@ class TournamentDisqualifyView(BaseForfeitView):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-                #if  not Match.objects.filter(
-                #if      tournament=tournament,
-                #if      status__in=[MatchStatus.PENDING, MatchStatus.IN_PROGRESS],
-                #if  ).exists():
-                #if  tournament.status = TournamentStatus.FINISHED
-                #if  tournament.save(update_fields=["status", "updated_at"])
-
-
             return Response(
                 {
                     "status"            : "Disqualification Processed",
@@ -477,22 +440,6 @@ class MatchStartView(APIView):
             )
 
             with transaction.atomic():
-                # Lock the match row to prevent race conditions
-                # this causes crash because p1 and p2 are nullable fks and postgres cant lock nullable outer joins
-                #match = generics.get_object_or_404(
-                #    Match.objects.select_for_update()
-                #    .select_related("player1", "player2")
-                #    .filter(tournament=tournament),
-                #    id=match_id,
-                #)
-
-                #match = generics.get_object_or_404(
-                #    Match.objects.select_for_update(of=("self",))
-                #    .select_related("player1", "player2")
-                #    .filter(tournament=tournament),
-                #    id=match_id,
-                #)
-
                 match = generics.get_object_or_404(
                     Match.objects.select_for_update()
                     .filter(tournament=tournament),
@@ -577,8 +524,6 @@ class MatchStartView(APIView):
                 active_games    = cache.get("active_games", set())
                 active_games.add(str(game.pk))
                 cache.set("active_games", active_games, timeout=None)
-                #redis_client    = get_redis_connection("default")
-                #redis_client.sadd("active_games", game.pk)
 
                 serializer      = GameSerializer(game)
 

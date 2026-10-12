@@ -39,14 +39,6 @@ class CoachConsumer(AsyncWebsocketConsumer):
         if  not question:
             question = "Comment on the last move."
 
-        #result = await ask_coach(
-        #    question=question,
-        #    new_fen=data.get("new_fen"),
-        #    old_fen=data.get("old_fen"),
-        #    eval_info=data.get("eval_info"),
-        #)
-        #await self.send(text_data=json.dumps(result))
-
         try:
             async for token in ask_coach_stream(
                 question=question,

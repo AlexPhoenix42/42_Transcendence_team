@@ -54,6 +54,3 @@ DB_USER_FILE="$DB_USER_FILE" \
 DB_PASS_FILE="$DB_PASS_FILE" \
 exec python manage.py check_timeouts "$@"
 
-
-
-

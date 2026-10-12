@@ -125,7 +125,7 @@ Django rejects any Host header with underscores → `trans_backend_django:9000`
 gives `DisallowedHost` / HTTP 400 forever, no matter what's in ALLOWED_HOSTS.
 Fix: give Django a hyphen-only network alias and point Prometheus at that.
 
-In your **main** compose (`docker-compose-dep.yml`), on the Django service:
+In your **main** compose (`docker-compose.yml`), on the Django service:
 ```yaml
   backend_django:
     ...
@@ -135,7 +135,7 @@ In your **main** compose (`docker-compose-dep.yml`), on the Django service:
           - backend-django
 ```
 
-In `.env.dep`, add `backend-django` to ALLOWED_HOSTS — **no leading space**
+In `.env`, add `backend-django` to ALLOWED_HOSTS — **no leading space**
 (a stray space becomes part of the hostname and won't match):
 ```
 ALLOWED_HOSTS=localhost,127.0.0.1,mi-r1-p4,10.3.1.4,10.3.1.4.nip.io,trans_backend_django,backend-django
@@ -161,7 +161,7 @@ docker exec -i trans_db_server psql -U "$(cat /dev/shm/vault-postgres-user)" \
 
 ## Step 5 — env vars
 
-In `.env` (or `.env.dep`):
+In `.env` (or `.env`):
 ```
 GRAFANA_ADMIN_USER=admin
 GRAFANA_ADMIN_PASSWORD=<something strong>
@@ -172,7 +172,7 @@ MONITOR_PASS=<matches the SQL above>
 
 Main stack first (it creates `trans_net`), then the overlay:
 ```bash
-docker compose -f docker-compose-dep.yml -f monitoring/docker-compose.monitoring.yml up -d
+docker compose -f docker-compose.yml -f monitoring/docker-compose.monitoring.yml up -d
 ```
 
 ---

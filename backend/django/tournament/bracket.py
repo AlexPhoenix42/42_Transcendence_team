@@ -32,8 +32,6 @@ def build_bracket(tournament):
         with transaction.atomic():
 
             # Step 5 – Get participants and handle edge case
-            # this causes crush, fix after it.
-            #participants = list(tournament.participants.all())
             participants = [p.player for p in tournament.participants.select_related("player").all()]
             n = len(participants)
             if n < 2:
@@ -179,71 +177,4 @@ def advance_winner(match):
 
         # Step 6 – Save the updated match
         locked_match.save()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# BAD!!!
-#def advanced_bracket(match: Match) -> None:
-#    # 1. Current and next round numbers
-#    curt_round  = match.round_nb
-#    next_round  = curt_round + 1
-#
-#    # 2. All matches in this round, ordered by ID (bracket order)
-#    round_matches   = list(
-#        Match.objects.filter(
-#            tournament=match.tournament,
-#            round_nb=curt_round,
-#        ).order_by("id")
-#    )
-#
-#    # 3. Position of the finished match in the round
-#    #idx   = round_matches.index(match)
-#    idx = next(i for i, m in enumerate(round_matches) if m.pk == match.pk)
-#
-#    # 4. Pair and sibling indices (matches are paired 0-1, 2-3, ...)
-#    pair_idx        = idx // 2
-#    sibling_idx     = pair_idx * 2 + (1 - (idx % 2))
-#
-#    # 5. Decide what to do
-#    if  sibling_idx < len(round_matches):
-#        sibling = round_matches[sibling_idx]
-#        if  sibling.status == MatchStatus.FINISHED:
-#            winner1 = round_matches[pair_idx * 2].winner
-#            winner2 = round_matches[pair_idx * 2 + 1].winner
-#            Match.objects.get_or_create(
-#                tournament=match.tournament,
-#                player1=winner1,
-#                player2=winner2,
-#                round_nb=next_round,
-#                defaults={"status": MatchStatus.PENDING},
-#                #status=MatchStatus.PENDING,
-#            )
-#
-#    # Only create a bye if this is not the final round
-#    elif len(round_matches) > 1:
-#        Match.objects.create(
-#            tournament=match.tournament,
-#            player1=match.winner,
-#            player2=None,
-#            winner=match.winner,
-#            round_nb=next_round,
-#            status=MatchStatus.FINISHED,
-#        )
-
-
 

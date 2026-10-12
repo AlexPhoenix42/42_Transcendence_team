@@ -24,9 +24,9 @@ interface GooseGame {
 }
 
 export default function GooseLobby() {
-    const { t, ts } = useI18n()
     const { user } = useAuth()
     const navigate = useNavigate()
+    const { t, ts, tn } = useI18n()
 
     const [games, setGames] = useState<GooseGame[]>([])
     const [name, setName] = useState("")
@@ -49,21 +49,6 @@ export default function GooseLobby() {
     async function createGame(e: React.FormEvent) {
         e.preventDefault()
         setError("")
-
-		if (!name.trim()) {
-            setError("Game name is required")
-            return
-        }
-        if (name.trim().length > 50) {
-            setError("Game name must be under 50 characters")
-            return
-        }
-        const mp = parseInt(maxPlayers)
-        if (isNaN(mp) || mp < 2 || mp > 8) {
-            setError("Players must be between 2 and 8")
-            return
-        }
-
         try {
             const resp = await api("/api/goose/", {
                 method: "POST",
@@ -94,6 +79,21 @@ export default function GooseLobby() {
                 setError(ts(data.error, "gooseLobby.error.join"))
             }
         } catch {}
+    }
+
+    async function cancelGame(gameId: number) {
+        setError("")
+        try {
+            const resp = await api(`/api/goose/${gameId}/cancel/`, { method: "DELETE" })
+            if (resp.ok) {
+                fetchGames()
+            } else {
+                const data = await resp.json().catch(() => ({}))
+                setError(ts(data.error, "gooseLobby.error.delete"))
+            }
+        } catch {
+            setError(t("common.error.networkShort"))
+        }
     }
 
     return (
@@ -128,7 +128,7 @@ export default function GooseLobby() {
                             className="px-3 py-2 bg-gray-900 text-white border border-gray-700 rounded"
                         >
                             {[2, 3, 4, 5, 6].map((n) => (
-                                <option key={n} value={n}>{n} players</option>
+                                <option key={n} value={n}>{tn("common.players", n)}</option>
                             ))}
                         </select>
                     </div>
@@ -159,7 +159,7 @@ export default function GooseLobby() {
                                 <h3 className="text-white font-semibold">{game.name}</h3>
                                 <div className="flex items-center gap-3 mt-1">
                                     <span className="text-gray-400 text-sm">
-                                        {game.player_count}/{game.max_players} players
+                                        {t("gooseLobby.playerCountFmt", { count: game.player_count, max: game.max_players })}
                                     </span>
                                     <span className={`text-xs px-2 py-0.5 rounded ${
                                         game.status === "WAITING"
@@ -169,18 +169,18 @@ export default function GooseLobby() {
                                         {game.status === "WAITING" ? t("gooseLobby.waiting") : t("gooseLobby.inProgress")}
                                     </span>
                                     <span className="text-gray-500 text-xs">
-                                        by {game.created_by}
+                                        {t("gooseLobby.by", { name: game.created_by })}
                                     </span>
                                 </div>
                                 <div className="flex gap-1 mt-2">
                                     {game.players.map((p) => (
                                         <span key={p.username} className="text-xs bg-gray-700 text-gray-300 px-2 py-0.5 rounded">
-                                            <bdi>{p.username}</bdi>
+                                            {p.username}
                                         </span>
                                     ))}
                                 </div>
                             </div>
-                            <div>
+                            <div className="flex items-center gap-2">
                                 {isInGame ? (
                                     <button
                                         onClick={() => navigate(`/goose/${game.id}`)}
@@ -203,6 +203,15 @@ export default function GooseLobby() {
                                         {t("gooseLobby.watch")}
                                     </button>
                                 ) : null}
+                                {game.created_by === user?.username && (
+                                    <button
+                                        onClick={() => cancelGame(game.id)}
+                                        title={t("gooseLobby.deleteRoom")}
+                                        className="px-3 py-2 bg-red-900/50 text-red-300 border border-red-700 rounded hover:bg-red-900"
+                                    >
+                                        🗑
+                                    </button>
+                                )}
                             </div>
                         </div>
                     )
@@ -211,4 +220,3 @@ export default function GooseLobby() {
         </div>
     )
 }
-
