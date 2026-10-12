@@ -8,7 +8,7 @@ Born2Transcend is a full-stack web application which hosts and serves a chess ga
 
 Besides the awesome entertainment it provides, Born2Transcend aims to seamlessly service a secure website with fluid UX and an intuitive UI. The back-end is split into loosely-coupled micro-services, launched with Docker to increase the scalability of the project, and the security of launching several dependencies. The database in PostgreSQL is managed via an ORM in Django, to handle CRUD, and prevent SQL-injection security risks. The website is served by Nginx through HTTPS, with an SSL certificate with a TLSv1.3 protocol. Security is further enhanced with remote authentication with OAuth 2.0, 2FA, ModSecurity with HashiCorp vault for Secrets. The gaming and UX are enhanced by the remote multiplayer user experience, tournaments, a variety of user-to-user actions (invitations, friending, chatting), and a complete LLM chess coach interface. A minimalist, but intuitive UI is built with React, and uses a dark colour theme with readable font, and a visible links to the license and Terms and Conditions of use.
 
-Born2Transcend is operating under the GNU GPL v3 license. Consult it [here](/docs/LICENSE.md)
+Born2Transcend is operating under the GNU GPL v3 license. Consult it [here](/LICENSE.md)
 
 ---
 
@@ -17,20 +17,47 @@ Born2Transcend is operating under the GNU GPL v3 license. Consult it [here](/doc
 #### Pre-requisites
 * Access to `sudo` rights (otherwise consider launching within a VM)
 * Docker and docker compose (latest version recommended)
-* make, socat, npm, sfw for npm, NodeJs version 20
+* make, virtualbox, socat, npm, sfw for npm, NodeJs version 20 or above
 * Defined environment variables in a `.env` and `.env.secrets.enc` file at the root of the repository
 
-#### Usage
+#### Usage without Virtual Machine
 ```bash
-git clone \<url> Born2Transcend
+git clone <url> Born2Transcend
 cd Born2Transcend
 cp $path/.env   # You can check .env.example
 cp $path/.env.secrets.enc
+cat << EOF > /sys/class/dmi/id/product_name
+> <your_hostname>
+> EOF
 make build #or just call make and choose your option
 ```
-`Go to https://\<server-ip>:4443 and accept certificate.`
 
-#### Other commands
+#### Usage with Virtual Machine
+On the host PC:
+```bash
+vboxmanage list vms # Choose your VM
+VBoxManage setextradata "<vm_name>"
+VBoxInternal/Devices/pcbios/0/Config/DmiSystemProduct "$(hostname)"
+# Check that the data you entered is correct
+VBoxManage getextradata "<vm_name>" enumerate
+```
+
+Within the VM:
+```bash
+# Check that you have correctly set the hostname
+cat /sys/class/dmi/id/product_name
+git clone <url> Born2Transcend
+cd Born2Transcend
+cp $path/.env   # You can check .env.example
+cp $path/.env.secrets.enc
+```
+
+Go to https://<server-ip>:4443 or https://<server_hostname>:4443 and accept certificate.
+
+#### User-Experience
+This web application is compatible with Firefox, Brave, Chrome, Chromium, and Edge, as well as iOS and Android. Some features may be browser specific, such as colours, icons and emojis. Nevertheless, the global user experience remains largely the same throughout OS and browser. This app was largely developed and tested on Firefox and Brave browsers, and later adapted to serve a wider range of browsers.
+
+#### Alternative build methods
 
 | Action | Command |
 |:-------|:--------|
@@ -41,8 +68,6 @@ make build #or just call make and choose your option
 | Remove the whole web application and purge all system files, including stored data | make fclean |
 | Purge system and re-build from scratch | make re |
 | Check status of containers | make ps |
-
-
 
 ---
 
@@ -416,7 +441,7 @@ erDiagram
 
 ## Features List
 
-| Feature | Description |
+| Feature | Description | 
 |:--------|:------------|
 | User interaction | Users are able to friend, and chat with other users. Users can invite friends to tournaments |
 | LLM Chess Coach | Users can talk to an LLM (Stockfish AI) which is specialised in chess. This provides a unique learning experience tailored to each user's needs |
@@ -428,6 +453,28 @@ erDiagram
 | Multiplayer games | The Goose game and the re-imagined multiplayer Pacman are both multiplayer games, which can handle a flexible number of players. Player roles in the Pacman game can be customised. |
 | 3 languages | The web-application supports 3 languages |
 | RTL language support | The web-application supports an RTL language |
+
+---
+
+## Scalable Architecture: Micro-services and Django as an API gateway
+The back-end of this application is structured as separate, independently deployable services, deployed by docker compose:
+
+| Name | Function |
+|:-----|:---------|
+|backend_django | web application + API |
+|chess_engine | C++ move validation (REST API on port 4190)|
+|stockfish_ai | AI oppponent (REST API on port 4191)|
+|timeout_checker | game clock enforcement (separate process) |
+|vault + vault_init | secrets management | 
+|postgres | database |
+|redis | cache + pub/sub (message queue for WebSockets) |
+|frontend_nginx | reverse proxy + WAF + static servicing |
+|whiteboard | collaborative drawing (separate app) |
+|mailpit | email service | 
+|backup | automated backup service |
+|prometheus + grafana | monitoring |
+
+Additionally, Django apps that constitute the chat, chess coach, chess game, goose game, pacman game, and tournaments, are loosely coupled with clear interfaces. Each app has its own models, views, URLs, and consumers. They communicate through Django's ORM and the redis channel layer. The chess coach and chess game apps are genuine micro-services with REST APIs.
 
 ---
 
@@ -479,4 +526,5 @@ Individual contributions are highlighted in the `Modules` section above. Note: a
 We faced a few limitations due to the computer hardware at our school, such as:
 * Log management with ELK lagged due to the 8GB ram
 * Limited space on school computers meant that logs, backups, and monitoring activity had to be limited
+
 
