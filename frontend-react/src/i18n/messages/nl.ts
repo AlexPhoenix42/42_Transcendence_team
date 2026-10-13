@@ -162,9 +162,7 @@ export const nl: MessageTable = {
     "games.goose.title":  "Ganzenbord",
     "games.goose.body":   "Klassiek bordspel — 2-6 spelers",
     "games.pacman.title": "Pacman",
-    "games.pacman.body":  "Multiplayer — doolhof, rollen, spoken",
-    "games.whiteboard.title": "Whiteboard",
-    "games.whiteboard.body":  "Gezamenlijk tekenbord",
+    "games.pacman.body":  "Binnenkort beschikbaar",
 
     // -- Leaderboard ---------------------------------------------------
     "leaderboard.title":      "Ranglijst",
@@ -789,72 +787,4 @@ export const nl: MessageTable = {
     "srv.winnerRequired":           "Een winnaar is vereist.",
     "srv.winnerNotPlayer":          "De winnaar moet een van de spelers zijn.",
     "srv.winnerNotFound":           "Winnaar niet gevonden.",
-
-    // -- Goose lobby -- additions ---------------------------------------
-    "gooseLobby.deleteRoom":     "Kamer verwijderen",
-    "gooseLobby.error.delete":   "Verwijderen van kamer mislukt",
-    "gooseLobby.playerCountFmt": "{count}/{max} spelers",
-    "gooseLobby.by":             "door {name}",
-
-    // -- Goose game -- additions -----------------------------------------
-    "goose.turnOf":               "{name} is aan zet",
-    "goose.rollShort":            "🎲 Dobbelen",
-    "goose.leave":                "Verlaten",
-    "goose.waitingForPlayersCount": "Wachten op {count}/{max} spelers...",
-    "goose.winner":               "Winnaar!",
-    "goose.waitingForTurn":       "Wachten op {name}...",
-
-    // -- Goose game -- Grey Wizard -----------------------------------------
-    "goose.wizard.interrogates":   "🧙 De Grijze Magiër ondervraagt {target}!",
-    "goose.wizard.wins":           "🧙 De Grijze Magiër wint!",
-    "goose.wizard.winsDetail":     "Alle spelers zitten gevangen, niemand kon het spel afmaken.",
-    "goose.wizard.waitingShort":   "🧙 Wachten...",
-    "goose.wizard.waitingFull":    "🧙 Wachten op de magiër...",
-    "goose.wizard.watchingAnswer": "🧙 De Grijze Magiër ondervraagt iemand, wachten op het antwoord...",
-
-    // -- Goose board -- legend --------------------------------------------
-    "goose.legend.goose":  "Gans (dubbel)",
-    "goose.legend.bridge": "Brug (→12)",
-    "goose.legend.inn":    "Herberg (sla 1 over)",
-    "goose.legend.well":   "Put (sla 1 over)",
-    "goose.legend.maze":   "Doolhof (→30)",
-    "goose.legend.prison": "Gevangenis (sla 2 over)",
-    "goose.legend.death":  "Dood (→start)",
-    "goose.legend.finish": "Finish (63)",
-
-    // -- Grey Wizard quiz modal --------------------------------------------
-    "wizard.askingYou":       "🧙 De Grijze Magiër ondervraagt jou!",
-    "wizard.askingOther":     "🧙 De Grijze Magiër ondervraagt {target}!",
-    "wizard.correct":         "👍 Goed antwoord!",
-    "wizard.wrong":           "👎 Fout antwoord...",
-    "wizard.otherCorrect":    "👍 {target} had het juist!",
-    "wizard.otherWrong":      "👎 {target} had het fout...",
-    "wizard.waitingVerdict":  "Wachten op het oordeel van de magiër...",
-    "wizard.waitingAnswer":   "Wachten op het antwoord van {target}...",
-
-    // -- Achievements -- per-badge content ---------------------------------
-    "achievements.first_blood.name":        "Eerste Bloed",
-    "achievements.first_blood.description":  "Win je eerste partij",
-    "achievements.veteran.name":             "Veteraan",
-    "achievements.veteran.description":      "Win 10 partijen",
-    "achievements.warrior.name":             "Krijger",
-    "achievements.warrior.description":      "Win 50 partijen",
-    "achievements.played_10.name":           "Net Begonnen",
-    "achievements.played_10.description":    "Speel 10 partijen",
-    "achievements.played_100.name":          "Toegewijd",
-    "achievements.played_100.description":   "Speel 100 partijen",
-    "achievements.tournament_player.name":        "Deelnemer",
-    "achievements.tournament_player.description":  "Neem deel aan een toernooi",
-    "achievements.tournament_champion.name":       "Kampioen",
-    "achievements.tournament_champion.description": "Win een toernooi",
-    "achievements.rating_1300.name":         "Rijzende Ster",
-    "achievements.rating_1300.description":  "Bereik een rating van 1300",
-    "achievements.rating_1500.name":         "Expert",
-    "achievements.rating_1500.description":  "Bereik een rating van 1500",
-    "achievements.streak_5.name":            "In Vorm",
-    "achievements.streak_5.description":     "Win 5 partijen op rij",
-    "achievements.streak_10.name":           "Niet te Stoppen",
-    "achievements.streak_10.description":    "Win 10 partijen op rij",
-    "achievements.ai_slayer.name":           "AI-Verslaar",
-    "achievements.ai_slayer.description":    "Versla de AI",
 }

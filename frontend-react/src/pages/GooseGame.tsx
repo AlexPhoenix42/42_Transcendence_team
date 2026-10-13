@@ -34,7 +34,7 @@ export default function GooseGame() {
     const { id } = useParams()
     const { user } = useAuth()
     const navigate = useNavigate()
-    const { t, ts, locale } = useI18n()
+    const { t, ts } = useI18n()
 
     const [players, setPlayers] = useState<PlayerData[]>([])
     const [currentTurn, setCurrentTurn] = useState<string | null>(null)
@@ -121,7 +121,7 @@ export default function GooseGame() {
 
         const proto = window.location.protocol === "https:" ? "wss" : "ws"
         const wsHost = window.location.host
-		const ws = new WebSocket(`${proto}://${wsHost}/ws/goose/${id}/?lang=${locale}`)
+		const ws = new WebSocket(`${proto}://${wsHost}/ws/goose/${id}/`)
 
         ws.onmessage = (event) => {
             const data = JSON.parse(event.data)
@@ -173,13 +173,13 @@ export default function GooseGame() {
                 setLogs((prev) => [
                     ...prev,
                     data.wizard_wins
-                        ? t("goose.wizard.wins")
+                        ? "🧙 Tous les joueurs sont en prison — le Magicien Gris gagne !"
                         : `🏆 ${data.winner} wins!`,
                 ])
             }
 
             if (data.type === "wizard_encounter") {
-                setLogs((prev) => [...prev, t("goose.wizard.interrogates", { target: data.target })])
+                setLogs((prev) => [...prev, `🧙 Le Magicien Gris interroge ${data.target} !`])
                 if (data.paused || data.target === user?.username) {
                     setWizardResult(null)
                     setWizardEncounter({
@@ -241,7 +241,7 @@ export default function GooseGame() {
         wsRef.current = ws
 
         return () => { ws.close() }
-    }, [id, applyGameState, locale])
+    }, [id, applyGameState])
 
     // Polling fallback
     useEffect(() => {
@@ -300,17 +300,17 @@ export default function GooseGame() {
             <div className="flex items-center justify-between mb-2 lg:mb-4">
                 <div>
                     <h1 className="text-lg lg:text-2xl font-bold text-white">
-                        {gameInfo?.name || t("goose.title")}
+                        {gameInfo?.name || "Game of the Goose"}
                     </h1>
                     <p className="text-gray-400 text-xs lg:text-sm">
-                        {gameStatus === "WAITING" && t("goose.waitingForPlayers")}
+                        {gameStatus === "WAITING" && "Waiting for players..."}
                         {gameStatus === "IN_PROGRESS" && currentTurn && (
                             <>
                                 {PLAYER_TOKENS[players.find(p => p.username === currentTurn)?.turn_order ?? 0]}{" "}
-                                <span className="font-semibold text-white">{t("goose.turnOf", { name: currentTurn })}</span>
+                                <span className="font-semibold text-white">{currentTurn}</span>'s turn
                             </>
                         )}
-                        {gameStatus === "FINISHED" && wizardWon && t("goose.wizard.wins")}
+                        {gameStatus === "FINISHED" && wizardWon && "🧙 Le Magicien Gris gagne !"}
                         {gameStatus === "FINISHED" && !wizardWon && winner && `🏆 ${winner} wins!`}
                     </p>
                 </div>
@@ -319,7 +319,7 @@ export default function GooseGame() {
                         onClick={() => setShowRules(!showRules)}
                         className="px-3 py-1.5 md:px-4 md:py-2 bg-amber-700 text-white rounded hover:bg-amber-600 text-sm"
                     >
-                        {showRules ? t("goose.hideRules") : t("goose.showRules")}
+                        {showRules ? "Hide Rules" : "How to Play"}
                     </button>
                     {gameStatus === "IN_PROGRESS" && isMyTurn && isPlayer && (
                         <button
@@ -327,7 +327,7 @@ export default function GooseGame() {
                             disabled={rolling || wizardPaused}
                             className="lg:hidden px-3 py-1.5 bg-yellow-600 text-white rounded hover:bg-yellow-700 text-sm font-bold disabled:opacity-50 active:scale-95 transition-transform"
                         >
-                            {wizardPaused ? t("goose.wizard.waitingShort") : rolling ? t("goose.rolling") : t("goose.rollShort")}
+                            {wizardPaused ? "🧙 En attente..." : rolling ? "Rolling..." : "🎲 Roll"}
                         </button>
                     )}
                     {gameStatus === "WAITING" && isPlayer && (
@@ -335,14 +335,14 @@ export default function GooseGame() {
                             onClick={leaveGame}
                             className="px-3 py-1.5 md:px-4 md:py-2 bg-red-900/50 text-red-300 border border-red-700 rounded hover:bg-red-900 text-sm"
                         >
-                            {t("goose.leave")}
+                            Leave
                         </button>
                     )}
                     <button
 						onClick={() => window.history.length > 1 ? navigate(-1) : navigate("/goose")}
                         className="px-3 py-1.5 md:px-4 md:py-2 bg-gray-700 text-white rounded hover:bg-gray-600 text-sm"
                     >
-                        {t("common.back")}
+                        Back
                     </button>
                 </div>
             </div>
@@ -350,18 +350,22 @@ export default function GooseGame() {
             {/* How to Play */}
             {showRules && (
                 <div className="bg-amber-900/30 border border-amber-700/50 rounded-lg p-4 mb-4 text-sm text-gray-300 space-y-2">
-                    <h2 className="text-amber-400 font-bold text-base">{t("goose.rules.title")}</h2>
-                    <p>{t("goose.rules.intro", { from: 0, to: 63 })}</p>
-                    <h3 className="text-amber-400 font-semibold pt-1">{t("goose.rules.specialTitle")}</h3>
+                    <h2 className="text-amber-400 font-bold text-base">🪿 How to Play — Game of the Goose</h2>
+                    <p>
+                        Race from square <strong className="text-white">0</strong> to square <strong className="text-white">63</strong>! On your turn, two dice are rolled automatically.
+                        Move forward by the total. The first player to land <em>exactly</em> on 63 wins.
+                        If you overshoot, you bounce back by the excess.
+                    </p>
+                    <h3 className="text-amber-400 font-semibold pt-1">Special Squares</h3>
                     <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1">
-                        <li>🪿 <strong className="text-white">{t("square.goose")}</strong> (5, 9, 14, 18, 23, 27, 32, 36, 41, 45, 50, 54, 59) — {t("goose.rules.goose")}</li>
-                        <li>🌉 <strong className="text-white">{t("square.bridge")}</strong> (6) — {t("goose.rules.bridge")}</li>
-                        <li>🏨 <strong className="text-white">{t("square.inn")}</strong> (19) — {t("goose.rules.inn")}</li>
-                        <li>🕳️ <strong className="text-white">{t("square.well")}</strong> (31) — {t("goose.rules.well")}</li>
-                        <li>🌀 <strong className="text-white">{t("square.maze")}</strong> (42) — {t("goose.rules.maze")}</li>
-                        <li>⛓️ <strong className="text-white">{t("square.prison")}</strong> (52) — {t("goose.rules.prison")}</li>
-                        <li>💀 <strong className="text-white">{t("square.death")}</strong> (58) — {t("goose.rules.death")}</li>
-                        <li>🏁 <strong className="text-white">{t("square.finish")}</strong> (63) — {t("goose.rules.finish")}</li>
+                        <li>🪿 <strong className="text-white">Goose</strong> (5, 9, 14, 18, 23, 27, 32, 36, 41, 45, 50, 54, 59) — Double your move and roll again!</li>
+                        <li>🌉 <strong className="text-white">Bridge</strong> (6) — Jump ahead to square 12.</li>
+                        <li>🏨 <strong className="text-white">Inn</strong> (19) — Too comfy! Skip your next turn.</li>
+                        <li>🕳️ <strong className="text-white">Well</strong> (31) — Stuck! Skip your next turn.</li>
+                        <li>🌀 <strong className="text-white">Maze</strong> (42) — Lost! Go back to square 30.</li>
+                        <li>⛓️ <strong className="text-white">Prison</strong> (52) — Locked up! Skip your next 2 turns.</li>
+                        <li>💀 <strong className="text-white">Death</strong> (58) — Back to the start!</li>
+                        <li>🏁 <strong className="text-white">Finish</strong> (63) — Land here exactly to win!</li>
                     </ul>
                 </div>
             )}
@@ -388,7 +392,7 @@ export default function GooseGame() {
                 <div className="w-full lg:w-72 space-y-4">
                     {/* Players */}
                     <div className="hidden lg:block bg-gray-800 rounded-lg border border-gray-700 p-4">
-                        <h3 className="text-white font-semibold mb-3 text-sm">{t("goose.players")}</h3>
+                        <h3 className="text-white font-semibold mb-3 text-sm">Players</h3>
                         <div className="space-y-2">
                             {players.map((p) => (
                                 <div
@@ -410,7 +414,7 @@ export default function GooseGame() {
                                     </span>
                                     {!p.is_active && (
                                         <span className="text-xs text-gray-300 bg-gray-600 px-1.5 py-0.5 rounded whitespace-nowrap">
-                                            ⛓️ {t("square.prison")}
+                                            ⛓️ Prison
                                         </span>
                                     )}
                                     <span className="text-xs text-gray-500">sq {p.position}</span>
@@ -431,11 +435,11 @@ export default function GooseGame() {
                                     disabled={!gameInfo || players.length < gameInfo.max_players}
                                     className="w-full py-2 bg-green-600 text-white rounded hover:bg-green-700 font-semibold mb-1 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
-                                    {t("goose.startGame")}
+                                    Start Game
                                 </button>
                                 {gameInfo && players.length < gameInfo.max_players && (
                                     <p className="text-gray-400 text-center text-xs mb-3">
-                                        {t("goose.waitingForPlayersCount", { count: players.length, max: gameInfo.max_players })}
+                                        Waiting for {players.length}/{gameInfo.max_players} players...
                                     </p>
                                 )}
                             </>
@@ -443,7 +447,7 @@ export default function GooseGame() {
 
                         {gameStatus === "WAITING" && gameInfo?.created_by !== user?.username && (
                             <p className="text-gray-400 text-center text-sm">
-                                {t("goose.waitingForHost")}
+                                Waiting for host to start...
                             </p>
                         )}
 
@@ -469,21 +473,21 @@ export default function GooseGame() {
                                         disabled={rolling || wizardPaused}
                                         className="hidden lg:block w-full py-3 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 font-bold text-lg disabled:opacity-50 active:scale-95 transition-transform"
                                     >
-                                        {wizardPaused ? t("goose.wizard.waitingFull") : rolling ? t("goose.rolling") : t("goose.rollDice")}
+                                        {wizardPaused ? "🧙 En attente du magicien..." : rolling ? "Rolling..." : "🎲 Roll Dice"}
                                     </button>
                                 )}
 
                                 {!isMyTurn && isPlayer && (
                                     <p className="text-gray-400 text-center text-sm">
                                         {wizardPaused
-                                            ? t("goose.wizard.watchingAnswer")
-                                            : t("goose.waitingForTurn", { name: `${PLAYER_TOKENS[players.find(p => p.username === currentTurn)?.turn_order ?? 0]} ${currentTurn}` })}
+                                            ? "🧙 Le Magicien Gris interroge quelqu'un, en attente de sa réponse..."
+                                            : `Waiting for ${PLAYER_TOKENS[players.find(p => p.username === currentTurn)?.turn_order ?? 0]} ${currentTurn}...`}
                                     </p>
                                 )}
 
                                 {!isPlayer && (
                                     <p className="text-gray-500 text-center text-sm italic">
-                                        👁 {t("chess.spectating")}
+                                        👁 Spectating
                                     </p>
                                 )}
                             </>
@@ -491,22 +495,22 @@ export default function GooseGame() {
 
                         {gameStatus === "FINISHED" && wizardWon && (
                             <div className="text-center">
-                                <p className="text-purple-400 text-xl font-bold mb-1">{t("goose.wizard.wins")}</p>
+                                <p className="text-purple-400 text-xl font-bold mb-1">🧙 Le Magicien Gris gagne !</p>
                                 <p className="text-gray-300 text-sm">
-                                    {t("goose.wizard.winsDetail")}
+                                    Tous les joueurs sont en prison, personne n'a pu finir la partie.
                                 </p>
                                 <button
                                     onClick={() => navigate("/goose")}
                                     className="mt-3 px-4 py-2 bg-gray-700 text-white rounded hover:bg-gray-600 text-sm"
                                 >
-                                    {t("goose.backToLobby")}
+                                    Back to Lobby
                                 </button>
                             </div>
                         )}
 
                         {gameStatus === "FINISHED" && !wizardWon && winner && (
                             <div className="text-center">
-                                <p className="text-yellow-400 text-xl font-bold mb-1">🏆 {t("goose.winner")}</p>
+                                <p className="text-yellow-400 text-xl font-bold mb-1">🏆 Winner!</p>
                                 <p className="text-white text-lg">
                                     {PLAYER_TOKENS[players.find(p => p.username === winner)?.turn_order ?? 0]} {winner}
                                 </p>
@@ -514,7 +518,7 @@ export default function GooseGame() {
                                     onClick={() => navigate("/goose")}
                                     className="mt-3 px-4 py-2 bg-gray-700 text-white rounded hover:bg-gray-600 text-sm"
                                 >
-                                    {t("goose.backToLobby")}
+                                    Back to Lobby
                                 </button>
                             </div>
                         )}
@@ -522,10 +526,10 @@ export default function GooseGame() {
 
                     {/* Game Log */}
                     <div className="hidden lg:block bg-gray-800 rounded-lg border border-gray-700 p-4">
-                        <h3 className="text-white font-semibold mb-2 text-sm">{t("goose.gameLog")}</h3>
+                        <h3 className="text-white font-semibold mb-2 text-sm">Game Log</h3>
                         <div className="h-40 lg:h-48 overflow-y-auto space-y-1">
                             {logs.length === 0 && (
-                                <p className="text-gray-500 text-xs">{t("goose.noMoves")}</p>
+                                <p className="text-gray-500 text-xs">No moves yet</p>
                             )}
                             {logs.map((log, i) => (
                                 <p key={i} className="text-xs text-gray-400">{log}</p>
@@ -536,16 +540,16 @@ export default function GooseGame() {
 
                     {/* Legend */}
                     <div className="hidden lg:block bg-gray-800 rounded-lg border border-gray-700 p-4">
-                        <h3 className="text-white font-semibold mb-2 text-sm">{t("goose.legend")}</h3>
+                        <h3 className="text-white font-semibold mb-2 text-sm">Legend</h3>
                         <div className="grid grid-cols-2 gap-1 text-xs text-gray-400">
-                            <span>🪿 {t("goose.legend.goose")}</span>
-                            <span>🌉 {t("goose.legend.bridge")}</span>
-                            <span>🏨 {t("goose.legend.inn")}</span>
-                            <span>🕳️ {t("goose.legend.well")}</span>
-                            <span>🌀 {t("goose.legend.maze")}</span>
-                            <span>⛓️ {t("goose.legend.prison")}</span>
-                            <span>💀 {t("goose.legend.death")}</span>
-                            <span>🏁 {t("goose.legend.finish")}</span>
+                            <span>🪿 Goose (double)</span>
+                            <span>🌉 Bridge (→12)</span>
+                            <span>🏨 Inn (skip 1)</span>
+                            <span>🕳️ Well (skip 1)</span>
+                            <span>🌀 Maze (→30)</span>
+                            <span>⛓️ Prison (skip 2)</span>
+                            <span>💀 Death (→start)</span>
+                            <span>🏁 Finish (63)</span>
                         </div>
                     </div>
                 </div>

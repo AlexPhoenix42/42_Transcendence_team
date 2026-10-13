@@ -4,7 +4,6 @@ import json
 import random
 import logging
 import asyncio
-from urllib.parse import parse_qs
 
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
@@ -85,20 +84,12 @@ def _serialize_players(players):
 # needs to trigger encounters on its own schedule, independent of any single
 # WebSocket connection's lifetime — mirrors pacman_game's _sync_loop pattern.
 
-# Matches frontend-react/src/i18n/config.ts LOCALES.
-SUPPORTED_LOCALES = {"en", "nl", "ar", "he", "tlh"}
-
-
 def _wizard_cache_key(game_id, username):
     return f"goose:{game_id}:pending_question:{username}"
 
 
 def _wizard_asked_key(game_id):
     return f"goose:{game_id}:asked_questions"
-
-
-def _wizard_locale_key(game_id, username):
-    return f"goose:{game_id}:locale:{username}"
 
 
 def _get_asked_questions_sync(game_id):
@@ -122,8 +113,7 @@ def _adjust_wizard_pending(game_id, delta):
 
 async def _start_wizard_encounter(channel_layer, game_group, game_id, username, is_active):
     asked = await sync_to_async(_get_asked_questions_sync)(game_id)
-    locale = await sync_to_async(cache.get)(_wizard_locale_key(game_id, username), "en")
-    question = await generate_question(asked, locale)
+    question = await generate_question(asked)
     question["paused"] = is_active
 
     key = _wizard_cache_key(game_id, username)
@@ -173,20 +163,20 @@ async def _resolve_wizard_answer(channel_layer, game_group, game_id, username, p
         await _adjust_wizard_pending(game_id, -1)
 
     if outcome["wizard_wins"]:
-        message = f"☠️ The wizard eliminated {username} — nobody is active anymore, the Grey Wizard wins!"
+        message = f"☠️ Le magicien a éliminé {username} — plus personne n'est actif, le Magicien Gris gagne !"
     elif outcome["eliminated"]:
-        message = f"☠️ The wizard eliminated {username}!"
+        message = f"☠️ Le magicien a éliminé {username} !"
     elif outcome["revived"]:
-        message = f"✨ {username} answered correctly {WIZARD_REVIVE_STREAK} times in a row and returns to the game!"
+        message = f"✨ {username} a répondu juste {WIZARD_REVIVE_STREAK} fois et revient dans la partie !"
     elif correct and not outcome["was_active"]:
         message = (
-            f"✅ {username} answered the wizard correctly "
-            f"({outcome['revive_progress']}/{WIZARD_REVIVE_STREAK} to return)."
+            f"✅ {username} a bien répondu au magicien "
+            f"({outcome['revive_progress']}/{WIZARD_REVIVE_STREAK} pour revenir)."
         )
     elif correct:
-        message = f"✅ {username} answered the wizard correctly."
+        message = f"✅ {username} a bien répondu au magicien."
     else:
-        message = f"❌ {username} got it wrong against the wizard."
+        message = f"❌ {username} s'est trompé face au magicien."
 
     await channel_layer.group_send(
         game_group,
@@ -344,14 +334,6 @@ class GooseGameConsumer(AsyncWebsocketConsumer):
         if not self.user or not self.user.is_authenticated:
             await self.close(code=4001)
             return
-
-        query = parse_qs(self.scope.get("query_string", b"").decode())
-        locale = (query.get("lang") or ["en"])[0]
-        if locale not in SUPPORTED_LOCALES:
-            locale = "en"
-        await sync_to_async(cache.set)(
-            _wizard_locale_key(self.game_id, self.user.username), locale, timeout=86400,
-        )
 
         await self.channel_layer.group_add(self.game_group, self.channel_name)
         await self.accept()

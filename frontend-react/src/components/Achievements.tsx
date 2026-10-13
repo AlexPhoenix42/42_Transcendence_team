@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react"
 import { api } from "../api/client.ts"
 import { useT } from "../i18n/I18nProvider.tsx"
-import { en, type MessageKey } from "../i18n/messages/index.ts"
 
 interface Achievement {
     id: string
@@ -23,14 +22,6 @@ interface AchievementsData {
 
 interface Props {
     username?: string
-}
-
-// Prefers a translated "achievements.<id>.<field>" key when one is defined
-// in en.ts; falls back to the raw text the API sent for any achievement id
-// this table doesn't know about yet.
-function translatedField(t: ReturnType<typeof useT>, id: string, field: "name" | "description", raw: string): string {
-    const key = `achievements.${id}.${field}` as MessageKey
-    return key in en ? t(key) : raw
 }
 
 export default function Achievements({ username }: Props) {
@@ -56,6 +47,7 @@ export default function Achievements({ username }: Props) {
         <div className="bg-gray-800 rounded-lg border border-gray-700 p-5">
             <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-semibold text-white">{t("achievements.title")}</h2>
+                //<h2 className="text-lg font-semibold text-white">Chess Achievements</h2>
                 <span className="text-sm text-gray-400">
                     {data.unlocked_count} / {data.total_count}
                 </span>
@@ -73,9 +65,9 @@ export default function Achievements({ username }: Props) {
                     >
                         <div className="text-2xl mb-1">{a.icon}</div>
                         <p className={`text-sm font-semibold ${a.unlocked ? "text-yellow-300" : "text-gray-500"}`}>
-                            {translatedField(t, a.id, "name", a.name)}
+                            {a.name}
                         </p>
-                        <p className="text-xs text-gray-400 mt-0.5">{translatedField(t, a.id, "description", a.description)}</p>
+                        <p className="text-xs text-gray-400 mt-0.5">{a.description}</p>
                         {a.target && !a.unlocked && (
                             <div className="mt-2">
                                 <div className="h-1 bg-gray-700 rounded-full overflow-hidden">

@@ -167,9 +167,7 @@ export const en = {
     "games.goose.title":  "Game of the Goose",
     "games.goose.body":   "Classic board game — 2-6 players",
     "games.pacman.title": "Pacman",
-    "games.pacman.body":  "Multiplayer — maze, roles, ghosts",
-    "games.whiteboard.title": "Whiteboard",
-    "games.whiteboard.body":  "Collaborative drawing board",
+    "games.pacman.body":  "Coming soon",
 
     // -- Leaderboard ---------------------------------------------------
     "leaderboard.title":      "Leaderboard",
@@ -801,74 +799,6 @@ export const en = {
     "srv.winnerRequired":           "A winner is required.",
     "srv.winnerNotPlayer":          "The winner must be one of the match players.",
     "srv.winnerNotFound":           "Winner not found.",
-
-    // -- Goose lobby -- additions ---------------------------------------
-    "gooseLobby.deleteRoom":     "Delete room",
-    "gooseLobby.error.delete":   "Failed to delete room",
-    "gooseLobby.playerCountFmt": "{count}/{max} players",
-    "gooseLobby.by":             "by {name}",
-
-    // -- Goose game -- additions -----------------------------------------
-    "goose.turnOf":               "{name}'s turn",
-    "goose.rollShort":            "🎲 Roll",
-    "goose.leave":                "Leave",
-    "goose.waitingForPlayersCount": "Waiting for {count}/{max} players...",
-    "goose.winner":               "Winner!",
-    "goose.waitingForTurn":       "Waiting for {name}...",
-
-    // -- Goose game -- Grey Wizard -----------------------------------------
-    "goose.wizard.interrogates":   "🧙 The Grey Wizard is interrogating {target}!",
-    "goose.wizard.wins":           "🧙 The Grey Wizard wins!",
-    "goose.wizard.winsDetail":     "All players are in prison, nobody could finish the game.",
-    "goose.wizard.waitingShort":   "🧙 Waiting...",
-    "goose.wizard.waitingFull":    "🧙 Waiting for the wizard...",
-    "goose.wizard.watchingAnswer": "🧙 The Grey Wizard is interrogating someone, waiting for their answer...",
-
-    // -- Goose board -- legend --------------------------------------------
-    "goose.legend.goose":  "Goose (double)",
-    "goose.legend.bridge": "Bridge (→12)",
-    "goose.legend.inn":    "Inn (skip 1)",
-    "goose.legend.well":   "Well (skip 1)",
-    "goose.legend.maze":   "Maze (→30)",
-    "goose.legend.prison": "Prison (skip 2)",
-    "goose.legend.death":  "Death (→start)",
-    "goose.legend.finish": "Finish (63)",
-
-    // -- Grey Wizard quiz modal --------------------------------------------
-    "wizard.askingYou":       "🧙 The Grey Wizard is quizzing you!",
-    "wizard.askingOther":     "🧙 The Grey Wizard is quizzing {target}!",
-    "wizard.correct":         "👍 Correct answer!",
-    "wizard.wrong":           "👎 Wrong answer...",
-    "wizard.otherCorrect":    "👍 {target} got it right!",
-    "wizard.otherWrong":      "👎 {target} got it wrong...",
-    "wizard.waitingVerdict":  "Waiting for the wizard's verdict...",
-    "wizard.waitingAnswer":   "Waiting for {target}'s answer...",
-
-    // -- Achievements -- per-badge content ---------------------------------
-    "achievements.first_blood.name":        "First Blood",
-    "achievements.first_blood.description":  "Win your first game",
-    "achievements.veteran.name":             "Veteran",
-    "achievements.veteran.description":      "Win 10 games",
-    "achievements.warrior.name":             "Warrior",
-    "achievements.warrior.description":      "Win 50 games",
-    "achievements.played_10.name":           "Getting Started",
-    "achievements.played_10.description":    "Play 10 games",
-    "achievements.played_100.name":          "Dedicated",
-    "achievements.played_100.description":   "Play 100 games",
-    "achievements.tournament_player.name":        "Contender",
-    "achievements.tournament_player.description":  "Join a tournament",
-    "achievements.tournament_champion.name":       "Champion",
-    "achievements.tournament_champion.description": "Win a tournament",
-    "achievements.rating_1300.name":         "Rising Star",
-    "achievements.rating_1300.description":  "Reach 1300 rating",
-    "achievements.rating_1500.name":         "Expert",
-    "achievements.rating_1500.description":  "Reach 1500 rating",
-    "achievements.streak_5.name":            "On Fire",
-    "achievements.streak_5.description":     "Win 5 games in a row",
-    "achievements.streak_10.name":           "Unstoppable",
-    "achievements.streak_10.description":    "Win 10 games in a row",
-    "achievements.ai_slayer.name":           "AI Slayer",
-    "achievements.ai_slayer.description":    "Beat the AI",
 } as const
 
 // Every valid key in the app. Deriving this from the object rather than

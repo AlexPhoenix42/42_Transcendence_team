@@ -30,14 +30,14 @@ export default function Games() {
 
 				<Link to="/pacman" className="bg-gray-800 p-8 rounded-lg border border-gray-700 hover:border-blue-500 transition text-center">
                     <span className="text-4xl block mb-3">👾</span>
-                    <h2 className="text-xl font-semibold text-white mb-2">{t("games.pacman.title")}</h2>
-                    <p className="text-gray-400">{t("games.pacman.body")}</p>
+                    <h2 className="text-xl font-semibold text-white mb-2">Pacman</h2>
+                    <p className="text-gray-400">Multiplayer — maze, roles, ghosts</p>
                 </Link>
 
 				<a href="/wbo/boards/community" target="_blank" rel="noopener noreferrer" className="md:col-span-2 bg-gray-800 p-8 rounded-lg border border-gray-700 hover:border-purple-500 transition text-center">
                     <span className="text-4xl block mb-3">🎨</span>
-                    <h2 className="text-xl font-semibold text-white mb-2">{t("games.whiteboard.title")}</h2>
-                    <p className="text-gray-400">{t("games.whiteboard.body")}</p>
+                    <h2 className="text-xl font-semibold text-white mb-2">Whiteboard</h2>
+                    <p className="text-gray-400">Collaborative drawing board</p>
                 </a>
             </div>
         </div>

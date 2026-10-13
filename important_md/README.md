@@ -4,9 +4,9 @@
 
 ## Description
 
-Born2Transcend is a full-stack web application which hosts and serves a chess game and a multiplayer Pacman game. The chess game allows you to learn chess in practice mode against and AI, chat to a dedicated AI chess coach, play against your friends remotely and play in tournaments. The Pacman multiplayer game is a fresh take on the traditional Pacman game, where you can play with multiple friends remotely, and fight some powerful ghosts!
+Born2Transcend is a full-stack web application which hosts and serves a chess game, a multiplayer Pacman game, Goose game, global and private chat. The chess game allows you to learn chess in practice mode against an AI, chat to a dedicated AI chess coach, play against your friends remotely and play in tournaments. The Pacman multiplayer game is a fresh take on the traditional Pacman game, where you can play with multiple friends remotely, and fight some powerful ghosts! The old classic Goose game with a fun twist. Adding a Wizard chasing players around and asking them questions once a player is caught. If the player fails to answer three question in a row they might end-up in prison for a few rounds.
 
-Besides the awesome entertainment it provides, Born2Transcend aims to seamlessly service a secure website with fluid UX and an intuitive UI. The back-end is split into loosely-coupled micro-services, launched with Docker to increase the scalability of the project, and the security of launching several dependencies. The database in PostgreSQL is managed via an ORM in Django, to handle CRUD, and prevent SQL-injection security risks. The website is served by Nginx through HTTPS, with an SSL certificate with a TLSv1.3 protocol. Security is further enhanced with remote authentication with OAuth 2.0, 2FA, ModSecurity with HashiCorp vault for Secrets. The gaming and UX are enhanced by the remote multiplayer user experience, tournaments, a variety of user-to-user actions (invitations, friending, chatting), and a complete LLM chess coach interface. A minimalist, but intuitive UI is built with React, and uses a dark colour theme with readable font, and a visible links to the license and Terms and Conditions of use.
+Besides the awesome entertainment it provides, Born2Transcend aims to seamlessly service a secure website with fluid UX and an intuitive UI. The back-end is split into loosely-coupled micro-services, launched with Docker to increase the scalability of the project, and the security of launching several dependencies. The database in PostgreSQL is managed via an ORM in Django, to handle CRUD, and prevent SQL-injection security risks. The website is served by Nginx through HTTPS and WAF/ModSecurity, with an SSL certificate and TLSv1.3 protocol. Security is further enhanced with remote authentication with OAuth 2.0, 2FA, ModSecurity with HashiCorp vault for Secrets. The gaming and UX are enhanced by the remote multiplayer user experience, tournaments, a variety of user-to-user actions (invitations, friending, chatting), and a complete LLM chess coach interface. A minimalist, but intuitive UI is built with React, and uses a dark colour theme with readable font, can be accessed both on computers and mobiles, with a visible links to the license and Terms and Conditions of use.
 
 Born2Transcend is operating under the GNU GPL v3 license. Consult it [here](/docs/LICENSE.md)
 
@@ -17,20 +17,47 @@ Born2Transcend is operating under the GNU GPL v3 license. Consult it [here](/doc
 #### Pre-requisites
 * Access to `sudo` rights (otherwise consider launching within a VM)
 * Docker and docker compose (latest version recommended)
-* make, socat, npm, sfw for npm, NodeJs version 20
+* make, virtualbox, socat, npm, sfw for npm, NodeJs version 20 or above
 * Defined environment variables in a `.env` and `.env.secrets.enc` file at the root of the repository
 
-#### Usage
+#### Usage without Virtual Machine
 ```bash
-git clone \<url> Born2Transcend
+git clone <url> Born2Transcend
 cd Born2Transcend
 cp $path/.env   # You can check .env.example
 cp $path/.env.secrets.enc
+cat << EOF > /sys/class/dmi/id/product_name
+> <your_hostname>
+> EOF
 make build #or just call make and choose your option
 ```
-`Go to https://\<server-ip>:4443 and accept certificate.`
 
-#### Other commands
+#### Usage with Virtual Machine
+On the host PC:
+```bash
+vboxmanage list vms # Choose your VM
+VBoxManage setextradata "<vm_name>"
+VBoxInternal/Devices/pcbios/0/Config/DmiSystemProduct "$(hostname)"
+# Check that the data you entered is correct
+VBoxManage getextradata "<vm_name>" enumerate
+```
+
+Within the VM:
+```bash
+# Check that you have correctly set the hostname
+cat /sys/class/dmi/id/product_name
+git clone <url> Born2Transcend
+cd Born2Transcend
+cp $path/.env   # You can check .env.example
+cp $path/.env.secrets.enc
+```
+
+Go to https://<server-ip>:4443 or https://<server_hostname>:4443 and accept certificate.
+
+#### User-Experience
+This web application is compatible with Firefox, Brave, Chrome, Chromium, and Edge, as well as iOS and Android. Some features may be browser specific, such as colours, icons and emojis. Nevertheless, the global user experience remains largely the same throughout OS and browser. This app was largely developed and tested on Firefox and Brave browsers, and later adapted to serve a wider range of browsers.
+
+#### Alternative build methods
 
 | Action | Command |
 |:-------|:--------|
@@ -41,8 +68,6 @@ make build #or just call make and choose your option
 | Remove the whole web application and purge all system files, including stored data | make fclean |
 | Purge system and re-build from scratch | make re |
 | Check status of containers | make ps |
-
-
 
 ---
 
@@ -80,9 +105,9 @@ AI was used as an assistant in building this project. AI was used in the scope o
 
 |Role                        | Name    | ID       | Domain                     |
 |:---------------------------|:--------|:---------|:---------------------------|
-|Product Owner + Developer   | Alex    | alephoen | Django Backend, PostgreSQL, WebSockets, Docker, Nginx, Grafana and Prometheus, User interaction |
+|Product Owner + Developer   | Alex    | alephoen | Django Backend, PostgreSQL, WebSockets, Docker, Nginx, Grafana and Prometheus, User interaction, React Frontend, Tailwind CSS|
 |Project Manager + Developer | Matilda | mtice    | Tailwind CSS, React Frontend, GDPR-compliance, Documentation |
-|Tech Lead + Developer       | Bram    | bvan-duy | ELK for logs, 3-language Translation, RTL language support, Project-wide testing, and bug reporting|
+|Tech Lead + Developer       | Bram    | bvan-duy | 6-language Translation, RTL language support, ELK for logs, React Frontend, Tailwind CSS, Project-wide testing, and bug reporting|
 |Developer + DevOps          | Ismail  | isadbaib | Multiplayer-games, Django Backend, React Frontend, TailwindCSS |
 
 #### Definition of Team Roles
@@ -110,12 +135,14 @@ AI was used as an assistant in building this project. AI was used in the scope o
 #### Project Management
 Effective project management was achieved in three ways: 
 1. **Regular in-person meetings**  
-	1.1 Discussions, debugging sessions and testing sessions
+	1.1. Discussions, debugging sessions and testing sessions
 2. **Constant communication in Slack**  
 	2.1. Regular team updates, Q&As and peer reviews of drafts  
 	2.2. Communication was facilitated via Slack or in-person on campus
-3. **GitHub pull requests**  
-	3.1 GitHub pull requests and separate branches allowed for effective monitoring of the workflow, recording new features, and facilitated damage control in the event of an issue in development
+3. **GitHub issues**
+    1.1. For bug reporting and technical discussions between team members.
+4. **GitHub pull requests**  
+	3.1. GitHub pull requests and separate branches allowed for effective monitoring of the workflow, recording new features, and facilitated damage control in the event of an issue in development
 
 
 ---
@@ -416,7 +443,7 @@ erDiagram
 
 ## Features List
 
-| Feature | Description |
+| Feature | Description | 
 |:--------|:------------|
 | User interaction | Users are able to friend, and chat with other users. Users can invite friends to tournaments |
 | LLM Chess Coach | Users can talk to an LLM (Stockfish AI) which is specialised in chess. This provides a unique learning experience tailored to each user's needs |
@@ -426,8 +453,30 @@ erDiagram
 | Player stats | Players can have their stats displayed |
 | User roles | Users may have different roles, such as "Moderator" or "Admin" to monitor and manage other users |
 | Multiplayer games | The Goose game and the re-imagined multiplayer Pacman are both multiplayer games, which can handle a flexible number of players. Player roles in the Pacman game can be customised. |
-| 3 languages | The web-application supports 3 languages |
+| 6 languages | The web-application supports 6 languages |
 | RTL language support | The web-application supports an RTL language |
+
+---
+
+## Scalable Architecture: Micro-services and Django as an API gateway
+The back-end of this application is structured as separate, independently deployable services, deployed by docker compose:
+
+| Name | Function |
+|:-----|:---------|
+|backend_django | web application + API |
+|chess_engine | C++ move validation (REST API on port 4190)|
+|stockfish_ai | AI oppponent (REST API on port 4191)|
+|timeout_checker | game clock enforcement (separate process) |
+|vault + vault_init | secrets management | 
+|postgres | database |
+|redis | cache + pub/sub (message queue for WebSockets) |
+|frontend_nginx | reverse proxy + WAF + static servicing |
+|whiteboard | collaborative drawing (separate app) |
+|mailpit | email service | 
+|backup | automated backup service |
+|prometheus + grafana | monitoring |
+
+Additionally, Django apps that constitute the chat, chess coach, chess game, goose game, pacman game, and tournaments, are loosely coupled with clear interfaces. Each app has its own models, views, URLs, and consumers. They communicate through Django's ORM and the redis channel layer. The chess coach and chess game apps are genuine micro-services with REST APIs.
 
 ---
 
@@ -439,7 +488,7 @@ erDiagram
 | ✅ | User interaction | Major | 2 | Web | Users can interact with others via direct-messaging chat, a global chat, friend requests, and match invites. Users have public profiles which can be viewed by other users | alephoen |
 | ✅ | A public API to interact with the database | Major | 2 | Web | A public API which interacts with the database via a secured API key. With at least five endpoints. | alephoen |
 | ✅ | Use a ORM for the database | Minor | 1 | Web | Used the built-in Django ORM with a databse adapter to allow Django to speak natively with PostgreSQL | alephoen |
-| ✅ | Support for 3 languages | Minor | 1 | Web | Translation for English, Dutch, Arabic, Hebrew, Klingon | bvan-duy |
+| ✅ | Support for 6 languages | Minor | 1 | Web | Translation for English, Dutch, French, Arabic, Hebrew, Klingon | bvan-duy |
 | ✅ | Right to left (RTL) language support | Minor | 1 | Web | The front-end can handle a RTL language | bvan-duy |
 | ✅ | Support for additional browsers | Minor | 1 | Web | Supported by Google Chrome, Firefox, Brave | alephoen |
 | ✅ | Real-time collaborative features (shared workspaces, live editing, collaborative drawing, etc.) | Minor | 1 | Web | A whiteboard app which allows for real-time drawing | alephoen |
@@ -452,9 +501,10 @@ erDiagram
 | ✅ | Implement WAF/ModSecurity + HashiCorp Vault for secrets | Major | 2 | Cybersecurity | ModSecurity is implemented with HashiCoorp Vault for the encyrption of secrets | alephoen |
 | ✅ | Implement a complete web-base game where users can play against each other | Major | 2 | Gaming and UX | Chess is a 1v1 game which allows users to compete against each other. It is also possible to compete against a AI | alephoen |
 | ✅ | Enable remote players to play real-time | Major | 2 | Gaming and UX | Remote players can play on different devices on the same network | isadbaib |
-| ✅ | Multiplayer game (more than two players) | Major | 2 | Gaming and UX | The re-imagined Pacman multiplayer game and the good game allow for a variable amount of players to play. | isadbaib |
-| ✅ | Implement a tournament system | Major | 2 | Gaming and UX | Players can play chess in tournaments that are started by any user. If there are not enough users, AI may join the tournament | alephoen |
-| ✅ | Infrastructure for log managment using ELK (Elasticsearch, Logstash, Kibana) | Major | 2 | Devops | Logging service | bvan-duy |
+| ✅ | Multiplayer game (more than two players) | Major | 2 | Gaming and UX | The re-imagined Pacman multiplayer game and the Goose game allow for a variable amount of players to play. | isadbaib |
+| ✅ | Implement a tournament system | Minor / Major | 1 | Gaming and UX | Players can play chess in tournaments that are started by any user. If there are not enough users, AI may join the tournament. It's a Minor but the implementation deserves a Major | alephoen |
+| ✅ | Implement GDPR compliance features | Minor | 1 | Data and Analytics | Players can request to download their data in readable json format and delete their data with email confirmation | alephoen |
+| ✅ | Infrastructure for log managment using ELK (Elasticsearch, Logstash, Kibana) | Major | removed | Devops | Logging service (removed due school computers limitations) | bvan-duy |
 | ✅ | Monitoring system with Prometheus and Grafana | Major | 2 | Devops | Monitoring with Prometheus and Grafana | alephoen |
 | ✅ | Backend as microservices | Major | 2 | Devops | The back-end is constructed as a group of loosely-coupled micro-services with Docker | alephoen |
 
@@ -468,9 +518,9 @@ Individual contributions are highlighted in the `Modules` section above. Note: a
 
 |Name | Contributions |
 |:----|:--------------|
-|alephoen | Chess game, chess tournaments, chess coach, whiteboard service. Managing the backend as microservices with Docker, setting up the Django backend framework, and the ORM with the PostgresSQL database. Security features such as OAuth and 2FA. |
-|isadbaib | Pacman multiplayer game, goose game, front-end interactions, support for multiple browers, and for mobile. |
-|bvan-duy | Front-end, RTL support, translations. Project-wide testing, reviewing, and bug reports |
+|alephoen | Chess game, chess tournaments, chess coach, whiteboard service. Managing the backend as microservices with Docker, setting up the Django backend framework, and the ORM with the PostgresSQL database. Security features such as OAuth and 2FA. Front-end React and TailwindCSS. |
+|isadbaib | Pacman multiplayer game, goose game, Front-end React and TailwindCSS interactions, support for multiple browers, and for mobile. |
+|bvan-duy | Front-end React and TailwindCSS, RTL support, translations. Project-wide testing, reviewing, and bug reports |
 | mtice   | Front-end React and TailwindCSS, documentation, GDPR regulations. Communication and team management |
 
 
@@ -479,4 +529,5 @@ Individual contributions are highlighted in the `Modules` section above. Note: a
 We faced a few limitations due to the computer hardware at our school, such as:
 * Log management with ELK lagged due to the 8GB ram
 * Limited space on school computers meant that logs, backups, and monitoring activity had to be limited
+
 
