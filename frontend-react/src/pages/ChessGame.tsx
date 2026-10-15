@@ -24,6 +24,8 @@ interface GameInfo {
     status: string
     timer: string | null
 	board_state?: string
+    winner?: string
+    result_reason?: string
 }
 
 export default function ChessGame() {
@@ -78,6 +80,8 @@ export default function ChessGame() {
     const myColorRef = useRef<"white" | "black">("white")
     const isSpectatorRef = useRef(false)
     const pendingMessages = useRef<string[]>([])
+	const gameOverRef = useRef(false)
+    const [reconnectCount, setReconnectCount] = useState(0)
 
     // Fetch game info
     useEffect(() => {
@@ -95,8 +99,13 @@ export default function ChessGame() {
                         try { chessRef.current.load(game.board_state) } catch {}
                     }
 
-                    if (game.status === "FINISHED") {
+					if (game.status === "FINISHED") {
                         setGameOver(true)
+                        gameOverRef.current = true
+                        setGameOverInfo({
+                            winner: game.winner || "Unknown",
+                            reason: game.result_reason || "UNKNOWN",
+                        })
                     }
 
                     const isPlayer1 = game.player1 === user?.username
@@ -233,6 +242,7 @@ export default function ChessGame() {
 
         if (data.status === "FINISHED" || data.checkmate) {
             setGameOver(true)
+			gameOverRef.current = true
         }
 
 		if (data.clocks) {
@@ -309,6 +319,7 @@ export default function ChessGame() {
 
     function handleGameOver(data: { winner: number; reason: string }) {
         setGameOver(true)
+		gameOverRef.current = true
         const info = gameInfoRef.current
         let winnerName = String(data.winner)
         if (info) {

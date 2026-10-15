@@ -124,6 +124,14 @@ export default function TournamentDetail() {
         fetchTournament()
         fetchParticipants()
         fetchMatches()
+
+        function handleFocus() {
+            fetchMatches()
+            fetchTournament()
+        }
+        window.addEventListener("focus", handleFocus)
+
+        return () => window.removeEventListener("focus", handleFocus)
     }, [id])
 
     async function fetchTournament() {

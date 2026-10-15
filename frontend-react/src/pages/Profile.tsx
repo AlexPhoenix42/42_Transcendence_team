@@ -154,6 +154,9 @@ export default function Profile() {
 
             if (resp.ok) {
                 const data = await resp.json()
+				if (data.avatar) {
+                    data.avatar = data.avatar + (data.avatar.includes('?') ? '&' : '?') + 't=' + Date.now()
+                }
                 setProfile(data)
                 setSuccess(t("profile.msg.avatarUpdated"))
             } else {

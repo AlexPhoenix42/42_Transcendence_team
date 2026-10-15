@@ -1,4 +1,4 @@
-# game/management/commands/check_timeouts.py
+# django/chess_game/management/commands/check_timeouts.py
 
 from django.core.cache                  import cache
 from django.core.management.base        import BaseCommand
@@ -54,6 +54,7 @@ class Command(BaseCommand):
                                 if winner_id is not None:
                                     self._finish_game(game_id, winner_id, state, GameResultReason.TIMEOUT)
                                     self._broadcast_game_over(game_id, winner_id, GameResultReason.TIMEOUT, channel_layer)
+                                    self._notify_main_django(game_id)
                                     active_games.discard(game_id_str)
                                     cache.set("active_games", active_games, timeout=None)
                                     cache.delete(game_key)
@@ -73,6 +74,7 @@ class Command(BaseCommand):
                                 continue
                             self._finish_game(game_id, winner_id, state, GameResultReason.DISCONNECT)
                             self._broadcast_game_over(game_id, winner_id, GameResultReason.DISCONNECT, channel_layer)
+                            self._notify_main_django(game_id)
                             active_games.discard(game_id_str)
                             cache.set("active_games", active_games, timeout=None)
                             cache.delete(game_key)
@@ -82,6 +84,7 @@ class Command(BaseCommand):
                 logger.exception("Error in timeout checker loop")
 
             time.sleep(1)
+
 
     def _determine_winner(self, state, loser_pk_str):
         loser_pk = int(loser_pk_str)
@@ -93,17 +96,38 @@ class Command(BaseCommand):
             return p1
         return None
 
+
+    def _notify_main_django(self, game_id):
+        """Notify the main Django backend so tournament signals can fire."""
+        try:
+            import urllib.request
+            import json
+            data = json.dumps({"game_id": game_id}).encode()
+            req = urllib.request.Request(
+                "http://backend-django:9000/api/internal/game-finished/",
+                data=data,
+                headers={
+                    "Content-Type": "application/json",
+                    "X-Forwarded-Proto": "https",
+                },
+            )
+            urllib.request.urlopen(req, timeout=5)
+        except Exception:
+            logger.warning("Could not notify Django about game %s", game_id)
+
+
     def _finish_game(self, game_id, winner_id, state, reason):
         try:
-            Game.objects.filter(pk=game_id).update(
-                winner_id=winner_id,
-                result_reason=reason,
-                status=GameStatus.FINISHED,
-                board_state=state.get("fen", ""),
-                moves=state.get("moves", []),
-            )
+            game = Game.objects.get(pk=game_id)
+            game.winner_id = winner_id
+            game.result_reason = reason
+            game.status = GameStatus.FINISHED
+            game.board_state = state.get("fen", "")
+            game.moves = state.get("moves", [])
+            game.save()
         except Exception:
             logger.exception("Failed to persist game %s", game_id)
+
 
     def _broadcast_game_over(self, game_id, winner_id, reason, channel_layer):
         async_to_sync(channel_layer.group_send)(

@@ -19,6 +19,10 @@ COPY			docker_conf/modsecurity/modsecurity-override.conf \
 COPY			docker_conf/modsecurity/exclusions.conf \
 				/etc/modsecurity.d/owasp-crs/rules/RESPONSE-999-EXCLUSION-RULES-AFTER-CRS.conf
 
+# CRS before-rules (override defaults before CRS evaluates)
+COPY			docker_conf/modsecurity/before-crs.conf \
+				/etc/modsecurity.d/owasp-crs/rules/REQUEST-900-EXCLUSION-RULES-BEFORE-CRS.conf
+
 USER			nginx
 
 EXPOSE			4443 8000

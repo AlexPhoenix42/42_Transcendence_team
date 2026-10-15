@@ -515,7 +515,7 @@ export default function Chat() {
                                 key={msg.id}
                                 className={`flex flex-col ${msg.sender === user?.username ? "items-end" : "items-start"}`}
                             >
-								<div className={`max-w-[70%] md:max-w-xs px-3 py-1.5 md:px-4 md:py-2 rounded-lg ${msg.sender === user?.username ? "bg-blue-600 text-white" : "bg-gray-700 text-white"}`}>
+								<div className={`max-w-[70%] md:max-w-xs px-3 py-1.5 md:px-4 md:py-2 rounded-lg break-words ${msg.sender === user?.username ? "bg-blue-600 text-white" : "bg-gray-700 text-white"}`}>
                                     {msg.sender !== user?.username && (
                                         <p className="text-xs mb-1">
                                             <span

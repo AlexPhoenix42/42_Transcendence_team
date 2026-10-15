@@ -466,7 +466,7 @@ The back-end of this application is structured as separate, independently deploy
 |backend_django | web application + API |
 |chess_engine | C++ move validation (REST API on port 4190)|
 |stockfish_ai | AI oppponent (REST API on port 4191)|
-|timeout_checker | game clock enforcement (separate process) |
+|timeout_checker | game clock enforcement (REST API) |
 |vault + vault_init | secrets management | 
 |postgres | database |
 |redis | cache + pub/sub (message queue for WebSockets) |
@@ -474,9 +474,10 @@ The back-end of this application is structured as separate, independently deploy
 |whiteboard | collaborative drawing (separate app) |
 |mailpit | email service | 
 |backup | automated backup service |
+|ollama | LLM chess coach (Mistral AI) |
 |prometheus + grafana | monitoring |
 
-Additionally, Django apps that constitute the chat, chess coach, chess game, goose game, pacman game, and tournaments, are loosely coupled with clear interfaces. Each app has its own models, views, URLs, and consumers. They communicate through Django's ORM and the redis channel layer. The chess coach and chess game apps are genuine micro-services with REST APIs.
+Additionally, Django apps that constitute the chat, chess coach, chess game, goose game, pacman game, and tournaments, are loosely coupled with clear interfaces. Each app has its own models, views, URLs, and consumers. They communicate through Django's ORM and the redis channel layer. The chess coach, chess game, and timeout checker apps are genuine micro-services with REST APIs.
 
 ---
 
