@@ -36,10 +36,15 @@ make build #or just call make and choose your option
 On the host PC:
 ```bash
 vboxmanage list vms # Choose your VM
-VBoxManage setextradata "<vm_name>"
-VBoxInternal/Devices/pcbios/0/Config/DmiSystemProduct "$(hostname)"
+# Check your VM's firmware type:
+VBoxManage showvminfo "<vm_name>" | grep -i firmware
+# For BIOS VMs:
+VBoxManage setextradata "<vm_name>" VBoxInternal/Devices/pcbios/0/Config/DmiSystemProduct "$(hostname)"
+# For EFI VMs:
+VBoxManage setextradata "<vm_name>" VBoxInternal/Devices/efi/0/Config/DmiSystemProduct "$(hostname)"
 # Check that the data you entered is correct
 VBoxManage getextradata "<vm_name>" enumerate
+# Then restart the VM (the hostname is applied at boot time)
 ```
 
 Within the VM:
