@@ -57,7 +57,26 @@ cp $path/.env   # You can check .env.example
 cp $path/.env.secrets.enc
 ```
 
+#### Docker Networking (nftables fix)
+
+Docker 29.8.0+ may fail to create firewall rules when using the default
+`iptables` firewall backend, resulting in containers with no internet
+connectivity (DNS timeouts, 100% packet loss). This happens because Docker's
+iptables-legacy integration can lose its own chains during bridge network
+initialization, silently preventing all outbound traffic from containers.
+
+The fix is to switch Docker to the `nftables` firewall backend. Install
+`nftables` using your distribution's package manager, then set
+`/etc/docker/daemon.json`:
+```json
+{"dns": ["8.8.8.8", "1.1.1.1"], "firewall-backend": "nftables"}
+```
+
+Then restart the Docker service.
+
+
 Go to https://<server-ip>:4443 or https://<server_hostname>:4443 and accept certificate.
+
 
 #### User-Experience
 This web application is compatible with Firefox, Brave, Chrome, Chromium, and Edge, as well as iOS and Android. Some features may be browser specific, such as colours, icons and emojis. Nevertheless, the global user experience remains largely the same throughout OS and browser. This app was largely developed and tested on Firefox and Brave browsers, and later adapted to serve a wider range of browsers.
