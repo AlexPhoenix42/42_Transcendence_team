@@ -16,7 +16,7 @@ Born2Transcend is operating under the GNU GPL v3 license. Consult it [here](/doc
 
 #### Pre-requisites
 * Access to `sudo` rights (otherwise consider launching within a VM)
-* Docker and docker compose (latest version recommended)
+* Docker with the `compose` and `buildx` plugins (latest version recommended)
 * make, virtualbox, socat, npm, sfw for npm, NodeJs version 20 or above
 * Defined environment variables in a `.env` and `.env.secrets.enc` file at the root of the repository
 
