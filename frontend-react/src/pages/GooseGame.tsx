@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react"
 import { useParams, useNavigate } from "react-router-dom"
 import { api } from "../api/client.ts"
 import { useAuth } from "../context/AuthContext.tsx"
+import { throttle } from "../utils/throttle"
 import GooseBoard, { PLAYER_HOP_MS, WIZARD_HOP_MS } from "../components/GooseBoard.tsx"
 import WizardQuiz from "../components/WizardQuiz.tsx"
 import { useI18n } from "../i18n/I18nProvider.tsx"
@@ -257,17 +258,17 @@ export default function GooseGame() {
         return () => clearInterval(interval)
     }, [id, gameStatus])
 
-    function rollDice() {
-        if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return
-        setRolling(true)
-        setError("")
-        wsRef.current.send(JSON.stringify({ action: "roll_dice" }))
-    }
+	const rollDice = useCallback(throttle(() => {
+    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return
+		setRolling(true)
+		setError("")
+		wsRef.current.send(JSON.stringify({ action: "roll_dice" }))
+	}, 1000), [])
 
-    function answerWizard(choiceIndex: number) {
-        if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return
-        wsRef.current.send(JSON.stringify({ action: "wizard_answer", choice_index: choiceIndex }))
-    }
+	const answerWizard = useCallback(throttle((choiceIndex: number) => {
+		if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return
+		wsRef.current.send(JSON.stringify({ action: "wizard_answer", choice_index: choiceIndex }))
+	}, 1000), [])
 
     async function startGame() {
         try {
