@@ -140,12 +140,12 @@ vlt_retry() {
     _a=0
     while ! vlt "$@"; do
         _a=$((_a+1))
-        if [ $_a -ge 5 ]; then
-            echo "❌ Failed after 5 retries: $*" >&2
+        if [ $_a -ge 10 ]; then
+            echo "❌ Failed after 10 retries: $*" >&2
             return 1
         fi
-        echo "⚠️  Retry $_a/5: $*" >&2
-        sleep 3
+        echo "⚠️  Retry $_a/10: $*" >&2
+        sleep 5
     done
 }
 
@@ -247,10 +247,13 @@ if [ "$NEEDS_SEED" = "true" ]; then
     # ---- Postgres policy/role ----
     if ! vlt_retry policy read postgres-policy > /dev/null 2>&1; then
         echo "  Creating postgres-policy policy..."
-        vlt_retry policy write postgres-policy - <<EOF
+
+		cat > /tmp/postgres-policy.hcl <<EOF
 path "secret/data/database"		{ capabilities = ["read"] }
 path "secret/data/monitoring"	{ capabilities = ["read"] }
 EOF
+        vlt_retry policy write postgres-policy /tmp/postgres-policy.hcl
+
     else
         echo "  Postgres policy already exists."
     fi
@@ -309,11 +312,13 @@ EOF
     # ---- Django policy/role ----
     if ! vlt_retry policy read django-approle > /dev/null 2>&1; then
         echo "  Creating django-approle policy..."
-        vlt_retry policy write django-approle - <<EOF
+		cat > /tmp/django-approle.hcl <<EOF
 path "secret/data/django"   { capabilities = ["read"] }
 path "secret/data/database" { capabilities = ["read"] }
 path "secret/data/oauth/*"  { capabilities = ["read"] }
 EOF
+        vlt_retry policy write django-approle /tmp/django-approle.hcl
+
     else
         echo "  Policy already exists."
     fi

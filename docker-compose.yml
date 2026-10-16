@@ -16,8 +16,8 @@ services:
     depends_on:
       vault:
         condition:          service_healthy
-      vault-init:
-        condition:          service_completed_successfully
+      #vault-init:
+      #  condition:          service_completed_successfully
     environment:
       #POSTGRES_USER:       ${DB_SERVER_USER}
       #POSTGRES_PASSWORD:   ${DB_SERVER_PASS}
@@ -65,6 +65,8 @@ services:
     depends_on:
       vault:
         condition:  service_started
+    profiles:
+      - tools
     environment:
       VAULT_ADDR:               ${VAULT_URL}
       VAULT_CACERT:             /vault/certs/ca-cert.pem
@@ -125,6 +127,8 @@ services:
       target:       build
       pull:         false
     container_name: engine-builder
+    profiles:
+      - tools
     restart:        "no"
     volumes:
       - ./backend/chess_engine/srcs:/app/srcs:ro
@@ -222,8 +226,8 @@ services:
         condition:  service_healthy
       vault:
         condition:  service_healthy
-      vault-init:
-        condition:  service_completed_successfully
+      #vault-init:
+      #  condition:  service_completed_successfully
     networks:
       trans_net:
         aliases:
@@ -268,8 +272,8 @@ services:
         condition:  service_healthy
       vault:
         condition:  service_healthy
-      vault-init:
-        condition:  service_completed_successfully
+      #vault-init:
+      #  condition:  service_completed_successfully
     networks:
       - trans_net
      
@@ -296,8 +300,8 @@ services:
     depends_on:
       backend_django:
         condition:  service_healthy
-      vault-init:
-        condition:  service_completed_successfully
+      #vault-init:
+      #  condition:  service_completed_successfully
     environment:
       FRONTEND_URL: ${FRONTEND_URL}
     networks:
@@ -338,8 +342,8 @@ services:
         condition:  service_healthy
       vault:
         condition:  service_healthy
-      vault-init:
-        condition:  service_completed_successfully
+      #vault-init:
+      #  condition:  service_completed_successfully
     networks:
       - trans_net
 

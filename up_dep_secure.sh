@@ -116,14 +116,48 @@ if ! docker image inspect redis:8-alpine >/dev/null 2>&1; then
     fi
 fi
 
+
 # 11. Clean slate — stop stale containers before bringing up fresh
 docker compose -f docker-compose.yml down 2>/dev/null || true
 
-# 12. Start everything (no build)
-DECRYPTED_SEC_FILE="$DECRYPTED_SEC_ENV" \
-    docker compose \
-    -f docker-compose.yml \
-    --env-file "$PLAIN_ENV" \
-    --env-file "$DECRYPTED_SEC_ENV" \
-    up -d --wait --wait-timeout 900 "$@"
+# 12. Start everything (no build), phased
+export DECRYPTED_SEC_FILE="$DECRYPTED_SEC_ENV"
+COMPOSE="docker compose -f docker-compose.yml --env-file $PLAIN_ENV --env-file $DECRYPTED_SEC_ENV"
+
+echo "⏳ Phase 0: Building chess engine..."
+$COMPOSE run --rm engine-builder
+
+echo "⏳ Phase 1: Starting foundation services..."
+$COMPOSE up -d vault redis mailpit whiteboard
+$COMPOSE up -d --wait --wait-timeout 120 redis mailpit whiteboard
+
+echo "⏳ Phase 2: Initializing Vault..."
+$COMPOSE run --rm vault-init
+
+echo "⏳ Waiting for Vault to pass healthcheck..."
+$COMPOSE up -d --wait --wait-timeout 120 vault
+
+echo "⏳ Phase 3: Starting database..."
+$COMPOSE up -d --wait --wait-timeout 300 postgres
+
+echo "⏳ Phase 4: Starting application services..."
+$COMPOSE up -d --wait --wait-timeout 300 backend_django timeout_checker backup
+
+echo "⏳ Phase 5: Starting frontend and monitoring..."
+$COMPOSE up -d --wait --wait-timeout 300 frontend_nginx chess_engine stockfish_ai
+$COMPOSE up -d prometheus grafana nginx-exporter postgres-exporter redis-exporter
+
+
+# Phase 6: Verify backend is responding
+echo "⏳ Waiting for backend to be ready..."
+_n=0
+until docker exec trans_frontend_nginx curl -sf -o /dev/null http://backend_django:9000/api/login/ 2>/dev/null; do
+    _n=$((_n+1))
+    if [ $_n -ge 60 ]; then
+        echo "⚠️  Backend not responding after 120s — check logs"
+        break
+    fi
+    sleep 2
+done
+echo "✅ All services ready."
 

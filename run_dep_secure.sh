@@ -188,6 +188,7 @@ if ! docker image inspect redis:8-alpine >/dev/null 2>&1; then
     fi
 fi
 
+
 # Build images in batches to avoid timeout
 docker compose -f docker-compose.yml --env-file "$PLAIN_ENV" --env-file "$DECRYPTED_SEC_ENV" \
     build postgres vault vault-init
@@ -198,17 +199,56 @@ docker compose -f docker-compose.yml --env-file "$PLAIN_ENV" --env-file "$DECRYP
 docker compose -f docker-compose.yml --env-file "$PLAIN_ENV" --env-file "$DECRYPTED_SEC_ENV" \
     build frontend_nginx timeout_checker backup
 
-# Start everything
-DECRYPTED_SEC_FILE="$DECRYPTED_SEC_ENV" \
-    docker compose \
-    -f docker-compose.yml \
-    --env-file "$PLAIN_ENV" \
-    --env-file "$DECRYPTED_SEC_ENV" \
-	up -d --wait --wait-timeout 900 "$@"
 
+export DECRYPTED_SEC_FILE="$DECRYPTED_SEC_ENV"
+
+COMPOSE="docker compose -f docker-compose.yml --env-file $PLAIN_ENV --env-file $DECRYPTED_SEC_ENV"
+
+# Phase 0: Build chess engine (one-shot, exits when done)
+echo "⏳ Phase 0: Building chess engine..."
+$COMPOSE run --rm engine-builder
+
+# Phase 1: Foundation — start vault (won't be healthy until init), wait for the rest
+echo "⏳ Phase 1: Starting foundation services..."
+$COMPOSE up -d vault redis mailpit whiteboard
+$COMPOSE up -d --wait --wait-timeout 120 redis mailpit whiteboard
+
+# Phase 2: Vault init (initializes + unseals vault)
+echo "⏳ Phase 2: Initializing Vault..."
+$COMPOSE run --rm vault-init
+
+# Wait for vault healthcheck now that it's initialized
+echo "⏳ Waiting for Vault to pass healthcheck..."
+$COMPOSE up -d --wait --wait-timeout 120 vault
+
+# Phase 3: Database
+echo "⏳ Phase 3: Starting database..."
+$COMPOSE up -d --wait --wait-timeout 300 postgres
+
+# Phase 4: App layer
+echo "⏳ Phase 4: Starting application services..."
+$COMPOSE up -d --wait --wait-timeout 300 backend_django timeout_checker backup
+
+# Phase 5: Frontend + chess + monitoring
+echo "⏳ Phase 5: Starting frontend and monitoring..."
+$COMPOSE up -d --wait --wait-timeout 300 frontend_nginx chess_engine stockfish_ai
+$COMPOSE up -d prometheus grafana nginx-exporter postgres-exporter redis-exporter
 
 # Save pulled images to disk cache
 if [ ! -f "$IMAGES_CACHE" ]; then
     docker save $PULLED_IMAGES -o "$IMAGES_CACHE" 2>/dev/null || true
 fi
+
+# Phase 6: Verify backend is responding
+echo "⏳ Waiting for backend to be ready..."
+_n=0
+until docker exec trans_frontend_nginx curl -sf -o /dev/null http://backend_django:9000/api/login/ 2>/dev/null; do
+    _n=$((_n+1))
+    if [ $_n -ge 60 ]; then
+        echo "⚠️  Backend not responding after 120s — check logs"
+        break
+    fi
+    sleep 2
+done
+echo "✅ All services ready."
 
