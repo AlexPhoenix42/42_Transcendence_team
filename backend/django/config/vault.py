@@ -46,7 +46,7 @@ def get_vault_client():
         logger.warning("VAULT_CACERT file %s not found, falling back to insecure", verify)
         verify = False  # only for dev; comment in production
 
-    client = hvac.Client(url=VAULT_ADDR, timeout=5, verify=verify)
+    client = hvac.Client(url=VAULT_ADDR, timeout=30, verify=verify)
 
     if  VAULT_AUTH_METHOD == 'token':
         if  not VAULT_TOKEN:

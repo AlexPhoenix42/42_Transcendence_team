@@ -204,7 +204,8 @@ DECRYPTED_SEC_FILE="$DECRYPTED_SEC_ENV" \
     -f docker-compose.yml \
     --env-file "$PLAIN_ENV" \
     --env-file "$DECRYPTED_SEC_ENV" \
-    up -d "$@"
+	up -d --wait --wait-timeout 900 "$@"
+
 
 # Save pulled images to disk cache
 if [ ! -f "$IMAGES_CACHE" ]; then

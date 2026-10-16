@@ -103,8 +103,8 @@ services:
     healthcheck:
       test: ["CMD", "sh", "-c", "VAULT_CACERT=/vault/certs/ca-cert.pem vault status > /dev/null 2>&1"]
       interval:     10s
-      timeout:      5s
-      retries:      5
+      timeout:      30s
+      retries:      10
       start_period: 300s
 
   mailpit:
@@ -232,8 +232,8 @@ services:
       test: ["CMD", "python", "manage.py", "healthcheck"]
       interval:     10s
       timeout:      30s
-      retries:      5
-      start_period: 120s
+      retries:      10
+      start_period: 300s
 
   timeout_checker:
     build:

@@ -30,7 +30,7 @@ COMPOSE_FILE	:= docker-compose.yml
 COMPOSE			:= docker compose -f $(COMPOSE_FILE)
 DATA_DIR		:= $(HOME)/goinfre/trans_data
 
-.PHONY: all help build up down clean fclean re logs status
+.PHONY: all help build up down clean softclean fclean re logs status check
 
 # ── Default ───────────────────────────────────────────────────────
 
@@ -131,12 +131,19 @@ re: fclean build
 
 clean:
 	@printf "$(CLEAN_ICON) $(BLUE)Cleaning containers and images...$(RESET)\n"
-	@$(COMPOSE) down --rmi all --remove-orphans 2>/dev/null || true
+	@$(COMPOSE) down --rmi local --remove-orphans 2>/dev/null || true
 	@printf "$(SUCCESS_ICON) $(GREEN)Clean complete.$(RESET)\n"
+
+softclean:
+	@printf "$(CLEAN_ICON) $(YELLOW)$(BOLD)Soft cleanup: containers, volumes, data (keeping images)...$(RESET)\n"
+	@$(COMPOSE) down --volumes --remove-orphans 2>/dev/null || true
+	@printf "$(CLEAN_ICON) $(BLUE)Wiping data directory:$(RESET) $(YELLOW)$(DATA_DIR)$(RESET)\n"
+	@sudo rm -rf $(DATA_DIR)
+	@printf "$(SUCCESS_ICON) $(GREEN)Soft cleanup complete (images kept).$(RESET)\n"
 
 fclean:
 	@printf "$(NUKE_ICON) $(RED)$(BOLD)Full cleanup: containers, volumes, images, data...$(RESET)\n"
-	@$(COMPOSE) down --volumes --rmi all --remove-orphans 2>/dev/null || true
+	@$(COMPOSE) down --volumes --rmi local --remove-orphans 2>/dev/null || true
 	@printf "$(CLEAN_ICON) $(BLUE)Wiping data directory:$(RESET) $(YELLOW)$(DATA_DIR)$(RESET)\n"
 	@sudo rm -rf $(DATA_DIR)/trans_db_server_data
 	@sudo rm -rf $(DATA_DIR)/trans_vault_data
@@ -195,4 +202,31 @@ status:
 		printf "  $(BROWN)%-14s$(RESET) $(WHITE)%-26s$(RESET) $${color}%s$(RESET)\n" "$$id" "$$name" "$$stat"; \
 	done
 	@printf "\n"
+
+check:
+	@printf "\n"
+	@printf "  $(STATUS_ICON) $(BOLD)$(MAGENTA)$(NAME)$(RESET) — $(BOLD)Environment Check$(RESET)\n"
+	@printf "  $(BOLD)─────────────────────────────────────────$(RESET)\n"
+	@printf "\n"
+	@printf "  $(BOLD)Containers:$(RESET)  "; \
+	cnt=$$(docker ps -a -q 2>/dev/null | wc -l); \
+	if [ "$$cnt" -eq 0 ]; then printf "$(GREEN)None$(RESET)\n"; \
+	else printf "$(RED)$$cnt found$(RESET)\n"; fi
+	@printf "  $(BOLD)Images:$(RESET)      "; \
+	img=$$(docker images -q 2>/dev/null | wc -l); \
+	if [ "$$img" -eq 0 ]; then printf "$(GREEN)None$(RESET)\n"; \
+	else printf "$(YELLOW)$$img found$(RESET)\n"; fi
+	@printf "  $(BOLD)Volumes:$(RESET)     "; \
+	vol=$$(docker volume ls -q 2>/dev/null | wc -l); \
+	if [ "$$vol" -eq 0 ]; then printf "$(GREEN)None$(RESET)\n"; \
+	else printf "$(RED)$$vol found$(RESET)\n"; fi
+	@printf "  $(BOLD)Networks:$(RESET)    "; \
+	net=$$(docker network ls --format '{{.Name}}' 2>/dev/null | grep -vcE '^(bridge|host|none)$$'); \
+	if [ "$$net" -eq 0 ]; then printf "$(GREEN)None (only defaults)$(RESET)\n"; \
+	else printf "$(YELLOW)$$net custom$(RESET)\n"; fi
+	@printf "  $(BOLD)Data dir:$(RESET)    "; \
+	if [ ! -d "$(DATA_DIR)" ]; then printf "$(GREEN)Clean$(RESET)\n"; \
+	else printf "$(YELLOW)Exists$(RESET)\n"; fi
+	@printf "\n"
+
 

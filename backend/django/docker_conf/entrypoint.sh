@@ -13,7 +13,30 @@ while ! nc -z "$REDIS_HOST" "$REDIS_PORT"; do
 done
 echo "Redis is up."
 
-python3 manage.py migrate --noinput
+echo "Waiting for Vault at vault:8200..."
+while ! nc -z vault 8200; do
+	sleep 2
+done
+echo "Vault is reachable."
+
+mkdir -p /django/media/avatars && cp -n /django/staticfiles/avatars/default_avatar.png /django/media/avatars/default_avatar.png
+
+#python3 manage.py migrate --noinput
+
+_migrate_attempt=0
+while true; do
+	if python3 manage.py migrate --noinput 2>&1; then
+		break
+	fi
+	_migrate_attempt=$((_migrate_attempt+1))
+	if [ $_migrate_attempt -ge 20 ]; then
+		echo "❌ migrate failed after 20 attempts"
+		exit 1
+	fi
+	echo "⚠️  migrate attempt $_migrate_attempt/20 failed, retrying in 10s..."
+	sleep 10
+done
+
 python3 manage.py collectstatic --noinput
 python3 manage.py ensure_ai_users
 python3 manage.py shell -c "from django.contrib.auth import get_user_model; get_user_model().objects.filter(is_online=True).update(is_online=False); print('✅ Online status reset.')"
