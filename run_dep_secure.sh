@@ -242,10 +242,9 @@ fi
 # Phase 6: Verify backend is responding
 echo "⏳ Waiting for backend to be ready..."
 _n=0
-until docker exec trans_frontend_nginx curl -sf -o /dev/null http://backend_django:9000/api/login/ 2>/dev/null; do
+until docker exec trans_frontend_nginx curl -sf -o /dev/null -H "Host: localhost" http://backend_django:9000/api/login/ 2>/dev/null; do
     _n=$((_n+1))
     if [ $_n -ge 150 ]; then
-        echo "⚠️  Backend not responding after 120s — check logs"
         break
     fi
     sleep 2
