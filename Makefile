@@ -131,7 +131,7 @@ re: fclean build
 
 clean:
 	@printf "$(CLEAN_ICON) $(BLUE)Cleaning containers and images...$(RESET)\n"
-	@$(COMPOSE) down --rmi local --remove-orphans 2>/dev/null || true
+	@$(COMPOSE) down --rmi all --remove-orphans 2>/dev/null || true
 	@printf "$(SUCCESS_ICON) $(GREEN)Clean complete.$(RESET)\n"
 
 softclean:
@@ -143,13 +143,11 @@ softclean:
 
 fclean:
 	@printf "$(NUKE_ICON) $(RED)$(BOLD)Full cleanup: containers, volumes, images, data...$(RESET)\n"
-	@$(COMPOSE) down --volumes --rmi local --remove-orphans 2>/dev/null || true
+	@$(COMPOSE) down --volumes --rmi all --remove-orphans 2>/dev/null || true
+	@docker rm -f $$(docker ps -a -q --filter "label=com.docker.compose.project" 2>/dev/null) 2>/dev/null || true
+	@docker rmi $$(docker images -q --filter "reference=trans-*" 2>/dev/null) 2>/dev/null || true
 	@printf "$(CLEAN_ICON) $(BLUE)Wiping data directory:$(RESET) $(YELLOW)$(DATA_DIR)$(RESET)\n"
-	@sudo rm -rf $(DATA_DIR)/trans_db_server_data
-	@sudo rm -rf $(DATA_DIR)/trans_vault_data
-	@sudo rm -rf $(DATA_DIR)/trans_prometheus_data
-	@sudo rm -rf $(DATA_DIR)/trans_grafana_data
-	@sudo rm -rf $(DATA_DIR)/trans_backups
+	@sudo rm -rf $(DATA_DIR)
 	@printf "$(SUCCESS_ICON) $(GREEN)Full cleanup complete.$(RESET)\n"
 
 # ── Logs ──────────────────────────────────────────────────────────
