@@ -113,9 +113,11 @@ services:
     image:            axllent/mailpit
     container_name:   mailpit
     restart:          unless-stopped
-    ports:
-      - "8025:8025" # web UI
+    command:          --webroot /mailpit
+    #ports:
+    #  - "8025:8025" # web UI
     expose:
+      - "8025" # web UI
       - "1025" # SMTP server
     networks:
       - trans_net
