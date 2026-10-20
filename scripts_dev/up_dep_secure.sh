@@ -41,9 +41,12 @@ chown -R 100:100 vault/certs vault/approle vault/secrets
 chmod 750 vault/certs vault/approle
 chmod 700 vault/secrets
 
-mkdir -p frontend/logs/modsecurity
-chown 101:101 frontend/logs/modsecurity
-chmod 750 frontend/logs/modsecurity
+mkdir -p frontend-nginx/logs/modsecurity
+chown 101:101 frontend-nginx/logs/modsecurity
+chmod 750 frontend-nginx/logs/modsecurity
+
+mkdir -p backend/django/staticfiles
+chown -R 1000:1000 backend/django/staticfiles
 
 mkdir -p backend/django/media
 chown -R 1000:1000 backend/django/media
@@ -62,12 +65,13 @@ chown -R 65534:65534 "$PROMETHEUS_DATA_DIR"
 chown -R 472:472     "$GRAFANA_DATA_DIR"
 chmod 750 "$PROMETHEUS_DATA_DIR" "$GRAFANA_DATA_DIR"
 
-mkdir -p whiteboard/data
-chown -R 1000:1000 whiteboard/data
-chmod 750 whiteboard/data
+WBO_DATA_DIR="$HOME/goinfre/trans_data/wbo_data"
+mkdir -p "$WBO_DATA_DIR"
+chown -R 1000:1000 "$WBO_DATA_DIR"
+chmod 750 "$WBO_DATA_DIR"
 
 # 8. Generate .env from template
-SERVER_IP=$(ping -c1 -W1 "$(cut -d. -f1 < /sys/class/dmi/id/product_name)" 2>/dev/null | head -1 | awk -F'[()]' '{print $2}')
+SERVER_IP=$(ping -c1 -W1 "$(cut -d. -f1 < /sys/class/dmi/id/product_name)" 2>/dev/null | head -1 | awk -F'[()]' '{print $2}') || true
 if [ -z "$SERVER_IP" ]; then
     SERVER_IP=$(ip a | grep inet | awk 'NR==3 {print $2}' | cut -d/ -f1)
 fi
@@ -103,15 +107,13 @@ if ! docker image inspect redis:8-alpine >/dev/null 2>&1; then
     if [ -f "$IMAGES_CACHE" ]; then
         echo "📦 Loading cached images from disk..."
         docker load -i "$IMAGES_CACHE" 2>/dev/null || true
-        docker rm _cache_test >/dev/null 2>&1 || true
-        if ! docker create --name _cache_test lovasoa/wbo:latest true >/dev/null 2>&1; then
-            echo "⚠️  Cached images are corrupted, cleaning up..."
+        _missing=0
+        for img in $PULLED_IMAGES; do
+            docker image inspect "$img" >/dev/null 2>&1 || _missing=1
+        done
+        if [ "$_missing" -eq 1 ]; then
+            echo "⚠️  Cache incomplete, missing images will be pulled..."
             rm -f "$IMAGES_CACHE"
-            for img in $PULLED_IMAGES; do
-                docker rmi "$img" 2>/dev/null || true
-            done
-        else
-            docker rm _cache_test >/dev/null 2>&1
         fi
     fi
 fi
@@ -151,9 +153,9 @@ $COMPOSE up -d prometheus grafana nginx-exporter postgres-exporter redis-exporte
 # Phase 6: Verify backend is responding
 echo "⏳ Waiting for backend to be ready..."
 _n=0
-until docker exec trans_frontend_nginx curl -sf -o /dev/null http://backend_django:9000/api/login/ 2>/dev/null; do
+until docker exec trans_frontend_nginx curl -sf -o /dev/null -H "Host: localhost" http://backend_django:9000/api/login/ 2>/dev/null; do
     _n=$((_n+1))
-    if [ $_n -ge 60 ]; then
+    if [ $_n -ge 150 ]; then
         break
     fi
     sleep 2

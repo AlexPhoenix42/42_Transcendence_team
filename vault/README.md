@@ -155,7 +155,9 @@ project-root/
 │       └── entrypoint.sh
 ├── backend/
 │   └── ... (existing services)
-├── frontend/
+├── frontend-nginx/
+│   └── ... (existing)
+├── frontend-react/
 │   └── ... (existing)
 ├── docker-compose.yml
 └── .env

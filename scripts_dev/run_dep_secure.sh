@@ -33,6 +33,9 @@ cleanup() {
 trap cleanup EXIT
 
 # Prepare Django media directory
+mkdir -p backend/django/staticfiles
+chown -R 1000:1000 backend/django/staticfiles
+
 mkdir -p backend/django/media
 chown -R 1000:1000 backend/django/media
 chmod 755 backend/django/media
@@ -44,9 +47,9 @@ chmod 750 vault/certs vault/approle
 chmod 700 vault/secrets
 
 # 7. Prepare nginx log directory
-mkdir -p frontend/logs/modsecurity
-chown 101:101 frontend/logs/modsecurity
-chmod 750 frontend/logs/modsecurity
+mkdir -p frontend-nginx/logs/modsecurity
+chown 101:101 frontend-nginx/logs/modsecurity
+chmod 750 frontend-nginx/logs/modsecurity
 
 # 8. If running with sudo, use the real user's home dir
 if [ -n "${SUDO_USER:-}" ]; then
@@ -86,9 +89,10 @@ chown -R 472:472     "$GRAFANA_DATA_DIR"
 chmod 750 "$PROMETHEUS_DATA_DIR" "$GRAFANA_DATA_DIR"
 
 # 12. Prepare white-board
-mkdir -p whiteboard/data
-chown -R 1000:1000 whiteboard/data
-chmod 750 whiteboard/data
+WBO_DATA_DIR="$HOME/goinfre/trans_data/wbo_data"
+mkdir -p "$WBO_DATA_DIR"
+chown -R 1000:1000 "$WBO_DATA_DIR" 
+chmod 750 "$WBO_DATA_DIR" 
 
 # 13. Ensure nvm, Node.js 20+, and sfw are available
 REAL_USER="${SUDO_USER:-$(whoami)}"
@@ -110,7 +114,7 @@ sudo -u "$REAL_USER" bash -c '
 
 	# Use current default if 20+, otherwise install LTS
     NODE_VER=$(nvm current 2>/dev/null | sed "s/v//" | cut -d. -f1)
-    if [ -z "$NODE_VER" ] || [ "$NODE_VER" = "none" ] || [ "$NODE_VER" -lt 20 ]; then
+    if [ -z "$NODE_VER" ] || [ "$NODE_VER" = "none" ]  || [ "$NODE_VER" = "system" ]|| [ "$NODE_VER" -lt 20 ]; then
         nvm install --lts > /dev/null 2>&1
         nvm use --lts > /dev/null 2>&1
         nvm alias default lts/* > /dev/null 2>&1
@@ -137,7 +141,7 @@ sudo -u "$REAL_USER" bash -c '
 
 # Auto-detect server IP and hostname
 #SERVER_IP=$(ip a | grep inet | awk 'NR==3 {print $2}' | cut -d/ -f1)
-SERVER_IP=$(ping -c1 -W1 "$(cut -d. -f1 < /sys/class/dmi/id/product_name)" 2>/dev/null | head -1 | awk -F'[()]' '{print $2}')
+SERVER_IP=$(ping -c1 -W1 "$(cut -d. -f1 < /sys/class/dmi/id/product_name)" 2>/dev/null | head -1 | awk -F'[()]' '{print $2}') || true
 if [ -z "$SERVER_IP" ]; then
     SERVER_IP=$(ip a | grep inet | awk 'NR==3 {print $2}' | cut -d/ -f1)
 fi
@@ -170,21 +174,17 @@ IMAGES_CACHE="$HOME/goinfre/trans_cache/pulled-images.tar"
 PULLED_IMAGES="redis:8-alpine axllent/mailpit lovasoa/wbo:latest prom/prometheus:latest grafana/grafana:latest nginx/nginx-prometheus-exporter:latest prometheuscommunity/postgres-exporter:latest oliver006/redis_exporter:latest"
 
 # Load from cache if images are missing
-if ! docker image inspect redis:8-alpine >/dev/null 2>&1; then
-    if [ -f "$IMAGES_CACHE" ]; then
-        echo "📦 Loading cached images from disk..."
-        docker load -i "$IMAGES_CACHE" 2>/dev/null || true
-        # Verify loaded images are usable by creating a test container
-		docker rm _cache_test >/dev/null 2>&1 || true
-        if ! docker create --name _cache_test lovasoa/wbo:latest true >/dev/null 2>&1; then
-            echo "⚠️  Cached images are corrupted, cleaning up..."
-            rm -f "$IMAGES_CACHE"
-            for img in $PULLED_IMAGES; do
-                docker rmi "$img" 2>/dev/null || true
-            done
-        else
-            docker rm _cache_test >/dev/null 2>&1
-        fi
+if [ -f "$IMAGES_CACHE" ]; then
+    echo "📦 Loading images from repo..."
+    #echo "📦 Loading cached images from disk..."
+    docker load -i "$IMAGES_CACHE" 2>/dev/null || true
+    _missing=0
+    for img in $PULLED_IMAGES; do
+        docker image inspect "$img" >/dev/null 2>&1 || _missing=1
+    done
+    if [ "$_missing" -eq 1 ]; then
+        echo "⚠️  Cache incomplete, missing images will be pulled..."
+        rm -f "$IMAGES_CACHE"
     fi
 fi
 

@@ -61,6 +61,8 @@ while true; do
 	daphne -b 0.0.0.0 -p 9000 config.asgi:application &
 	DAPHNE_PID=$!
 	wait "$DAPHNE_PID"
-	echo "Daphne exited, restarting..."
+	EXIT_CODE=$?
+	echo "⚠️ Daphne exited with code $EXIT_CODE at $(date -Iseconds), restarting in 2s..."
+	sleep 2
 done
 

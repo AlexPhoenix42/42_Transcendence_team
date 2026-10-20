@@ -61,7 +61,7 @@ class GameConsumer(AsyncWebsocketConsumer):
             self.is_spectator   = user not in [game.player1, game.player2]
 
             self.game_group_name   = f"game_{self.game_id}"
-            await self.channel_layer.group_add(
+            await self._group_add_safe(
                 self.game_group_name,
                 self.channel_name,
             )
@@ -362,10 +362,9 @@ class GameConsumer(AsyncWebsocketConsumer):
                     await sync_to_async(cache.set)(game_key, state, timeout=86400)
                     opponent_id = self.game.player2_id if self.user == self.game.player1 else self.game.player1_id
                     await self._finish_game(opponent_id, GameResultReason.TIMEOUT)
-                    await self.channel_layer.group_send(
-                        self.game_group_name,
-                        {"type": "game_over", "winner": opponent_id, "reason": GameResultReason.TIMEOUT},
-                    )
+                    await self._group_send_safe(
+                            self.game_group_name,
+                            {"type": "game_over", "winner": opponent_id, "reason": GameResultReason.TIMEOUT},)
                     return
                 clocks[mover_key] += timer["inc"]
 
@@ -400,7 +399,7 @@ class GameConsumer(AsyncWebsocketConsumer):
                 state["fen"] = new_fen
                 await sync_to_async(cache.set)(game_key, state, timeout=86400)
                 await self._finish_game(ai_user_id, "REPETITION")
-                await self.channel_layer.group_send(
+                await self._group_send_safe(
                     self.game_group_name,
                     {"type": "game_over", "winner": ai_user_id, "reason": "REPETITION"},
                 )
@@ -411,7 +410,7 @@ class GameConsumer(AsyncWebsocketConsumer):
                 state["fen"] = new_fen
                 await sync_to_async(cache.set)(game_key, state, timeout=86400)
                 await self._finish_game_draw()
-                await self.channel_layer.group_send(
+                await self._group_send_safe(
                     self.game_group_name,
                     {"type": "game_over", "winner": 0, "reason": "DRAW_REPETITION"},
                 )
@@ -426,7 +425,7 @@ class GameConsumer(AsyncWebsocketConsumer):
                 state["fen"] = new_fen
                 await sync_to_async(cache.set)(game_key, state, timeout=86400)
                 await self._finish_game(ai_user_id, "50_MOVES")
-                await self.channel_layer.group_send(
+                await self._group_send_safe(
                     self.game_group_name,
                     {"type": "game_over", "winner": ai_user_id, "reason": "50_MOVES"},
                 )
@@ -436,7 +435,7 @@ class GameConsumer(AsyncWebsocketConsumer):
                 state["fen"] = new_fen
                 await sync_to_async(cache.set)(game_key, state, timeout=86400)
                 await self._finish_game_draw()
-                await self.channel_layer.group_send(
+                await self._group_send_safe(
                     self.game_group_name,
                     {"type": "game_over", "winner": 0, "reason": "DRAW_50_MOVES"},
                 )
@@ -451,7 +450,7 @@ class GameConsumer(AsyncWebsocketConsumer):
                 state["fen"] = new_fen
                 await sync_to_async(cache.set)(game_key, state, timeout=86400)
                 await self._finish_game(ai_user_id, "INSUFFICIENT_MATERIAL")
-                await self.channel_layer.group_send(
+                await self._group_send_safe(
                     self.game_group_name,
                     {"type": "game_over", "winner": ai_user_id, "reason": "INSUFFICIENT_MATERIAL"},
                 )
@@ -461,7 +460,7 @@ class GameConsumer(AsyncWebsocketConsumer):
                 state["fen"] = new_fen
                 await sync_to_async(cache.set)(game_key, state, timeout=86400)
                 await self._finish_game_draw()
-                await self.channel_layer.group_send(
+                await self._group_send_safe(
                     self.game_group_name,
                     {"type": "game_over", "winner": 0, "reason": "DRAW_INSUFFICIENT"},
                 )
@@ -498,7 +497,7 @@ class GameConsumer(AsyncWebsocketConsumer):
 
         # ── 10. Broadcast new state ─────────────────────────────────────
         # Broadcast new state to both players
-        await self.channel_layer.group_send(
+        await self._group_send_safe(
             self.game_group_name,
             {
                 "type"      : "game_state_update",
@@ -512,7 +511,7 @@ class GameConsumer(AsyncWebsocketConsumer):
         if  engine_data.get("checkmate"):
             await self._finish_game(self.user.pk, GameResultReason.CHECKMATE)
 
-            await self.channel_layer.group_send(
+            await self._group_send_safe(
                 self.game_group_name,
                 {
                     "type"      : "game_over",
@@ -520,6 +519,7 @@ class GameConsumer(AsyncWebsocketConsumer):
                     "reason"    : GameResultReason.CHECKMATE,
                 },
             )
+
 
         # ── 12. AI turn ────────────────────────────────────────────────
         # If the next player is the AI, automatically request a move
@@ -575,7 +575,7 @@ class GameConsumer(AsyncWebsocketConsumer):
 
         await sync_to_async(cache.set)(game_key, state, timeout=86400)
 
-        await self.channel_layer.group_send(
+        await self._group_send_safe(
             self.game_group_name,
             {"type": "game_state_update", "state": state},
         )
@@ -618,7 +618,7 @@ class GameConsumer(AsyncWebsocketConsumer):
 
         await sync_to_async(cache.set)(game_key, state, timeout=86400)
 
-        await self.channel_layer.group_send(
+        await self._group_send_safe(
             self.game_group_name,
             {"type": "game_state_update", "state": state},
         )
@@ -630,6 +630,37 @@ class GameConsumer(AsyncWebsocketConsumer):
         if  detail:
             payload["detail"] = detail
         await self.send(text_data=json.dumps(payload))
+
+
+    async def _group_send_safe(self, group, message):
+        """group_send that logs instead of crashing Daphne."""
+        try:
+            await self.channel_layer.group_send(group, message)
+        except Exception:
+            logger.exception(
+                "group_send failed for game %s (type=%s)",
+                self.game_id, message.get("type", "?"),
+            )
+
+
+    async def _group_discard_safe(self, group, channel):
+        """group_discard that logs instead of crashing Daphne."""
+        try:
+            await self.channel_layer.group_discard(group, channel)
+        except Exception:
+            logger.exception(
+                "group_discard failed for game %s", self.game_id,
+            )
+
+
+    async def _group_add_safe(self, group, channel):
+        """group_add that logs instead of crashing Daphne."""
+        try:
+            await self.channel_layer.group_add(group, channel)
+        except Exception:
+            logger.exception(
+                "group_add failed for game %s", self.game_id,
+            )
 
 
     async def _get_ai_user_id(self) -> int | None:
@@ -679,7 +710,7 @@ class GameConsumer(AsyncWebsocketConsumer):
             state["fen"] = state["fen"]
             await sync_to_async(cache.set)(game_key, state, timeout=86400)
             await self._finish_game(self.user.pk, "STALEMATE")
-            await self.channel_layer.group_send(
+            await self._group_send_safe(
                 self.game_group_name,
                 {"type": "game_over", "winner": self.user.pk, "reason": "STALEMATE"},
             )
@@ -730,7 +761,7 @@ class GameConsumer(AsyncWebsocketConsumer):
             state["fen"] = new_fen
             await sync_to_async(cache.set)(game_key, state, timeout=86400)
             await self._finish_game(ai_user_id, "REPETITION")
-            await self.channel_layer.group_send(
+            await self._group_send_safe(
                 self.game_group_name,
                 {"type": "game_over", "winner": ai_user_id, "reason": "REPETITION"},
             )
@@ -742,7 +773,7 @@ class GameConsumer(AsyncWebsocketConsumer):
             state["fen"] = new_fen
             await sync_to_async(cache.set)(game_key, state, timeout=86400)
             await self._finish_game(ai_user_id, "50_MOVES")
-            await self.channel_layer.group_send(
+            await self._group_send_safe(
                 self.game_group_name,
                 {"type": "game_over", "winner": ai_user_id, "reason": "50_MOVES"},
             )
@@ -754,7 +785,7 @@ class GameConsumer(AsyncWebsocketConsumer):
             state["fen"] = new_fen
             await sync_to_async(cache.set)(game_key, state, timeout=86400)
             await self._finish_game(ai_user_id, "INSUFFICIENT_MATERIAL")
-            await self.channel_layer.group_send(
+            await self._group_send_safe(
                 self.game_group_name,
                 {"type": "game_over", "winner": ai_user_id, "reason": "INSUFFICIENT_MATERIAL"},
             )
@@ -806,7 +837,7 @@ class GameConsumer(AsyncWebsocketConsumer):
                     await sync_to_async(cache.set)(game_key, state, timeout=86400)
                     human_id = self.game.player1_id if str(self.game.player2_id) == mover_key else self.game.player2_id
                     await self._finish_game(human_id, GameResultReason.TIMEOUT)
-                    await self.channel_layer.group_send(
+                    await self._group_send_safe(
                         self.game_group_name,
                         {"type": "game_over", "winner": human_id, "reason": GameResultReason.TIMEOUT},
                     )
@@ -825,7 +856,7 @@ class GameConsumer(AsyncWebsocketConsumer):
             return
 
         # Broadcast
-        await self.channel_layer.group_send(
+        await self._group_send_safe(
             self.game_group_name,
             {"type": "game_state_update", "state": state},
         )
@@ -833,7 +864,7 @@ class GameConsumer(AsyncWebsocketConsumer):
         # Checkmate finalization
         if  engine_data.get("checkmate"):
             await self._finish_game(ai_user_id, GameResultReason.CHECKMATE)
-            await self.channel_layer.group_send(
+            await self._group_send_safe(
                 self.game_group_name,
                 {"type": "game_over", "winner": ai_user_id, "reason": GameResultReason.CHECKMATE},
             )
@@ -958,7 +989,7 @@ class GameConsumer(AsyncWebsocketConsumer):
                     await sync_to_async(cache.set)(game_key, state, timeout=86400)
 
             # Still leave the channel group
-            await self.channel_layer.group_discard(
+            await self._group_discard_safe(
                 self.game_group_name,
                 self.channel_name,
             )

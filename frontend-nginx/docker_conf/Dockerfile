@@ -1,4 +1,4 @@
-# frontend/docker_conf/Dockerfile
+# frontend-nginx/docker_conf/Dockerfile
 
 FROM			owasp/modsecurity-crs:4.25.1-nginx-alpine-lts
 

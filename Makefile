@@ -30,7 +30,7 @@ COMPOSE_FILE	:= docker-compose.yml
 COMPOSE			:= docker compose -f $(COMPOSE_FILE)
 DATA_DIR		:= $(HOME)/goinfre/trans_data
 
-.PHONY: all help build up down clean softclean fclean re logs status check
+.PHONY: all help build up down clean softclean fclean nukclean re logs status check
 
 # ── Default ───────────────────────────────────────────────────────
 
@@ -39,17 +39,20 @@ all:
 	@printf "  $(ROCKET_ICON)$(RAINBOW_ICON) $(BOLD)$(MAGENTA)$(NAME) Phoenix Edition $(PHOENIX_ICON)$(RESET)\n"
 	@printf "  $(BOLD)─────────────────────────────────────────$(RESET)\n"
 	@printf "\n"
-	@printf "  $(GREEN)1)$(RESET) Build images and start all containers            $(DIM)(compose up build)$(RESET)\n"
-	@printf "  $(GREEN)2)$(RESET) Start containers from existing images            $(DIM)(compose up)$(RESET)\n"
-	@printf "  $(GREEN)3)$(RESET) Stop all containers                              $(DIM)(compose down remove-orphans)$(RESET)\n"
-	@printf "  $(RED)4)$(RESET) Full clean and re-build images and containers    $(DIM)(fclean + build)$(RESET)\n"
-	@printf "  $(RED)5)$(RESET) Clean containers and images                      $(DIM)(compose down rmi all)$(RESET)\n"
-	@printf "  $(RED)6)$(RESET) Full clean, volumes, images, and trans data      $(DIM)(fclean)$(RESET)\n"
-	@printf "  $(YELLOW)7)$(RESET) Stream service logs                              $(DIM)(compose logs -f)$(RESET)\n"
-	@printf "  $(YELLOW)8)$(RESET) Display containers status                        $(DIM)(compose ps)$(RESET)\n"
-	@printf "  $(DIM)9) Exit without action$(RESET)\n"
+	@printf "  $(GREEN)1)$(RESET)  Build images and start all containers            $(DIM)(compose up build)$(RESET)\n"
+	@printf "  $(GREEN)2)$(RESET)  Start containers from existing images            $(DIM)(compose up)$(RESET)\n"
+	@printf "  $(GREEN)3)$(RESET)  Stop all containers                              $(DIM)(compose down remove-orphans)$(RESET)\n"
+	@printf "  $(RED)4)$(RESET)  Full clean and re-build                          $(DIM)(fclean + build)$(RESET)\n"
+	@printf "  $(RED)5)$(RESET)  Clean containers and images                      $(DIM)(compose down rmi all)$(RESET)\n"
+	@printf "  $(RED)6)$(RESET)  Soft clean, volumes and data (keep images)       $(DIM)(softclean)$(RESET)\n"
+	@printf "  $(RED)7)$(RESET)  Full clean, volumes, all project images, data    $(DIM)(fclean)$(RESET)\n"
+	@printf "  $(RED)8)$(RESET)  Nuclear: wipe ALL Docker artifacts on system     $(DIM)(nukclean)$(RESET)\n"
+	@printf "  $(YELLOW)9)$(RESET)  Display containers status                        $(DIM)(compose ps)$(RESET)\n"
+	@printf "  $(YELLOW)10)$(RESET) Stream service logs                              $(DIM)(compose logs -f)$(RESET)\n"
+	@printf "  $(YELLOW)11)$(RESET) Environment check                                $(DIM)(docker inventory)$(RESET)\n"
+	@printf "  $(DIM)0)  Exit without action$(RESET)\n"
 	@printf "\n"
-	@read -p "  Pick an option [1-9]: " choice; \
+	@read -p "  Pick an option [0-11]: " choice; \
 	case $$choice in \
 		1) printf "\n  $(ROCKET_ICON) This will build images and start all containers.\n"; \
 		   printf "  $(NUKE_ICON) $(BOLD)(1)$(RESET) Confirm  /  $(SHIELD_ICON) $(BOLD)(0)$(RESET) Cancel: "; \
@@ -66,7 +69,7 @@ all:
 		   read confirm; \
 		   if [ "$$confirm" = "1" ]; then $(MAKE) --no-print-directory down; \
 		   else printf "  $(SHIELD_ICON) $(DIM)Cancelled.$(RESET)\n"; fi ;; \
-		4) printf "\n  $(WARN_ICON)  This will wipe everything and rebuild.\n"; \
+		4) printf "\n  $(WARN_ICON)  This will wipe all project artifacts and rebuild.\n"; \
 		   printf "  $(NUKE_ICON) $(BOLD)(1)$(RESET) Confirm  /  $(SHIELD_ICON) $(BOLD)(0)$(RESET) Cancel: "; \
 		   read confirm; \
 		   if [ "$$confirm" = "1" ]; then $(MAKE) --no-print-directory re; \
@@ -76,14 +79,25 @@ all:
 		   read confirm; \
 		   if [ "$$confirm" = "1" ]; then $(MAKE) --no-print-directory clean; \
 		   else printf "  $(SHIELD_ICON) $(DIM)Cancelled.$(RESET)\n"; fi ;; \
-		6) printf "\n  $(WARN_ICON)  This will wipe all volumes, images, and trans data.\n"; \
+		6) printf "\n  $(WARN_ICON)  This will wipe volumes and data but keep images.\n"; \
+		   printf "  $(NUKE_ICON) $(BOLD)(1)$(RESET) Confirm  /  $(SHIELD_ICON) $(BOLD)(0)$(RESET) Cancel: "; \
+		   read confirm; \
+		   if [ "$$confirm" = "1" ]; then $(MAKE) --no-print-directory softclean; \
+		   else printf "  $(SHIELD_ICON) $(DIM)Cancelled.$(RESET)\n"; fi ;; \
+		7) printf "\n  $(WARN_ICON)  This will wipe all project volumes, images, and data.\n"; \
 		   printf "  $(NUKE_ICON) $(BOLD)(1)$(RESET) Confirm  /  $(SHIELD_ICON) $(BOLD)(0)$(RESET) Cancel: "; \
 		   read confirm; \
 		   if [ "$$confirm" = "1" ]; then $(MAKE) --no-print-directory fclean; \
 		   else printf "  $(SHIELD_ICON) $(DIM)Cancelled.$(RESET)\n"; fi ;; \
-		7) $(MAKE) --no-print-directory logs ;; \
-		8) $(MAKE) --no-print-directory status ;; \
-		9) printf "  $(DIM)Exiting.$(RESET)\n" ;; \
+		8) printf "\n  $(WARN_ICON)  $(RED)This will destroy ALL Docker artifacts on this system!$(RESET)\n"; \
+		   printf "  $(NUKE_ICON) $(BOLD)(1)$(RESET) Confirm  /  $(SHIELD_ICON) $(BOLD)(0)$(RESET) Cancel: "; \
+		   read confirm; \
+		   if [ "$$confirm" = "1" ]; then $(MAKE) --no-print-directory nukclean; \
+		   else printf "  $(SHIELD_ICON) $(DIM)Cancelled.$(RESET)\n"; fi ;; \
+		9) $(MAKE) --no-print-directory status ;; \
+		10) $(MAKE) --no-print-directory logs ;; \
+		11) $(MAKE) --no-print-directory check ;; \
+		0) printf "  $(DIM)Exiting.$(RESET)\n" ;; \
 		*) printf "  $(ERROR_ICON) $(RED)Invalid option.$(RESET)\n" ;; \
 	esac
 
@@ -100,12 +114,15 @@ help:
 	@printf "\n"
 	@printf "  $(RED)$(BOLD)Cleanup$(RESET)\n"
 	@printf "    $(CYAN)make clean$(RESET)          Clean containers and images\n"
-	@printf "    $(CYAN)make fclean$(RESET)         Full clean, volumes, images, and trans data\n"
+	@printf "    $(CYAN)make softclean$(RESET)      Soft clean: volumes and data (keep images)\n"
+	@printf "    $(CYAN)make fclean$(RESET)         Full clean: volumes, all project images, data\n"
+	@printf "    $(CYAN)make nukclean$(RESET)       Nuclear: wipe ALL Docker artifacts on system\n"
 	@printf "\n"
 	@printf "  $(YELLOW)$(BOLD)Monitoring$(RESET)\n"
+	@printf "    $(CYAN)make status$(RESET)         Display containers status\n"
 	@printf "    $(CYAN)make logs$(RESET)           Stream service logs (interactive picker)\n"
 	@printf "    $(CYAN)make logs-<svc>$(RESET)     Stream logs for a specific service\n"
-	@printf "    $(CYAN)make status$(RESET)         Display containers status\n"
+	@printf "    $(CYAN)make check$(RESET)          Environment check (containers, images, volumes)\n"
 	@printf "\n"
 
 # ── Core ──────────────────────────────────────────────────────────
@@ -146,9 +163,20 @@ fclean:
 	@$(COMPOSE) down --volumes --rmi all --remove-orphans 2>/dev/null || true
 	@docker rm -f $$(docker ps -a -q --filter "label=com.docker.compose.project" 2>/dev/null) 2>/dev/null || true
 	@docker rmi $$(docker images -q --filter "reference=trans-*" 2>/dev/null) 2>/dev/null || true
+	@$(COMPOSE) config --images 2>/dev/null | xargs -r docker rmi -f 2>/dev/null || true
+	@docker volume prune -f 2>/dev/null || true
 	@printf "$(CLEAN_ICON) $(BLUE)Wiping data directory:$(RESET) $(YELLOW)$(DATA_DIR)$(RESET)\n"
 	@sudo rm -rf $(DATA_DIR)
 	@printf "$(SUCCESS_ICON) $(GREEN)Full cleanup complete.$(RESET)\n"
+
+nukclean:
+	@printf "$(NUKE_ICON) $(RED)$(BOLD)Nuclear cleanup: EVERYTHING on Docker...$(RESET)\n"
+	@docker rm -f $$(docker ps -a -q 2>/dev/null) 2>/dev/null || true
+	@docker system prune -af 2>/dev/null || true
+	@docker volume prune -f 2>/dev/null || true
+	@printf "$(CLEAN_ICON) $(BLUE)Wiping data directory:$(RESET) $(YELLOW)$(DATA_DIR)$(RESET)\n"
+	@sudo rm -rf $(DATA_DIR)
+	@printf "$(SUCCESS_ICON) $(GREEN)Nuclear cleanup complete.$(RESET)\n"
 
 # ── Logs ──────────────────────────────────────────────────────────
 

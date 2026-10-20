@@ -2,6 +2,7 @@
 *.env
 *.env.bak
 *.env.secrets
+*.env.secrets.enc
 
 # ── JavaScript ───────────────────────────
 node_modules/
@@ -18,6 +19,7 @@ engine/engine
 engine/*.o
 engine/*.so
 engine/include/chess.hpp
+backend/chess_engine/bin/chess_engine
 
 # ── OS / editor junk ────────────────────
 .DS_Store
@@ -39,7 +41,4 @@ backend/django/media/
 vault/approle/
 vault/certs/
 vault/secrets/
-
-# ── Runtime data ─────────────────────────
-whiteboard/data/
 

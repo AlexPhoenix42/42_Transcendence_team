@@ -38,7 +38,7 @@ services:
       test: ["CMD-SHELL", "pg_isready -U \"$$(cat /dev/shm/vault-postgres-user)\" -d \"${DB_SERVER_DB}\""]
       interval:     5s
       timeout:      5s
-      retries:      5
+      retries:      20
       start_period: 300s
 
   redis:
@@ -51,7 +51,7 @@ services:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       timeout:  5s
-      retries:  5
+      retries:  20
 
   vault-init:
     build:
@@ -106,7 +106,7 @@ services:
       test: ["CMD", "sh", "-c", "VAULT_CACERT=/vault/certs/ca-cert.pem vault status > /dev/null 2>&1"]
       interval:     10s
       timeout:      30s
-      retries:      10
+      retries:      20
       start_period: 300s
 
   mailpit:
@@ -236,7 +236,7 @@ services:
       test: ["CMD", "python", "manage.py", "healthcheck"]
       interval:     10s
       timeout:      30s
-      retries:      10
+      retries:      20
       start_period: 300s
 
   timeout_checker:
@@ -279,7 +279,7 @@ services:
      
   frontend_nginx:
     build:
-      context:      frontend
+      context:      frontend-nginx
       dockerfile:   docker_conf/Dockerfile
       pull:         false
       cache_from:
@@ -292,11 +292,11 @@ services:
       - "4443:4443"
       - "8000:8000"
     volumes:
-      - ./frontend/logs/modsecurity:/var/log/modsecurity
+      - ./frontend-nginx/logs/modsecurity:/var/log/modsecurity
       - ./frontend-react/dist:/usr/share/nginx/html:ro
       - ./vault/certs:/vault/certs:ro
       - ./backend/django/media:/usr/share/nginx/media:ro
-      - ./frontend/docker_conf/nginx-dep.conf:/etc/nginx/templates/nginx.conf.template:ro
+      - ./frontend-nginx/docker_conf/nginx-dep.conf:/etc/nginx/templates/nginx.conf.template:ro
     depends_on:
       backend_django:
         condition:  service_healthy
@@ -310,7 +310,7 @@ services:
       test: ["CMD-SHELL", "wget --no-check-certificate --quiet --tries=1 --spider https://127.0.0.1:4443/health || exit 1"]
       interval:     30s
       timeout:      10s
-      retries:      3
+      retries:      20
       start_period: 5s
 
   backup:
@@ -353,8 +353,10 @@ services:
     image:                lovasoa/wbo:latest
     container_name:       trans_whiteboard
     restart:              unless-stopped
+    environment:
+      WBO_BASE_PATH:      /wbo
     volumes:
-      - ./whiteboard/data:/opt/app/server-data
+      - ${HOME}/goinfre/trans_data/wbo_data:/opt/app/server-data
     networks:
       - trans_net
 
