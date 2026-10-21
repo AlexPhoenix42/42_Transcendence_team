@@ -205,5 +205,7 @@ class ConfirmDeleteView(APIView):
             logger.error("Account deletion failed for user %s: %s", username, e)
             return Response({"error": "Failed to delete account."}, status=500)
 
-        return Response({"status": f"Account '{username}' has been permanently deleted."})
+        response = Response({"status": f"Account '{username}' has been permanently deleted."})
+        response.delete_cookie("refresh_token", path="/", samesite="Strict")
+        return response
 

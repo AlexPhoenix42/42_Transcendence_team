@@ -64,13 +64,18 @@ export async function api(url: string, options: ApiOptions = {}): Promise<Respon
     try {
         let resp = await fetch(url, { ...options, headers, credentials: "include" })
 
-        if (resp.status === 401 && accessToken) {
-            const refreshed = await refreshAccessToken()
-            if (refreshed) {
-                headers["Authorization"] = `Bearer ${accessToken}`
-                resp = await fetch(url, { ...options, headers, credentials: "include" })
-            }
-        }
+		if (resp.status === 401 && accessToken) {
+			const refreshed = await refreshAccessToken()
+			if (refreshed) {
+				headers["Authorization"] = `Bearer ${accessToken}`
+				resp = await fetch(url, { ...options, headers, credentials: "include" })
+			} else {
+				if (!window.location.pathname.startsWith("/delete-account")) {
+					window.location.href = "/login"
+				}
+				return resp
+			}
+		}
 
         return resp
     } catch {
