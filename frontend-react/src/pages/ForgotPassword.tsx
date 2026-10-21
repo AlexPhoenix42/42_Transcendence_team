@@ -18,7 +18,7 @@ export default function ForgotPassword() {
 
 		const err = validateEmail(email)
         if (err) {
-            setError(err)
+            setError(t(err))
             return
         }
 

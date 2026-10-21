@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { api } from "../api/client.ts"
 import { useAuth } from "../context/AuthContext.tsx"
+import { useT } from "../i18n/I18nProvider.tsx"
 
 interface Player {
     username: string
@@ -23,8 +24,9 @@ interface GooseGame {
 }
 
 export default function GooseLobby() {
-    const { user } = useAuth()
-    const navigate = useNavigate()
+    const { user }	= useAuth()
+	const t			= useT()
+    const navigate	= useNavigate()
 
     const [games, setGames] = useState<GooseGame[]>([])
     const [name, setName] = useState("")

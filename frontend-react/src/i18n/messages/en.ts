@@ -802,6 +802,28 @@ export const en = {
     "srv.winnerRequired":           "A winner is required.",
     "srv.winnerNotPlayer":          "The winner must be one of the match players.",
     "srv.winnerNotFound":           "Winner not found.",
+
+	// --- Validation ---
+    "validate.username.required":       "Username is required",
+    "validate.username.minLength":      "Username must be at least 3 characters",
+    "validate.username.maxLength":      "Username must be under 30 characters",
+    "validate.username.format":         "Username can only contain letters, numbers, _ and -",
+    "validate.email.required":          "Email is required",
+    "validate.email.format":            "Invalid email format",
+    "validate.password.required":       "Password is required",
+    "validate.password.minLength":      "Password must be at least 8 characters",
+    "validate.password.maxLength":      "Password must be under 128 characters",
+    "validate.password.uppercase":      "Password must contain an uppercase letter",
+    "validate.password.lowercase":      "Password must contain a lowercase letter",
+    "validate.password.number":         "Password must contain a number",
+    "validate.password.confirmRequired":"Please confirm your password",
+    "validate.password.mismatch":       "Passwords do not match",
+    "validate.required.username":       "Username is required",
+    "validate.required.password":       "Password is required",
+    "validate.maxLength.displayname":   "Display name must be under 50 characters",
+    "validate.maxLength.bio":           "Bio must be under 500 characters",
+    "validate.2fa.required":            "Code is required",
+    "validate.2fa.format":              "Code must be 6 digits",
 } as const
 
 // Every valid key in the app. Deriving this from the object rather than

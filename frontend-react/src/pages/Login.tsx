@@ -101,7 +101,7 @@ export default function Login() {
 		const err = validateRequired(username, "Username")
             || validateRequired(password, "Password")
         if (err) {
-            setError(err)
+            setError(t(err))
             return
         }
 
@@ -163,7 +163,7 @@ export default function Login() {
 
 		const err = validateUsername(newUsername)
         if (err) {
-            setError(err)
+            setError(t(err))
             return
         }
 

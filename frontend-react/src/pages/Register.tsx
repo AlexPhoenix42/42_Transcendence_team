@@ -26,7 +26,7 @@ export default function Register() {
             || validatePassword(password)
             || validatePasswordMatch(password, password2)
         if (err) {
-			setError(err)
+			setError(t(err))
             return
         }
 

@@ -33,7 +33,7 @@ export default function Verify2FA() {
 
 		const err = validate2FACode(code)
         if (err) {
-            setError(err)
+            setError(t(err))
             return
         }
 

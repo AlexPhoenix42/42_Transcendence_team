@@ -4,48 +4,48 @@
 // Backend validates too — this is for immediate user feedback.
 
 export function validateUsername(val: string): string | null {
-    if (!val.trim()) return "Username is required"
-    if (val.length < 3) return "Username must be at least 3 characters"
-    if (val.length > 30) return "Username must be under 30 characters"
-    if (!/^[a-zA-Z0-9_-]+$/.test(val)) return "Username can only contain letters, numbers, _ and -"
+    if (!val.trim()) return "validate.username.required"
+    if (val.length < 3) return "validate.username.minLength"
+    if (val.length > 30) return "validate.username.maxLength"
+    if (!/^[a-zA-Z0-9_-]+$/.test(val)) return "validate.username.format"
     return null
 }
 
 export function validateEmail(val: string): string | null {
-    if (!val.trim()) return "Email is required"
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) return "Invalid email format"
+    if (!val.trim()) return "validate.email.required"
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) return "validate.email.format"
     return null
 }
 
 export function validatePassword(val: string): string | null {
-    if (!val) return "Password is required"
-    if (val.length < 8) return "Password must be at least 8 characters"
-    if (val.length > 128) return "Password must be under 128 characters"
-    if (!/[A-Z]/.test(val)) return "Password must contain an uppercase letter"
-    if (!/[a-z]/.test(val)) return "Password must contain a lowercase letter"
-    if (!/[0-9]/.test(val)) return "Password must contain a number"
+    if (!val) return "validate.password.required"
+    if (val.length < 8) return "validate.password.minLength"
+    if (val.length > 128) return "validate.password.maxLength"
+    if (!/[A-Z]/.test(val)) return "validate.password.uppercase"
+    if (!/[a-z]/.test(val)) return "validate.password.lowercase"
+    if (!/[0-9]/.test(val)) return "validate.password.number"
     return null
 }
 
 export function validatePasswordMatch(password: string, confirm: string): string | null {
-    if (!confirm) return "Please confirm your password"
-    if (password !== confirm) return "Passwords do not match"
+    if (!confirm) return "validate.password.confirmRequired"
+    if (password !== confirm) return "validate.password.mismatch"
     return null
 }
 
 export function validateRequired(val: string, field: string): string | null {
-    if (!val.trim()) return `${field} is required`
+    if (!val.trim()) return `validate.required.${field.toLowerCase()}`
     return null
 }
 
 export function validateMaxLength(val: string, max: number, field: string): string | null {
-    if (val.length > max) return `${field} must be under ${max} characters`
+    if (val.length > max) return `validate.maxLength.${field.toLowerCase().replace(" ", "")}`
     return null
 }
 
 export function validate2FACode(val: string): string | null {
-    if (!val.trim()) return "Code is required"
-    if (!/^\d{6}$/.test(val.trim())) return "Code must be 6 digits"
+    if (!val.trim()) return "validate.2fa.required"
+    if (!/^\d{6}$/.test(val.trim())) return "validate.2fa.format"
     return null
 }
 

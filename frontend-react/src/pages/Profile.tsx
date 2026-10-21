@@ -90,7 +90,7 @@ export default function Profile() {
 		const err = validateMaxLength(dispname, 50, "Display name")
             || validateMaxLength(bio, 500, "Bio")
         if (err) {
-            setError(err)
+            setError(t(err))
             return
         }
 
@@ -195,7 +195,7 @@ export default function Profile() {
 
 		const err = validate2FACode(confirmCode)
         if (err) {
-            setError(err)
+            setError(t(err))
 			setConfirming2FA(true)
             return
         }
