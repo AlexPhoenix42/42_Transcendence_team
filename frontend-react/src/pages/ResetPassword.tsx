@@ -39,7 +39,7 @@ export default function ResetPassword() {
 		const err = validatePassword(password)
             || validatePasswordMatch(password, password2)
         if (err) {
-            setError(t("common.error.passwordMismatch"))
+			setError(err)
             return
         }
 
