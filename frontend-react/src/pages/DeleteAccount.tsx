@@ -49,9 +49,15 @@ export default function DeleteAccount() {
                 {status === "confirm" && (
                     <>
                         <h1 className="text-2xl font-bold text-red-400 mb-4">Delete Account</h1>
-                        <p className="text-gray-300 mb-6">
-                            This action is permanent. All your data will be deleted and cannot be recovered.
-                        </p>
+						<p className="text-gray-300 mb-4">
+							This action is permanent and cannot be undone. The following data will be permanently deleted:
+						</p>
+						<ul className="text-gray-400 text-left mb-6 space-y-1 list-disc list-inside">
+							<li>Your profile and account information</li>
+							<li>Your email address</li>
+							<li>Your game history and statistics</li>
+							<li>Your chat messages and friend list</li>
+						</ul>
                         <div className="flex gap-3 justify-center">
                             <button
                                 onClick={handleConfirm}
@@ -77,6 +83,13 @@ export default function DeleteAccount() {
                         <p className="text-gray-400">Redirecting to login...</p>
                     </>
                 )}
+				{status === "done" && (
+					<>
+						<p className="text-green-400 font-semibold mb-2">Account successfully deleted.</p>
+						<p className="text-gray-400 mb-2">All your personal data, including your email address, profile, game history, chat messages and friend list, has been permanently removed.</p>
+						<p className="text-gray-400">Redirecting to login...</p>
+					</>
+				)}
                 {status === "error" && (
                     <p className="text-red-400">{error}</p>
                 )}

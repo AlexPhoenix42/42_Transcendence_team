@@ -156,7 +156,13 @@ class RequestDeleteView(APIView):
             send_mail(
                 "Account Deletion Request",
                 f"Hello {user.username},\n\n"
-                f"You requested to delete your account. This action is permanent.\n\n"
+                f"You requested to delete your account. This action is permanent "
+                f"and cannot be undone.\n\n"
+                f"The following data will be permanently deleted:\n"
+                f"- Your profile and account information\n"
+                f"- Your email address\n"
+                f"- Your game history and statistics\n"
+                f"- Your chat messages and friend list\n\n"
                 f"Click the link below to confirm:\n"
                 f"{delete_url}\n\n"
                 f"This link will expire in 1 hour.\n"
