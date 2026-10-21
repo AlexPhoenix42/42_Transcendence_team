@@ -45,6 +45,9 @@ import ResetPassword from "./pages/ResetPassword.tsx"
 
 import Verify2FA from "./pages/Verify2FA.tsx"
 
+import NotFound from "./pages/NotFound.tsx"
+
+
 export const router = createBrowserRouter([
     {
         element: <AuthLayout />,
@@ -100,5 +103,6 @@ export const router = createBrowserRouter([
             },
         ],
     },
+	{ path: "*", element: <NotFound /> },
 ])
 
