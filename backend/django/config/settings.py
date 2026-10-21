@@ -399,3 +399,5 @@ else:
 if  os.environ.get("BEHIND_PROXY", "false").lower() == "true":
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
+SECURE_REDIRECT_EXEMPT = [r'^metrics']
+

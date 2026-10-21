@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# up_dep_secure.sh
 set -euo pipefail
 
 PLAIN_ENV=".env"
@@ -140,17 +141,20 @@ echo "⏳ Waiting for Vault to pass healthcheck..."
 $COMPOSE up -d --wait --wait-timeout 120 vault
 
 echo "⏳ Phase 3: Starting database..."
-$COMPOSE up -d --wait --wait-timeout 300 postgres
+$COMPOSE up -d --wait --wait-timeout 3600 postgres
 
-echo "⏳ Phase 4: Starting application services..."
-$COMPOSE up -d --wait --wait-timeout 300 backend_django timeout_checker backup
+echo "⏳ Phase 4: Ensuring prometheus_monitor user..."
+bash scripts_dev/setup_monitor_user.sh
 
-echo "⏳ Phase 5: Starting frontend and monitoring..."
-$COMPOSE up -d --wait --wait-timeout 300 frontend_nginx chess_engine stockfish_ai
+echo "⏳ Phase 5: Starting application services..."
+$COMPOSE up -d --wait --wait-timeout 3600 backend_django timeout_checker backup
+
+echo "⏳ Phase 6: Starting frontend and monitoring..."
+$COMPOSE up -d --wait --wait-timeout 3600 frontend_nginx chess_engine stockfish_ai
 $COMPOSE up -d prometheus grafana nginx-exporter postgres-exporter redis-exporter
 
 
-# Phase 6: Verify backend is responding
+# Phase 7: Verify backend is responding
 echo "⏳ Waiting for backend to be ready..."
 _n=0
 until docker exec trans_frontend_nginx curl -sf -o /dev/null -H "Host: localhost" http://backend_django:9000/api/login/ 2>/dev/null; do

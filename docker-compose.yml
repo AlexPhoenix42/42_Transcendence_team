@@ -36,10 +36,10 @@ services:
       - trans_net
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U \"$$(cat /dev/shm/vault-postgres-user)\" -d \"${DB_SERVER_DB}\""]
-      interval:     5s
-      timeout:      5s
-      retries:      20
+      interval:     10s
+      timeout:      30s
       start_period: 300s
+      retries:      20
 
   redis:
     image:            redis:8-alpine
@@ -49,9 +49,10 @@ services:
       - trans_net
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout:  5s
-      retries:  20
+      interval:     10s
+      timeout:      30s
+      start_period: 300s
+      retries:      20
 
   vault-init:
     build:
@@ -106,14 +107,20 @@ services:
       test: ["CMD", "sh", "-c", "VAULT_CACERT=/vault/certs/ca-cert.pem vault status > /dev/null 2>&1"]
       interval:     10s
       timeout:      30s
-      retries:      20
       start_period: 300s
+      retries:      20
 
   mailpit:
     image:            axllent/mailpit
     container_name:   mailpit
     restart:          unless-stopped
     command:          --webroot /mailpit
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8025/mailpit/"]
+      interval:     10s
+      timeout:      30s
+      start_period: 300s
+      retries:      5
     #ports:
     #  - "8025:8025" # web UI
     expose:
@@ -238,8 +245,8 @@ services:
       test: ["CMD", "python", "manage.py", "healthcheck"]
       interval:     10s
       timeout:      30s
-      retries:      20
       start_period: 300s
+      retries:      20
 
   timeout_checker:
     build:
@@ -310,10 +317,10 @@ services:
       - trans_net
     healthcheck:
       test: ["CMD-SHELL", "wget --no-check-certificate --quiet --tries=1 --spider https://127.0.0.1:4443/health || exit 1"]
-      interval:     30s
-      timeout:      10s
+      interval:     10s
+      timeout:      30s
+      start_period: 300s
       retries:      20
-      start_period: 5s
 
   backup:
     build:

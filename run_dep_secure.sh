@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# run_dep_secure.sh
 set -euo pipefail
 
 PLAIN_ENV=".env"
@@ -223,15 +224,19 @@ $COMPOSE up -d --wait --wait-timeout 120 vault
 
 # Phase 3: Database
 echo "⏳ Phase 3: Starting database..."
-$COMPOSE up -d --wait --wait-timeout 300 postgres
+$COMPOSE up -d --wait --wait-timeout 3600 postgres
 
-# Phase 4: App layer
-echo "⏳ Phase 4: Starting application services..."
-$COMPOSE up -d --wait --wait-timeout 300 backend_django timeout_checker backup
+# Phase 4: Monitoring user
+echo "⏳ Phase 4: Setup prometheus_monitor user..."
+bash scripts_dev/setup_monitor_user.sh
 
-# Phase 5: Frontend + chess + monitoring
-echo "⏳ Phase 5: Starting frontend and monitoring..."
-$COMPOSE up -d --wait --wait-timeout 300 frontend_nginx chess_engine stockfish_ai
+# Phase 5: App layer
+echo "⏳ Phase 5: Starting application services..."
+$COMPOSE up -d --wait --wait-timeout 3600 backend_django timeout_checker backup
+
+# Phase 6: Frontend + chess + monitoring
+echo "⏳ Phase 6: Starting frontend and monitoring..."
+$COMPOSE up -d --wait --wait-timeout 3600 frontend_nginx chess_engine stockfish_ai
 $COMPOSE up -d prometheus grafana nginx-exporter postgres-exporter redis-exporter
 
 # Save pulled images to disk cache
@@ -239,7 +244,7 @@ if [ ! -f "$IMAGES_CACHE" ]; then
     docker save $PULLED_IMAGES -o "$IMAGES_CACHE" 2>/dev/null || true
 fi
 
-# Phase 6: Verify backend is responding
+# Phase 7: Verify backend is responding
 echo "⏳ Waiting for backend to be ready..."
 _n=0
 until docker exec trans_frontend_nginx curl -sf -o /dev/null -H "Host: localhost" http://backend_django:9000/api/login/ 2>/dev/null; do

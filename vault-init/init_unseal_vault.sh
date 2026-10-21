@@ -1,4 +1,5 @@
 #!/bin/sh
+# vault-init/init_unseal_vault.sh
 set -e
 
 #export VAULT_ADDR="https://vault:8200"
