@@ -1,0 +1,17 @@
+global:
+  smtp_smarthost: 'mailpit:1025'
+  smtp_from: 'alertmanager@transcendence.local'
+  smtp_require_tls: false
+
+route:
+  receiver: 'mailpit'
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+
+receivers:
+  - name: 'mailpit'
+    email_configs:
+      - to: 'admin@transcendence.local'
+        send_resolved: true
+

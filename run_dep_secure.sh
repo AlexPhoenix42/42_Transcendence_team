@@ -172,7 +172,7 @@ fi
 
 # Cache pulled images to disk
 IMAGES_CACHE="$HOME/goinfre/trans_cache/pulled-images.tar"
-PULLED_IMAGES="redis:8-alpine axllent/mailpit lovasoa/wbo:latest prom/prometheus:latest grafana/grafana:latest nginx/nginx-prometheus-exporter:latest prometheuscommunity/postgres-exporter:latest oliver006/redis_exporter:latest"
+PULLED_IMAGES="redis:8-alpine axllent/mailpit lovasoa/wbo:latest prom/prometheus:latest prom/alertmanager:latest grafana/grafana:latest nginx/nginx-prometheus-exporter:latest prometheuscommunity/postgres-exporter:latest oliver006/redis_exporter:latest"
 
 # Load from cache if images are missing
 if [ -f "$IMAGES_CACHE" ]; then
@@ -237,7 +237,7 @@ $COMPOSE up -d --wait --wait-timeout 3600 backend_django timeout_checker backup
 # Phase 6: Frontend + chess + monitoring
 echo "⏳ Phase 6: Starting frontend and monitoring..."
 $COMPOSE up -d --wait --wait-timeout 3600 frontend_nginx chess_engine stockfish_ai
-$COMPOSE up -d prometheus grafana nginx-exporter postgres-exporter redis-exporter
+$COMPOSE up -d prometheus grafana alertmanager nginx-exporter postgres-exporter redis-exporter
 
 # Save pulled images to disk cache
 if [ ! -f "$IMAGES_CACHE" ]; then

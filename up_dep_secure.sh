@@ -102,7 +102,7 @@ fi
 
 # 10. Load cached images if missing
 IMAGES_CACHE="$HOME/goinfre/trans_cache/pulled-images.tar"
-PULLED_IMAGES="redis:8-alpine axllent/mailpit lovasoa/wbo:latest prom/prometheus:latest grafana/grafana:latest nginx/nginx-prometheus-exporter:latest prometheuscommunity/postgres-exporter:latest oliver006/redis_exporter:latest"
+PULLED_IMAGES="redis:8-alpine axllent/mailpit lovasoa/wbo:latest prom/prometheus:latest prom/alertmanager:latest grafana/grafana:latest nginx/nginx-prometheus-exporter:latest prometheuscommunity/postgres-exporter:latest oliver006/redis_exporter:latest"
 
 if ! docker image inspect redis:8-alpine >/dev/null 2>&1; then
     if [ -f "$IMAGES_CACHE" ]; then
@@ -151,8 +151,7 @@ $COMPOSE up -d --wait --wait-timeout 3600 backend_django timeout_checker backup
 
 echo "⏳ Phase 6: Starting frontend and monitoring..."
 $COMPOSE up -d --wait --wait-timeout 3600 frontend_nginx chess_engine stockfish_ai
-$COMPOSE up -d prometheus grafana nginx-exporter postgres-exporter redis-exporter
-
+$COMPOSE up -d prometheus grafana alertmanager nginx-exporter postgres-exporter redis-exporter
 
 # Phase 7: Verify backend is responding
 echo "⏳ Waiting for backend to be ready..."

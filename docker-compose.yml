@@ -421,6 +421,15 @@ services:
     networks:
       - trans_net
 
+  alertmanager:
+    image: prom/alertmanager:latest
+    container_name: trans_alertmanager
+    restart: unless-stopped
+    volumes:
+      - ./monitoring/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+    networks:
+      - trans_net
+
   # Exposes nginx stub_status as Prometheus metrics.
   # Needs the stub_status server block added to your nginx config (see snippet).
   nginx-exporter:
