@@ -164,6 +164,40 @@ export default function Status() {
 					</div>
 				)}
 
+				{/* Quick links */}
+				<div className="mt-8">
+					<h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">{t("status.quickLinks")}</h2>
+					<div className="grid grid-cols-3 gap-3">
+						<a
+							href="/grafana"
+							target="_blank"
+							rel="noopener noreferrer"
+							className="flex items-center gap-2 px-4 py-3 rounded-lg border border-gray-700 bg-gray-800 hover:border-blue-500/50 hover:bg-gray-750 transition"
+						>
+							<span>📊</span>
+							<span className="text-sm text-white font-medium">Grafana</span>
+						</a>
+						<a
+							href="/mailpit"
+							target="_blank"
+							rel="noopener noreferrer"
+							className="flex items-center gap-2 px-4 py-3 rounded-lg border border-gray-700 bg-gray-800 hover:border-blue-500/50 hover:bg-gray-750 transition"
+						>
+							<span>📧</span>
+							<span className="text-sm text-white font-medium">Mailpit</span>
+						</a>
+						<a
+							href="/docs"
+							target="_blank"
+							rel="noopener noreferrer"
+							className="flex items-center gap-2 px-4 py-3 rounded-lg border border-gray-700 bg-gray-800 hover:border-blue-500/50 hover:bg-gray-750 transition"
+						>
+							<span>📚</span>
+							<span className="text-sm text-white font-medium">API Docs</span>
+						</a>
+					</div>
+				</div>
+
 				{/* Footer */}
 				<div className="mt-8 pt-4 border-t border-gray-700 flex justify-between items-center">
 					<span className="text-xs text-gray-500">
@@ -175,7 +209,7 @@ export default function Status() {
 						onClick={() => { setLoading(true); fetchHealth() }}
 						className="text-xs text-gray-400 border border-gray-700 px-3 py-1 rounded hover:text-white hover:border-gray-500 transition"
 					>
-						Refresh now
+						{t("status.refresh")}
 					</button>
 				</div>
 			</div>

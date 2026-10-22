@@ -638,6 +638,8 @@ export const en = {
     "status.loading":     "Loading…",
     "status.unreachable": "Cannot reach health API",
     "status.lastUpdated": "Last updated {time}",
+	"status.quickLinks":    "Quick Access",
+	"status.refresh":       "Refresh now",
 
     // -- Achievements --------------------------------------------------
     "achievements.title": "Chess Achievements",
