@@ -805,6 +805,24 @@ export const en = {
     "srv.winnerNotPlayer":          "The winner must be one of the match players.",
     "srv.winnerNotFound":           "Winner not found.",
 
+	// --- GDPR ---
+	"gdpr.title":           "Your Data",
+	"gdpr.exportDesc":      "Download a copy of all your data.",
+	"gdpr.exportBtn":       "Export my data",
+	"gdpr.exportSuccess":   "Data exported successfully.",
+	"gdpr.exportError":     "Failed to export data.",
+	"gdpr.importDesc":      "Restore your display name, bio, and friend list from a previous export.",
+	"gdpr.importTooLarge":  "File too large (max 10MB).",
+	"gdpr.importSuccess":   "Import completed.",
+	"gdpr.importError":     "Failed to import data.",
+	"gdpr.importUpdated":   "Updated",
+	"gdpr.importSkipped":   "Skipped",
+	"gdpr.importErrors":    "Errors",
+	"gdpr.deleteDesc":      "Permanently delete your account. A confirmation email will be sent.",
+	"gdpr.deleteBtn":       "Delete my account",
+	"gdpr.deleteSuccess":   "Confirmation email sent. Check your inbox.",
+	"gdpr.deleteError":     "Failed to send confirmation.",
+
 	// --- Validation ---
     "validate.username.required":       "Username is required",
     "validate.username.minLength":      "Username must be at least 3 characters",

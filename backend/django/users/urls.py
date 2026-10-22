@@ -2,7 +2,7 @@ from django.urls import path
 
 from .views import MeView, LeaderboardView, MatchHistoryView, UserAnalyticsView, UserListView, UserUpdateView, UserDeleteView, AchievementsView
 
-from .gdpr import ExportDataView, RequestDeleteView, ConfirmDeleteView
+from .gdpr import ExportDataView, ImportDataView, RequestDeleteView, ConfirmDeleteView
 
 from .api_key_views import GenerateAPIKeyView, RevokeAPIKeyView, APIKeyStatusView
 
@@ -102,6 +102,10 @@ urlpatterns = [
         name='confirm-delete'
     ),
 
-    
+    path(
+        'me/import/',
+        ImportDataView.as_view(),
+        name='import-dat',
+    ),
 ]
 

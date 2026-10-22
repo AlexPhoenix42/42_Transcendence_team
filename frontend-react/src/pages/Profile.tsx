@@ -497,58 +497,117 @@ export default function Profile() {
             </div>
 			{/* GDPR Section */}
             <div className="bg-gray-800 rounded-lg p-6 border border-gray-700 mt-6">
-                <h2 className="text-xl text-white font-semibold mb-4">Your Data</h2>
+                <h2 className="text-xl text-white font-semibold mb-4">{t("gdpr.title")}</h2>
 
                 <div className="space-y-4">
+                    {/* Export */}
                     <div>
-                        <p className="text-gray-400 mb-2">Download a copy of all your data in JSON format.</p>
-                        <button
-                            onClick={async () => {
-                                try {
-                                    const resp = await api("/api/me/export/")
-                                    if (resp.ok) {
-                                        const blob = await resp.blob()
-                                        const url = URL.createObjectURL(blob)
-                                        const a = document.createElement("a")
-                                        a.href = url
-                                        a.download = "my_data.json"
-                                        a.click()
-                                        URL.revokeObjectURL(url)
-                                        setSuccess("Data exported successfully.")
-                                    } else {
-                                        setError("Failed to export data.")
+                        <p className="text-gray-400 mb-2">{t("gdpr.exportDesc")}</p>
+                        <div className="flex gap-2">
+                            <select
+                                id="export-format"
+                                defaultValue="json"
+                                className="px-3 py-2 bg-gray-900 text-white border border-gray-700 rounded focus:outline-none focus:border-blue-500"
+                            >
+                                <option value="json">JSON</option>
+                                <option value="csv">CSV</option>
+                                <option value="xml">XML</option>
+                            </select>
+                            <button
+                                onClick={async () => {
+                                    const fmt = (document.getElementById("export-format") as HTMLSelectElement).value
+                                    const ext = fmt
+                                    try {
+										const resp = await api(`/api/me/export/?export_format=${fmt}`)
+                                        if (resp.ok) {
+                                            const blob = await resp.blob()
+                                            const url = URL.createObjectURL(blob)
+                                            const a = document.createElement("a")
+                                            a.href = url
+                                            a.download = `my_data.${ext}`
+                                            a.click()
+                                            URL.revokeObjectURL(url)
+                                            setSuccess(t("gdpr.exportSuccess"))
+                                        } else {
+                                            setError(t("gdpr.exportError"))
+                                        }
+                                    } catch {
+                                        setError(t("common.error.network"))
                                     }
-                                } catch {
-                                    setError("Network error.")
-                                }
-                            }}
-                            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                        >
-                            Export my data
-                        </button>
+                                }}
+                                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                            >
+                                {t("gdpr.exportBtn")}
+                            </button>
+                        </div>
                     </div>
 
                     <hr className="border-gray-700" />
 
+                    {/* Import */}
                     <div>
-                        <p className="text-gray-400 mb-2">Permanently delete your account. A confirmation email will be sent.</p>
+                        <p className="text-gray-400 mb-2">{t("gdpr.importDesc")}</p>
+                        <input
+                            type="file"
+                            accept=".json"
+                            onChange={async (e) => {
+                                const file = e.target.files?.[0]
+                                if (!file) return
+                                if (file.size > 10 * 1024 * 1024) {
+                                    setError(t("gdpr.importTooLarge"))
+                                    return
+                                }
+                                const formData = new FormData()
+                                formData.append("file", file)
+                                try {
+                                    const resp = await fetch("/api/me/import/", {
+                                        method: "POST",
+                                        headers: { "Authorization": `Bearer ${getAccessToken()}` },
+                                        credentials: "include",
+                                        body: formData,
+                                    })
+                                    const data = await resp.json()
+                                    if (resp.ok) {
+                                        const parts: string[] = []
+                                        if (data.updated?.length) parts.push(`${t("gdpr.importUpdated")}: ${data.updated.join(", ")}`)
+                                        if (data.skipped?.length) parts.push(`${t("gdpr.importSkipped")}: ${data.skipped.join(", ")}`)
+                                        if (data.errors?.length) parts.push(`${t("gdpr.importErrors")}: ${data.errors.join(", ")}`)
+                                        setSuccess(parts.join(" | ") || t("gdpr.importSuccess"))
+                                        fetchProfile()
+                                    } else {
+                                        setError(data.error || t("gdpr.importError"))
+                                    }
+                                } catch {
+                                    setError(t("common.error.network"))
+                                }
+                                e.target.value = ""
+                            }}
+                            className="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 file:cursor-pointer"
+                        />
+                    </div>
+
+                    <hr className="border-gray-700" />
+
+                    {/* Delete account */}
+                    <div>
+                        <p className="text-gray-400 mb-2">{t("gdpr.deleteDesc")}</p>
                         <button
                             onClick={async () => {
                                 try {
                                     const resp = await api("/api/me/delete/", { method: "POST" })
                                     if (resp.ok) {
-                                        setSuccess("Confirmation email sent. Check your inbox.")
+                                        setSuccess(t("gdpr.deleteSuccess"))
                                     } else {
                                         const data = await resp.json()
-                                        setError(data.error || "Failed to send confirmation.")
+                                        setError(data.error || t("gdpr.deleteError"))
                                     }
                                 } catch {
-                                    setError("Network error.")
+                                    setError(t("common.error.network"))
                                 }
                             }}
                             className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
                         >
-                            Delete my account
+                            {t("gdpr.deleteBtn")}
                         </button>
                     </div>
                 </div>
