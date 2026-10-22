@@ -147,14 +147,35 @@ class UserAnalyticsView(APIView):
         from chess_game.models import Game, GameStatus
         from django.db.models import Q
         from django.utils import timezone
-        from datetime import timedelta
+        from datetime import timedelta, datetime
 
         user = cast(User, request.user)
 
+        # Date range filtering
+        date_from = request.query_params.get("from")
+        date_to = request.query_params.get("to")
+
+        # Order oldest-first so we can build rating history chronologically
         games = Game.objects.filter(
             Q(player1=user) | Q(player2=user),
             status=GameStatus.FINISHED,
-        ).select_related("player1", "player2", "winner").order_by("-updated_at")
+        ).select_related("player1", "player2", "winner").order_by("updated_at")
+
+        if date_from:
+            try:
+                dt = datetime.strptime(date_from, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+                games = games.filter(updated_at__gte=dt)
+            except ValueError:
+                pass
+
+        if date_to:
+            try:
+                dt = datetime.strptime(date_to, "%Y-%m-%d").replace(
+                    hour=23, minute=59, second=59, tzinfo=timezone.utc
+                )
+                games = games.filter(updated_at__lte=dt)
+            except ValueError:
+                pass
 
         total = games.count()
         if total == 0:
@@ -172,6 +193,8 @@ class UserAnalyticsView(APIView):
                 "most_played": [],
                 "longest_win_streak": 0,
                 "current_streak": {"type": "none", "count": 0},
+                "rating_history": [],
+                "daily_results": [],
             })
 
         now = timezone.now()
@@ -188,13 +211,16 @@ class UserAnalyticsView(APIView):
         human_wins = 0
         human_total = 0
         total_moves = 0
-        recent_form = []
+        recent_results = []
         opponent_counts: dict[str, int] = {}
 
         longest_streak = 0
-        current_streak_type = "none"
-        current_streak_count = 0
         temp_streak = 0
+
+        # For charts
+        rating_history = []
+        simulated_rating = 1200
+        daily_buckets: dict[str, dict[str, int]] = {}
 
         for g in games:
             is_p1 = g.player1 == user
@@ -231,9 +257,8 @@ class UserAnalyticsView(APIView):
             # Moves
             total_moves += len(g.moves) if g.moves else 0
 
-            # Recent form (last 10)
-            if len(recent_form) < 10:
-                recent_form.append(result)
+            # Collect all results (oldest first)
+            recent_results.append(result)
 
             # Opponent tracking
             opponent = g.player2 if is_p1 else g.player1
@@ -248,7 +273,35 @@ class UserAnalyticsView(APIView):
             else:
                 temp_streak = 0
 
+            # Rating progression (simulated: +25 win, -25 loss, +0 draw)
+            if result == "win":
+                simulated_rating += 25
+            elif result == "loss":
+                simulated_rating = max(100, simulated_rating - 25)
+
+            rating_history.append({
+                "date": g.updated_at.strftime("%Y-%m-%d"),
+                "rating": simulated_rating,
+                "result": result,
+            })
+
+            # Daily results (for bar chart)
+            day_key = g.updated_at.strftime("%Y-%m-%d")
+            if day_key not in daily_buckets:
+                daily_buckets[day_key] = {"wins": 0, "losses": 0, "draws": 0}
+            if result == "win":
+                daily_buckets[day_key]["wins"] += 1
+            elif result == "loss":
+                daily_buckets[day_key]["losses"] += 1
+            else:
+                daily_buckets[day_key]["draws"] += 1
+
+        # Recent form: last 10, newest first
+        recent_form = list(reversed(recent_results[-10:]))
+
         # Current streak (from most recent game)
+        current_streak_type = "none"
+        current_streak_count = 0
         if recent_form:
             current_streak_type = recent_form[0]
             current_streak_count = 0
@@ -263,6 +316,12 @@ class UserAnalyticsView(APIView):
 
         games_this_week = games.filter(updated_at__gte=week_ago).count()
         games_this_month = games.filter(updated_at__gte=month_ago).count()
+
+        # Build sorted daily results
+        daily_results = [
+            {"date": d, **counts}
+            for d, counts in sorted(daily_buckets.items())
+        ]
 
         return Response({
             "total_games": total,
@@ -282,6 +341,8 @@ class UserAnalyticsView(APIView):
             "most_played": [{"username": u, "games": c} for u, c in most_played],
             "longest_win_streak": longest_streak,
             "current_streak": {"type": current_streak_type, "count": current_streak_count},
+            "rating_history": rating_history,
+            "daily_results": daily_results,
         })
 # ===========================================================================
 
