@@ -288,7 +288,7 @@ export default function ChessLobby() {
                                     onChange={(e) => setPvpPractice(e.target.checked)}
                                     className="rounded"
                                 />
-                                Practice mode (allows undo + FEN changes)
+                                {t("chessLobby.practiceMode")}
 								</label>
                             </div>
                             <button type="submit" className="w-full py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
@@ -342,7 +342,7 @@ export default function ChessLobby() {
                                     onChange={(e) => setPvpPractice(e.target.checked)}
                                     className="rounded"
                                 />
-                                Practice mode (allows undo + FEN changes)
+                                {t("chessLobby.practiceMode")}
 								</label>
                             </div>
                             <button type="submit" className="w-full py-2 bg-green-600 text-white rounded hover:bg-green-700">

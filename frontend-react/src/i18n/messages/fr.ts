@@ -628,6 +628,8 @@ export const fr: MessageTable = {
     "status.loading":     "Chargement…",
     "status.unreachable": "Impossible de contacter l'API de santé",
     "status.lastUpdated": "Dernière mise à jour {time}",
+    "status.quickLinks":  "Accès rapide",
+    "status.refresh":     "Actualiser",
 
     // -- Achievements --------------------------------------------------
     "achievements.title": "Succès aux échecs",
@@ -792,5 +794,98 @@ export const fr: MessageTable = {
     "srv.winnerRequired":           "Un gagnant est requis.",
     "srv.winnerNotPlayer":          "Le gagnant doit être l'un des joueurs du match.",
     "srv.winnerNotFound":           "Gagnant introuvable.",
+
+    // --- Validation ---
+    "validate.username.required":        "Le nom d'utilisateur est requis",
+    "validate.username.minLength":       "Le nom d'utilisateur doit comporter au moins 3 caractères",
+    "validate.username.maxLength":       "Le nom d'utilisateur doit comporter moins de 30 caractères",
+    "validate.username.format":          "Le nom d'utilisateur ne peut contenir que des lettres, chiffres, _ et -",
+    "validate.email.required":           "L'e-mail est requis",
+    "validate.email.format":             "Format d'e-mail invalide",
+    "validate.password.required":        "Le mot de passe est requis",
+    "validate.password.minLength":       "Le mot de passe doit comporter au moins 8 caractères",
+    "validate.password.maxLength":       "Le mot de passe doit comporter moins de 128 caractères",
+    "validate.password.uppercase":       "Le mot de passe doit contenir une majuscule",
+    "validate.password.lowercase":       "Le mot de passe doit contenir une minuscule",
+    "validate.password.number":          "Le mot de passe doit contenir un chiffre",
+    "validate.password.confirmRequired": "Veuillez confirmer votre mot de passe",
+    "validate.password.mismatch":        "Les mots de passe ne correspondent pas",
+    "validate.required.username":        "Le nom d'utilisateur est requis",
+    "validate.required.password":        "Le mot de passe est requis",
+    "validate.maxLength.displayname":    "Le nom d'affichage doit comporter moins de 50 caractères",
+    "validate.maxLength.bio":            "La bio doit comporter moins de 500 caractères",
+    "validate.2fa.required":             "Le code est requis",
+    "validate.2fa.format":               "Le code doit comporter 6 chiffres",
+
+    // -- Profile -- avatar & data export --------------------------------
+    "profile.error.avatarType":   "L'avatar doit être au format JPEG, PNG, GIF ou WebP",
+    "profile.error.avatarSize":   "L'avatar doit faire moins de 5 Mo",
+    "profile.error.exportFailed": "Impossible d'exporter les données.",
+
+    // -- Delete account --------------------------------------------------
+    "deleteAccount.error.invalidLink": "Lien invalide.",
+    "deleteAccount.error.failed":      "Impossible de supprimer le compte.",
+    "deleteAccount.title":             "Supprimer le compte",
+    "deleteAccount.warning":           "Cette action est définitive et ne peut pas être annulée. Les données suivantes seront définitivement supprimées :",
+    "deleteAccount.list.profile":      "Votre profil et les informations de votre compte",
+    "deleteAccount.list.email":        "Votre adresse e-mail",
+    "deleteAccount.list.history":      "Votre historique de parties et vos statistiques",
+    "deleteAccount.list.chat":         "Vos messages de discussion et votre liste d'amis",
+    "deleteAccount.confirm":           "Oui, supprimer mon compte",
+    "deleteAccount.deleting":          "Suppression de votre compte...",
+    "deleteAccount.done.simple":       "Compte supprimé.",
+    "deleteAccount.done.title":        "Compte supprimé avec succès.",
+    "deleteAccount.done.body":         "Toutes vos données personnelles, y compris votre adresse e-mail, votre profil, votre historique de parties, vos messages de discussion et votre liste d'amis, ont été définitivement supprimées.",
+    "deleteAccount.done.redirecting":  "Redirection vers la connexion...",
+
+    // -- Admin dashboard -- final sweep ----------------------------------
+    "admin.error.nameRequired":    "Le nom du tournoi est requis",
+    "admin.error.nameTooLong":     "Le nom du tournoi doit comporter moins de 50 caractères",
+    "admin.confirmDeleteUser":     "Voulez-vous vraiment supprimer l'utilisateur « {name} » ? Cette action est irréversible.",
+    "admin.msg.userDeleted":       "Utilisateur « {name} » supprimé",
+    "admin.msg.tournamentCreated": "Tournoi « {name} » créé",
+    "admin.creating":              "Création...",
+    "admin.disable":               "Désactiver",
+    "admin.enable":                "Activer",
+    "admin.aiNone":                "Aucune",
+    "admin.aiCount":               "{n} IA",
+
+    // -- Chess game -- final sweep ---------------------------------------
+    "chess.error.invalidPosition": "Position de l'échiquier invalide reçue",
+
+    // -- Chess lobby -- final sweep ---------------------------------------
+    "chessLobby.practiceMode": "Mode entraînement (autorise les annulations et changements de FEN)",
+
+    // -- Goose lobby -- final sweep ---------------------------------------
+    "gooseLobby.playerCount":  "{count}/{max} joueurs",
+    "gooseLobby.by":           "par {name}",
+    "gooseLobby.deleteRoom":   "Supprimer la salle",
+    "gooseLobby.error.cancel": "Impossible de supprimer la salle",
+
+    // -- Goose game -- final sweep -----------------------------------------
+    "goose.turnSuffix":              " joue",
+    "goose.rollShort":               "🎲 Lancer",
+    "goose.leave":                   "Quitter",
+    "goose.spectating":              "👁 Spectateur",
+    "goose.waitingForCount":         "En attente de {count}/{max} joueurs...",
+    "goose.waitingForPlayerTurn":    "En attente de {token} {name}...",
+    "goose.wizardPausedShort":       "🧙 En attente...",
+    "goose.wizardPausedLong":        "🧙 En attente du magicien...",
+    "goose.wizardQuestioningOther":  "🧙 Le Magicien Gris interroge quelqu'un, en attente de sa réponse...",
+    "goose.wizardWins":              "🧙 Le Magicien Gris gagne !",
+    "goose.wizardWinsBody":          "Tous les joueurs sont en prison, personne n'a pu finir la partie.",
+    "goose.winnerHeading":           "🏆 Gagnant !",
+    "goose.winnerWins":              "🏆 {name} gagne !",
+    "goose.log.wizardWins":          "🧙 Tous les joueurs sont en prison — le Magicien Gris gagne !",
+    "goose.log.wizardInterrogates":  "🧙 Le Magicien Gris interroge {name} !",
+    "goose.squareAbbrev":            "case {n}",
+    "goose.legend.goose":            "🪿 Oie (double)",
+    "goose.legend.bridge":           "🌉 Pont (→12)",
+    "goose.legend.inn":              "🏨 Auberge (passe 1)",
+    "goose.legend.well":             "🕳️ Puits (passe 1)",
+    "goose.legend.maze":             "🌀 Labyrinthe (→30)",
+    "goose.legend.prison":           "⛓️ Prison (passe 2)",
+    "goose.legend.death":            "💀 Mort (→départ)",
+    "goose.legend.finish":           "🏁 Arrivée (63)",
 } as const
 

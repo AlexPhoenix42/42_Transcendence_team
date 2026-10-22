@@ -15,7 +15,7 @@ export default function DeleteAccount() {
     useEffect(() => {
         if (!token || !uid) {
             setStatus("error")
-            setError("Invalid link.")
+            setError(t("deleteAccount.error.invalidLink"))
         }
     }, [token, uid])
 
@@ -34,11 +34,11 @@ export default function DeleteAccount() {
                 setTimeout(() => navigate("/login"), 3000)
             } else {
                 const data = await resp.json()
-                setError(data.error || "Failed to delete account.")
+                setError(data.error || t("deleteAccount.error.failed"))
                 setStatus("error")
             }
         } catch {
-            setError("Network error.")
+            setError(t("common.error.network"))
             setStatus("error")
         }
     }
@@ -48,46 +48,46 @@ export default function DeleteAccount() {
             <div className="max-w-md w-full bg-gray-800 rounded-lg p-8 border border-gray-700 text-center">
                 {status === "confirm" && (
                     <>
-                        <h1 className="text-2xl font-bold text-red-400 mb-4">Delete Account</h1>
+                        <h1 className="text-2xl font-bold text-red-400 mb-4">{t("deleteAccount.title")}</h1>
 						<p className="text-gray-300 mb-4">
-							This action is permanent and cannot be undone. The following data will be permanently deleted:
+							{t("deleteAccount.warning")}
 						</p>
 						<ul className="text-gray-400 text-left mb-6 space-y-1 list-disc list-inside">
-							<li>Your profile and account information</li>
-							<li>Your email address</li>
-							<li>Your game history and statistics</li>
-							<li>Your chat messages and friend list</li>
+							<li>{t("deleteAccount.list.profile")}</li>
+							<li>{t("deleteAccount.list.email")}</li>
+							<li>{t("deleteAccount.list.history")}</li>
+							<li>{t("deleteAccount.list.chat")}</li>
 						</ul>
                         <div className="flex gap-3 justify-center">
                             <button
                                 onClick={handleConfirm}
                                 className="px-6 py-2 bg-red-600 text-white rounded hover:bg-red-700 font-semibold"
                             >
-                                Yes, delete my account
+                                {t("deleteAccount.confirm")}
                             </button>
                             <button
                                 onClick={() => navigate("/")}
                                 className="px-6 py-2 bg-gray-700 text-white rounded hover:bg-gray-600"
                             >
-                                Cancel
+                                {t("common.cancel")}
                             </button>
                         </div>
                     </>
                 )}
                 {status === "deleting" && (
-                    <p className="text-gray-300">Deleting your account...</p>
+                    <p className="text-gray-300">{t("deleteAccount.deleting")}</p>
                 )}
                 {status === "done" && (
                     <>
-                        <p className="text-green-400 font-semibold mb-2">Account deleted.</p>
-                        <p className="text-gray-400">Redirecting to login...</p>
+                        <p className="text-green-400 font-semibold mb-2">{t("deleteAccount.done.simple")}</p>
+                        <p className="text-gray-400">{t("deleteAccount.done.redirecting")}</p>
                     </>
                 )}
 				{status === "done" && (
 					<>
-						<p className="text-green-400 font-semibold mb-2">Account successfully deleted.</p>
-						<p className="text-gray-400 mb-2">All your personal data, including your email address, profile, game history, chat messages and friend list, has been permanently removed.</p>
-						<p className="text-gray-400">Redirecting to login...</p>
+						<p className="text-green-400 font-semibold mb-2">{t("deleteAccount.done.title")}</p>
+						<p className="text-gray-400 mb-2">{t("deleteAccount.done.body")}</p>
+						<p className="text-gray-400">{t("deleteAccount.done.redirecting")}</p>
 					</>
 				)}
                 {status === "error" && (

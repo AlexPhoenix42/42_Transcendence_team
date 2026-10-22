@@ -35,7 +35,7 @@ interface AuditEntry {
 }
 
 export default function AdminDashboard() {
-    const { t, n, ts } = useI18n()
+    const { t, n, tn, ts } = useI18n()
     const { user } = useAuth()
     const navigate = useNavigate()
 
@@ -141,7 +141,7 @@ export default function AdminDashboard() {
     }
 
     async function deleteUser(userId: number, username: string) {
-        if (!confirm(`Are you sure you want to delete user "${username}"? This cannot be undone.`)) return
+        if (!confirm(t("admin.confirmDeleteUser", { name: username }))) return
 
         setUserError("")
         setUserSuccess("")
@@ -150,7 +150,7 @@ export default function AdminDashboard() {
                 method: "DELETE",
             })
             if (resp.ok) {
-                setUserSuccess(`User "${username}" deleted`)
+                setUserSuccess(t("admin.msg.userDeleted", { name: username }))
                 fetchUsers()
             } else {
                 const data = await resp.json()
@@ -212,12 +212,12 @@ export default function AdminDashboard() {
         setLoading(true)
 
 		if (!name.trim()) {
-            setError("Tournament name is required")
+            setError(t("admin.error.nameRequired"))
             setLoading(false)
             return
         }
         if (name.trim().length > 50) {
-            setError("Tournament name must be under 50 characters")
+            setError(t("admin.error.nameTooLong"))
             setLoading(false)
             return
         }
@@ -279,7 +279,7 @@ export default function AdminDashboard() {
                 }
             }
 
-            setSuccess(`Tournament "${name}" created`)
+            setSuccess(t("admin.msg.tournamentCreated", { name }))
             setName("")
             setMaxPlayers("4")
             setAiCount("0")
@@ -379,7 +379,7 @@ export default function AdminDashboard() {
                                     className="w-full px-4 py-2 bg-gray-900 text-white border border-gray-700 rounded focus:outline-none focus:border-blue-500"
                                 >
                                     {[2, 3, 4, 5, 6, 7, 8, 16].map((n) => (
-                                        <option key={n} value={n}>{n} players</option>
+                                        <option key={n} value={n}>{tn("common.players", n, { count: n })}</option>
                                     ))}
                                 </select>
                             </div>
@@ -392,7 +392,7 @@ export default function AdminDashboard() {
                                     className="w-full px-4 py-2 bg-gray-900 text-white border border-gray-700 rounded focus:outline-none focus:border-blue-500"
                                 >
                                     {Array.from({ length: parseInt(maxPlayers) }, (_, i) => (
-                                        <option key={i} value={i}>{i === 0 ? "None" : `${i} AI`}</option>
+                                        <option key={i} value={i}>{i === 0 ? t("admin.aiNone") : t("admin.aiCount", { n: i })}</option>
                                     ))}
                                 </select>
                             </div>
@@ -427,7 +427,7 @@ export default function AdminDashboard() {
                             disabled={loading}
                             className="w-full py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 font-semibold"
                         >
-                            {loading ? "Creating..." : "Create Tournament"}
+                            {loading ? t("admin.creating") : t("admin.tab.createTournament")}
                         </button>
                     </form>
                 </div>
@@ -521,7 +521,7 @@ export default function AdminDashboard() {
                                                     : "bg-green-800 text-green-300 hover:bg-green-700"
                                             }`}
                                         >
-                                            {u.is_active ? "Disable" : "Enable"}
+                                            {u.is_active ? t("admin.disable") : t("admin.enable")}
                                         </button>
 
                                         <button
