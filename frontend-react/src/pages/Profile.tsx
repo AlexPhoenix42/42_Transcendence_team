@@ -424,7 +424,7 @@ export default function Profile() {
                             <code className="text-green-400 bg-gray-900 px-3 py-1 rounded text-sm block mt-1 break-all">{totpSecret}</code>
                         </div>
 
-                        <form onSubmit={handleConfirm2FA} className="space-y-3">
+                        <form onSubmit={handleConfirm2FA} noValidate className="space-y-3">
                             <input
                                 type="text"
                                 placeholder={t("profile.2fa.confirmPlaceholder")}

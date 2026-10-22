@@ -352,7 +352,7 @@ export default function AdminDashboard() {
                         </div>
                     )}
 
-                    <form onSubmit={createTournament} className="space-y-4">
+                    <form onSubmit={createTournament} noValidate className="space-y-4">
                         <div>
                             <label className="text-gray-400 text-sm block mb-1">{t("admin.form.name")}</label>
                             <input

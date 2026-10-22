@@ -261,7 +261,7 @@ export default function Login() {
                     </div>
 
                     {showNewUsernameInput && (
-                        <form onSubmit={handleResolveUsername} className="space-y-2">
+                        <form onSubmit={handleResolveUsername} noValidate className="space-y-2">
                             <input
                                 type="text"
                                 placeholder={t("login.conflict.newPlaceholder")}
@@ -288,7 +288,7 @@ export default function Login() {
                 </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} noValidate className="space-y-4">
                 {error && (
                     <div className="bg-red-900/50 border border-red-500 text-red-300 px-4 py-2 rounded">
                         {error}
