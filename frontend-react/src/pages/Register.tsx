@@ -64,7 +64,7 @@ export default function Register() {
                 {t("register.title")}
             </h1>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} noValidate className="space-y-4">
                 {error && (
                     <div className="bg-red-900/50 border border-red-500 text-red-300 px-4 py-2 rounded">
                         {error}
