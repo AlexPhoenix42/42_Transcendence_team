@@ -131,11 +131,11 @@ export default function Profile() {
 
 		const allowedTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"]
         if (!allowedTypes.includes(file.type)) {
-            setError("Avatar must be JPEG, PNG, GIF, or WebP")
+            setError(t("profile.error.avatarType"))
             return
         }
         if (file.size > 5 * 1024 * 1024) {
-            setError("Avatar must be under 5MB")
+            setError(t("profile.error.avatarSize"))
             return
         }
 
@@ -516,10 +516,10 @@ export default function Profile() {
                                         URL.revokeObjectURL(url)
                                         setSuccess("Data exported successfully.")
                                     } else {
-                                        setError("Failed to export data.")
+                                        setError(t("profile.error.exportFailed"))
                                     }
                                 } catch {
-                                    setError("Network error.")
+                                    setError(t("common.error.network"))
                                 }
                             }}
                             className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
@@ -543,7 +543,7 @@ export default function Profile() {
                                         setError(data.error || "Failed to send confirmation.")
                                     }
                                 } catch {
-                                    setError("Network error.")
+                                    setError(t("common.error.network"))
                                 }
                             }}
                             className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
@@ -590,7 +590,7 @@ export default function Profile() {
                                             setApiKeyPrefix(data.api_key.substring(0, 8))
                                             setSuccess("New API key generated.")
                                         }
-                                    } catch { setError("Network error.") }
+                                    } catch { setError(t("common.error.network")) }
                                 }}
                                 className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
                             >
@@ -606,7 +606,7 @@ export default function Profile() {
                                             setNewApiKey("")
                                             setSuccess("API key revoked.")
                                         }
-                                    } catch { setError("Network error.") }
+                                    } catch { setError(t("common.error.network")) }
                                 }}
                                 className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
                             >
@@ -628,7 +628,7 @@ export default function Profile() {
                                         setApiKeyPrefix(data.api_key.substring(0, 8))
                                         setSuccess("API key generated.")
                                     }
-                                } catch { setError("Network error.") }
+                                } catch { setError(t("common.error.network")) }
                             }}
                             className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
                         >

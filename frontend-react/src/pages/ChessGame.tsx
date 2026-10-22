@@ -211,7 +211,7 @@ export default function ChessGame() {
         clocks?: Record<string, number>
     }) {
 		if (!data.fen || data.fen.split(" ").length < 2) {
-			setError("Invalid board position received")
+			setError(t("chess.error.invalidPosition"))
             return
 		}
 

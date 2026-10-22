@@ -826,6 +826,77 @@ export const en = {
     "validate.maxLength.bio":           "Bio must be under 500 characters",
     "validate.2fa.required":            "Code is required",
     "validate.2fa.format":              "Code must be 6 digits",
+
+    // -- Profile -- avatar & data export --------------------------------
+    "profile.error.avatarType":    "Avatar must be JPEG, PNG, GIF, or WebP",
+    "profile.error.avatarSize":    "Avatar must be under 5MB",
+    "profile.error.exportFailed":  "Failed to export data.",
+
+    // -- Delete account --------------------------------------------------
+    "deleteAccount.error.invalidLink": "Invalid link.",
+    "deleteAccount.error.failed":      "Failed to delete account.",
+    "deleteAccount.title":             "Delete Account",
+    "deleteAccount.warning":           "This action is permanent and cannot be undone. The following data will be permanently deleted:",
+    "deleteAccount.list.profile":      "Your profile and account information",
+    "deleteAccount.list.email":        "Your email address",
+    "deleteAccount.list.history":      "Your game history and statistics",
+    "deleteAccount.list.chat":         "Your chat messages and friend list",
+    "deleteAccount.confirm":           "Yes, delete my account",
+    "deleteAccount.deleting":          "Deleting your account...",
+    "deleteAccount.done.simple":       "Account deleted.",
+    "deleteAccount.done.title":        "Account successfully deleted.",
+    "deleteAccount.done.body":         "All your personal data, including your email address, profile, game history, chat messages and friend list, has been permanently removed.",
+    "deleteAccount.done.redirecting":  "Redirecting to login...",
+
+    // -- Admin dashboard -- final sweep ----------------------------------
+    "admin.error.nameRequired":    "Tournament name is required",
+    "admin.error.nameTooLong":     "Tournament name must be under 50 characters",
+    "admin.confirmDeleteUser":     "Are you sure you want to delete user \"{name}\"? This cannot be undone.",
+    "admin.msg.userDeleted":       "User \"{name}\" deleted",
+    "admin.msg.tournamentCreated": "Tournament \"{name}\" created",
+    "admin.creating":              "Creating...",
+    "admin.disable":               "Disable",
+    "admin.enable":                "Enable",
+    "admin.aiNone":                "None",
+    "admin.aiCount":               "{n} AI",
+
+    // -- Chess game -- final sweep ---------------------------------------
+    "chess.error.invalidPosition": "Invalid board position received",
+
+    // -- Chess lobby -- final sweep ---------------------------------------
+    "chessLobby.practiceMode": "Practice mode (allows undo + FEN changes)",
+
+    // -- Goose lobby -- final sweep ---------------------------------------
+    "gooseLobby.playerCount":  "{count}/{max} players",
+    "gooseLobby.by":           "by {name}",
+    "gooseLobby.deleteRoom":   "Delete room",
+    "gooseLobby.error.cancel": "Failed to delete room",
+
+    // -- Goose game -- final sweep -----------------------------------------
+    "goose.turnSuffix":              "'s turn",
+    "goose.rollShort":               "🎲 Roll",
+    "goose.leave":                   "Leave",
+    "goose.spectating":              "👁 Spectating",
+    "goose.waitingForCount":         "Waiting for {count}/{max} players...",
+    "goose.waitingForPlayerTurn":    "Waiting for {token} {name}...",
+    "goose.wizardPausedShort":       "🧙 Waiting...",
+    "goose.wizardPausedLong":        "🧙 Waiting for the wizard...",
+    "goose.wizardQuestioningOther":  "🧙 The Grey Wizard is questioning someone, waiting for their answer...",
+    "goose.wizardWins":              "🧙 The Grey Wizard wins!",
+    "goose.wizardWinsBody":          "All players are in prison, nobody managed to finish the game.",
+    "goose.winnerHeading":           "🏆 Winner!",
+    "goose.winnerWins":              "🏆 {name} wins!",
+    "goose.log.wizardWins":          "🧙 All players are in prison — the Grey Wizard wins!",
+    "goose.log.wizardInterrogates":  "🧙 The Grey Wizard interrogates {name}!",
+    "goose.squareAbbrev":            "sq {n}",
+    "goose.legend.goose":            "🪿 Goose (double)",
+    "goose.legend.bridge":           "🌉 Bridge (→12)",
+    "goose.legend.inn":              "🏨 Inn (skip 1)",
+    "goose.legend.well":             "🕳️ Well (skip 1)",
+    "goose.legend.maze":             "🌀 Maze (→30)",
+    "goose.legend.prison":           "⛓️ Prison (skip 2)",
+    "goose.legend.death":            "💀 Death (→start)",
+    "goose.legend.finish":           "🏁 Finish (63)",
 } as const
 
 // Every valid key in the app. Deriving this from the object rather than

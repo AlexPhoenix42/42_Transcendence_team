@@ -481,10 +481,10 @@ export default function TournamentDetail() {
                         <div key={roundNb} className="mb-6">
                             <h3 className="text-lg font-semibold text-gray-300 mb-3">
                                 {roundNb === roundNumbers[roundNumbers.length - 1] && roundNumbers.length > 1
-                                    ? "Final"
+                                    ? t("bracket.final")
                                     : roundNumbers.length > 2 && roundNb === roundNumbers[roundNumbers.length - 2]
-                                    ? "Semi-Final"
-                                    : `Round ${roundNb}`
+                                    ? t("bracket.semiFinals")
+                                    : t("bracket.round", { n: roundNb })
                                 }
                             </h3>
                             <div className="space-y-2">
@@ -501,7 +501,7 @@ export default function TournamentDetail() {
                                                     ? "text-red-400"
                                                     : "text-white"
                                             }`}>
-                                                {match.player1 || "TBD"}
+                                                {match.player1 || t("bracket.tbd")}
                                             </span>
                                             <span className="text-gray-500">vs</span>
                                             <span className={`font-semibold ${
@@ -511,7 +511,7 @@ export default function TournamentDetail() {
                                                     ? "text-red-400"
                                                     : "text-white"
                                             }`}>
-                                                {match.player2 || "TBD"}
+                                                {match.player2 || t("bracket.tbd")}
                                             </span>
                                             <span className={`text-sm ${matchStatusColor(match.status)}`}>
                                                 {match.status}
@@ -534,10 +534,10 @@ export default function TournamentDetail() {
                                                     className="px-3 py-1 bg-gray-700 text-white rounded hover:bg-gray-600 text-sm"
                                                 >
                                                     {match.status === "IN_PROGRESS" && (match.player1 === user?.username || match.player2 === user?.username)
-                                                        ? "Play"
+                                                        ? t("bracket.play")
                                                         : match.status === "IN_PROGRESS"
-                                                        ? "Watch"
-                                                        : "View"}
+                                                        ? t("bracket.watch")
+                                                        : t("bracket.view")}
                                                 </button>
                                             )}
                                         </div>

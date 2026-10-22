@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react"
 import Wizard3D from "./Wizard3D.tsx"
+import { useI18n } from "../i18n/I18nProvider.tsx"
+import type { MessageKey } from "../i18n/messages/en.ts"
 
 interface PlayerData {
     username: string
@@ -24,27 +26,27 @@ const PLAYER_TOKENS = ["🐸", "🦊", "🐻", "🐰", "🦉", "🐱"]
 export const PLAYER_HOP_MS = 260 // per-square hop duration, slowed down so moves are easy to follow
 export const WIZARD_HOP_MS = 420 // slower than player moves so each hop is clearly visible
 
-const SPECIAL_SQUARES: Record<number, { icon: string; label: string; bg: string; border: string }> = {
-    5:  { icon: "🪿", label: "Goose",  bg: "#166534", border: "#22c55e" },
-    6:  { icon: "🌉", label: "Bridge", bg: "#1e3a5f", border: "#60a5fa" },
-    9:  { icon: "🪿", label: "Goose",  bg: "#166534", border: "#22c55e" },
-    14: { icon: "🪿", label: "Goose",  bg: "#166534", border: "#22c55e" },
-    18: { icon: "🪿", label: "Goose",  bg: "#166534", border: "#22c55e" },
-    19: { icon: "🏨", label: "Inn",    bg: "#78350f", border: "#f59e0b" },
-    23: { icon: "🪿", label: "Goose",  bg: "#166534", border: "#22c55e" },
-    27: { icon: "🪿", label: "Goose",  bg: "#166534", border: "#22c55e" },
-    31: { icon: "🕳️", label: "Well",   bg: "#164e63", border: "#22d3ee" },
-    32: { icon: "🪿", label: "Goose",  bg: "#166534", border: "#22c55e" },
-    36: { icon: "🪿", label: "Goose",  bg: "#166534", border: "#22c55e" },
-    41: { icon: "🪿", label: "Goose",  bg: "#166534", border: "#22c55e" },
-    42: { icon: "🌀", label: "Maze",   bg: "#4c1d95", border: "#a78bfa" },
-    45: { icon: "🪿", label: "Goose",  bg: "#166534", border: "#22c55e" },
-    50: { icon: "🪿", label: "Goose",  bg: "#166534", border: "#22c55e" },
-    52: { icon: "⛓️", label: "Prison", bg: "#374151", border: "#9ca3af" },
-    54: { icon: "🪿", label: "Goose",  bg: "#166534", border: "#22c55e" },
-    58: { icon: "💀", label: "Death",  bg: "#7f1d1d", border: "#f87171" },
-    59: { icon: "🪿", label: "Goose",  bg: "#166534", border: "#22c55e" },
-    63: { icon: "🏁", label: "Finish", bg: "#713f12", border: "#facc15" },
+const SPECIAL_SQUARES: Record<number, { icon: string; labelKey: MessageKey; bg: string; border: string }> = {
+    5:  { icon: "🪿", labelKey: "square.goose",  bg: "#166534", border: "#22c55e" },
+    6:  { icon: "🌉", labelKey: "square.bridge", bg: "#1e3a5f", border: "#60a5fa" },
+    9:  { icon: "🪿", labelKey: "square.goose",  bg: "#166534", border: "#22c55e" },
+    14: { icon: "🪿", labelKey: "square.goose",  bg: "#166534", border: "#22c55e" },
+    18: { icon: "🪿", labelKey: "square.goose",  bg: "#166534", border: "#22c55e" },
+    19: { icon: "🏨", labelKey: "square.inn",    bg: "#78350f", border: "#f59e0b" },
+    23: { icon: "🪿", labelKey: "square.goose",  bg: "#166534", border: "#22c55e" },
+    27: { icon: "🪿", labelKey: "square.goose",  bg: "#166534", border: "#22c55e" },
+    31: { icon: "🕳️", labelKey: "square.well",   bg: "#164e63", border: "#22d3ee" },
+    32: { icon: "🪿", labelKey: "square.goose",  bg: "#166534", border: "#22c55e" },
+    36: { icon: "🪿", labelKey: "square.goose",  bg: "#166534", border: "#22c55e" },
+    41: { icon: "🪿", labelKey: "square.goose",  bg: "#166534", border: "#22c55e" },
+    42: { icon: "🌀", labelKey: "square.maze",   bg: "#4c1d95", border: "#a78bfa" },
+    45: { icon: "🪿", labelKey: "square.goose",  bg: "#166534", border: "#22c55e" },
+    50: { icon: "🪿", labelKey: "square.goose",  bg: "#166534", border: "#22c55e" },
+    52: { icon: "⛓️", labelKey: "square.prison", bg: "#374151", border: "#9ca3af" },
+    54: { icon: "🪿", labelKey: "square.goose",  bg: "#166534", border: "#22c55e" },
+    58: { icon: "💀", labelKey: "square.death",  bg: "#7f1d1d", border: "#f87171" },
+    59: { icon: "🪿", labelKey: "square.goose",  bg: "#166534", border: "#22c55e" },
+    63: { icon: "🏁", labelKey: "square.finish", bg: "#713f12", border: "#facc15" },
 }
 
 /**
@@ -132,6 +134,7 @@ function getNeighborGap(positions: { x: number; y: number }[], index: number): n
 }
 
 export default function GooseBoard({ players, lastMove, wizardPosition = 0, wizardMove, wizardReaction }: Props) {
+    const { t } = useI18n()
     const containerRef = useRef<HTMLDivElement>(null)
     const [size, setSize] = useState({ width: 600, height: 600 })
     const [animatingPlayer, setAnimatingPlayer] = useState<string | null>(null)
@@ -276,7 +279,7 @@ export default function GooseBoard({ players, lastMove, wizardPosition = 0, wiza
                                 ? `0 0 6px ${special.border}40`
                                 : "none",
                         }}
-                        title={`Square ${sq}${special ? ` — ${special.label}` : ""}`}
+                        title={`${t("goose.square")} ${sq}${special ? ` — ${t(special.labelKey)}` : ""}`}
                     >
                         {special ? (
                             <span style={{ fontSize: circleSize * 0.48 }}>{special.icon}</span>
@@ -369,7 +372,7 @@ export default function GooseBoard({ players, lastMove, wizardPosition = 0, wiza
                 <div className="text-center" style={{ opacity: 0.25 }}>
                     <span className="text-4xl">🪿</span>
                     <p className="text-xs font-bold mt-1" style={{ color: "#c9b896" }}>
-                        Game of the Goose
+                        {t("goose.title")}
                     </p>
                 </div>
             </div>
