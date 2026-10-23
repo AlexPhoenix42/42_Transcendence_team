@@ -18,15 +18,15 @@ if ! command -v jq > /dev/null 2>&1; then
     exit 1
 fi
 
-if	[ ! -f /vault/certs/ca-cert.pem ]; then
-	echo "🔐 Certificates missing. Generating using your script..."
-	sh /app/gen_vault_cert.sh
-fi
-
-if	[ ! -f /vault/certs/nginx-cert.pem ]; then
-	echo "🔐 nginx certificate missing. Generating..."
-	sh /app/gen_nginx_cert.sh
-fi
+#if	[ ! -f /vault/certs/ca-cert.pem ]; then
+#	echo "🔐 Certificates missing. Generating using your script..."
+#	sh /app/gen_vault_cert.sh
+#fi
+#
+#if	[ ! -f /vault/certs/nginx-cert.pem ]; then
+#	echo "🔐 nginx certificate missing. Generating..."
+#	sh /app/gen_nginx_cert.sh
+#fi
 
 # Write credentials to a file for Django
 # Not needed because run_dep_secure.sh already creates it

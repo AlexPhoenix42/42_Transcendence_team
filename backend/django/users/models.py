@@ -52,6 +52,21 @@ class User(AbstractUser):
     friends     = models.ManyToManyField('self', symmetrical=True, blank=True)
     bio         = models.TextField(blank=True)
 
+    LANGUAGE_CHOICES = [
+        ("en", "English"),
+        ("fr", "Français"),
+        ("nl", "Nederlands"),
+        ("ar", "العربية"),
+        ("he", "עברית"),
+        ("tlh", "tlhIngan Hol"),
+    ]
+
+    language    =   models.CharField(
+                        max_length=5,
+                        choices=LANGUAGE_CHOICES,
+                        default="en",
+                    )
+
 
     class Role(models.TextChoices):
         USER      = "user",      "User"

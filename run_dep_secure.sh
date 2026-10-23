@@ -20,7 +20,7 @@ openssl enc -d -aes-256-cbc -pbkdf2 -iter 100000 -salt \
 	-out	"$DECRYPTED_SEC_ENV" \
 	-pass	"env:PASSPHRASE"
 
-# 3. Remove passphrase from environment immediatel
+# 3. Remove passphrase from environment immediately
 unset PASSPHRASE
 
 # 4. Restrict permissions on decrypted file
@@ -41,6 +41,12 @@ mkdir -p backend/django/media
 chown -R 1000:1000 backend/django/media
 chmod 755 backend/django/media
 
+mkdir -p backend/django/secrets
+chmod 755 backend/django/secrets
+cp /home/$SUDO_USER/goinfre/trans_sec/api_sec/deepl_api_key backend/django/secrets/deepl_api_key
+chmod 600 backend/django/secrets/deepl_api_key
+chown 1000:1000 backend/django/secrets/deepl_api_key
+
 # 6. Prepare Vault directories
 mkdir -p vault/certs vault/approle vault/secrets
 chown -R 100:100 vault/certs vault/approle vault/secrets
@@ -51,11 +57,6 @@ chmod 700 vault/secrets
 mkdir -p frontend-nginx/logs/modsecurity
 chown 101:101 frontend-nginx/logs/modsecurity
 chmod 750 frontend-nginx/logs/modsecurity
-
-# 8. If running with sudo, use the real user's home dir
-if [ -n "${SUDO_USER:-}" ]; then
-	export HOME="$(getent passwd "$SUDO_USER" | cut -d: -f6)"
-fi
 
 # 9. Prepare build cache directories for services using local cache
 CACHE_BASE="$HOME/goinfre/trans_cache"
@@ -140,6 +141,9 @@ sudo -u "$REAL_USER" bash -c '
     . "$NVM_DIR/nvm.sh"
     cd frontend-react && sfw npm install && npm run build'
 
+# 15. Build Pacman 3D
+bash scripts_dev/build_wasm_pacman3d.sh
+
 # Auto-detect server IP and hostname
 #SERVER_IP=$(ip a | grep inet | awk 'NR==3 {print $2}' | cut -d/ -f1)
 SERVER_IP=$(ping -c1 -W1 "$(cut -d. -f1 < /sys/class/dmi/id/product_name)" 2>/dev/null | head -1 | awk -F'[()]' '{print $2}') || true
@@ -170,6 +174,11 @@ if [ -n "$TAILSCALE_IP" ] && command -v socat >/dev/null 2>&1; then
     socat TCP-LISTEN:4444,fork,bind=${TAILSCALE_IP} TCP:127.0.0.1:4443 &>/dev/null &
 fi
 
+# =============================================
+# Generate certs if missing
+SERVER_IP="$SERVER_IP" bash scripts_dev/handle_certs.sh
+# =============================================
+
 # Cache pulled images to disk
 IMAGES_CACHE="$HOME/goinfre/trans_cache/pulled-images.tar"
 PULLED_IMAGES="redis:8-alpine axllent/mailpit lovasoa/wbo:latest prom/prometheus:latest prom/alertmanager:latest grafana/grafana:latest nginx/nginx-prometheus-exporter:latest prometheuscommunity/postgres-exporter:latest oliver006/redis_exporter:latest"
@@ -191,6 +200,7 @@ fi
 
 
 # Build images in batches to avoid timeout
+echo "🔨 Building Docker images..."
 docker compose -f docker-compose.yml --env-file "$PLAIN_ENV" --env-file "$DECRYPTED_SEC_ENV" \
     build postgres vault vault-init
 

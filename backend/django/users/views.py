@@ -49,8 +49,20 @@ class MeView(APIView):
                 "is_staff":     user.is_staff,
                 "role":         user.role,
                 "avatar":       request.build_absolute_uri(user.avatar.url) if user.avatar else None,
+                "language":     user.language,
         }
         return Response(resp)
+
+    def patch(self, request: Request, format=None):
+        user = cast(User, request.user)
+        language = request.data.get("language")
+        if language:
+            valid_codes = [c[0] for c in User.LANGUAGE_CHOICES]
+            if language not in valid_codes:
+                return Response({"error": f"Supported languages: {', '.join(valid_codes)}"}, status=400)
+            user.language = language
+            user.save(update_fields=["language"])
+        return Response({"language": user.language})
 # ===========================================================================
 
 

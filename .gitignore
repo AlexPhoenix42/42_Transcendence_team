@@ -33,6 +33,8 @@ Thumbs.db
 backend/django/django_tmp/
 backend/django/requirements.txt.txt
 
+backend/django/secrets/
+
 backend/django/media/
 !backend/django/media/avatars/
 !backend/django/media/avatars/default_avatar.png

@@ -490,3 +490,30 @@ class UnmuteUserView(APIView):
         return Response({"status": "unmuted"})
 # =========================================================================
 
+# =========================================================================
+class TranslateMessageView(APIView):
+    permission_classes     = [IsAuthenticated]
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+
+    def post(self, request):
+        text        = request.data.get("text", "").strip()
+        target_lang = request.data.get("target_lang", "").strip()
+
+        if not text:
+            return Response({"error": "No text provided."}, status=400)
+        if not target_lang:
+            return Response({"error": "No target_lang provided."}, status=400)
+
+        from chat.translate import translate, LANG_TO_DEEPL
+
+        if target_lang not in LANG_TO_DEEPL:
+            return Response({"error": f"Unsupported language: {target_lang}"}, status=400)
+
+        result = translate(text, source_lang=None, target_lang=target_lang)
+
+        if result is None:
+            return Response({"error": "Translation failed."}, status=502)
+
+        return Response({"translated_text": result})
+# =========================================================================
+

@@ -11,6 +11,7 @@ interface User {
     avatar      : string | null
 	is_staff	: boolean
 	role		: string
+	language	: string
 }
 
 interface LoginResult {

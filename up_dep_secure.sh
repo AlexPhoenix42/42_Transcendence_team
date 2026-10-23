@@ -53,6 +53,12 @@ mkdir -p backend/django/media
 chown -R 1000:1000 backend/django/media
 chmod 755 backend/django/media
 
+mkdir -p backend/django/secrets
+chmod 755 backend/django/secrets
+cp /home/$SUDO_USER/goinfre/trans_sec/api_sec/deepl_api_key backend/django/secrets/deepl_api_key
+chmod 600 backend/django/secrets/deepl_api_key
+chown 1000:1000 backend/django/secrets/deepl_api_key
+
 BACKUP_DATA_DIR="$HOME/goinfre/trans_data/trans_backups"
 mkdir -p "$BACKUP_DATA_DIR/restic-repo"
 chown -R 100:100 "$BACKUP_DATA_DIR"
@@ -100,6 +106,11 @@ if [ -n "$TAILSCALE_IP" ] && command -v socat >/dev/null 2>&1; then
     socat TCP-LISTEN:4444,fork,bind=${TAILSCALE_IP} TCP:127.0.0.1:4443 &>/dev/null &
 fi
 
+# =============================================
+# Generate certs if missing
+SERVER_IP="$SERVER_IP" bash scripts_dev/handle_certs.sh
+# =============================================
+
 # 10. Load cached images if missing
 IMAGES_CACHE="$HOME/goinfre/trans_cache/pulled-images.tar"
 PULLED_IMAGES="redis:8-alpine axllent/mailpit lovasoa/wbo:latest prom/prometheus:latest prom/alertmanager:latest grafana/grafana:latest nginx/nginx-prometheus-exporter:latest prometheuscommunity/postgres-exporter:latest oliver006/redis_exporter:latest"
@@ -121,6 +132,7 @@ fi
 
 
 # 11. Clean slate — stop stale containers before bringing up fresh
+echo "🧹 Cleaning up old containers..."
 docker compose -f docker-compose.yml down 2>/dev/null || true
 
 # 12. Start everything (no build), phased

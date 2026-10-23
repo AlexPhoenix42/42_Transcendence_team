@@ -169,6 +169,11 @@ if [ -n "$TAILSCALE_IP" ] && command -v socat >/dev/null 2>&1; then
     socat TCP-LISTEN:4444,fork,bind=${TAILSCALE_IP} TCP:127.0.0.1:4443 &>/dev/null &
 fi
 
+# ==========================================================================
+# Generate and Handle Certs if missing
+SERVER_IP="$SERVER_IP" bash scripts_dev/handle_certs.sh
+# ==========================================================================
+
 # Cache pulled images to disk
 IMAGES_CACHE="$HOME/goinfre/trans_cache/pulled-images.tar"
 PULLED_IMAGES="redis:8-alpine axllent/mailpit lovasoa/wbo:latest prom/prometheus:latest grafana/grafana:latest nginx/nginx-prometheus-exporter:latest prometheuscommunity/postgres-exporter:latest oliver006/redis_exporter:latest"

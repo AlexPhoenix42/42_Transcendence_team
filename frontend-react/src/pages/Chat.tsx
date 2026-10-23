@@ -18,7 +18,7 @@ interface Friend {
 }
 
 export default function Chat() {
-    const { t, tn, d, ts } = useI18n()
+    const { t, tn, d, ts, locale } = useI18n()
     const { user } = useAuth()
 	const navigate = useNavigate()
     const [tab, setTab] = useState<Tab>("global")
@@ -41,6 +41,10 @@ export default function Chat() {
 	const [gameInvite, setGameInvite] = useState<{ inviteId: string; fromUsername: string } | null>(null)
     const [dismissedInvites, setDismissedInvites] = useState<Set<string>>(new Set())
 	const [declinedInvites, setDeclinedInvites] = useState<Set<string>>(new Set())
+
+	// Translate
+	const [translatedMessages, setTranslatedMessages] = useState<Record<number, string>>({})
+    const [translatingId, setTranslatingId] = useState<number | null>(null)
 
     const socketRef = useRef<ChatSocket | null>(null)
     const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -371,6 +375,34 @@ export default function Chat() {
         } catch {}
     }
 
+	async function translateMessage(msgId: number, text: string) {
+        if (translatedMessages[msgId]) {
+            // Toggle off if already translated
+            setTranslatedMessages((prev) => {
+                const next = { ...prev }
+                delete next[msgId]
+                return next
+            })
+            return
+        }
+
+        setTranslatingId(msgId)
+        try {
+            const resp = await api("/api/chat/translate/", {
+                method: "POST",
+                body: JSON.stringify({
+                    text,
+                    target_lang: locale,
+                }),
+            })
+            if (resp.ok) {
+                const data = await resp.json()
+                setTranslatedMessages((prev) => ({ ...prev, [msgId]: data.translated_text }))
+            }
+        } catch {}
+        setTranslatingId(null)
+    }
+
     return (
 		<div className="max-w-4xl mx-auto flex flex-col md:flex-row gap-4 h-[calc(100vh-120px)]">
             {/* Sidebar */}
@@ -533,6 +565,11 @@ export default function Chat() {
                                         </p>
                                     )}
                                     <p dir="auto">{msg.content}</p>
+                                    {translatedMessages[msg.id] && (
+                                        <p dir="auto" className="mt-1 pt-1 border-t border-gray-600 text-sm italic opacity-80">
+                                            {translatedMessages[msg.id]}
+                                        </p>
+                                    )}
                                     {(user?.role === "admin" || user?.role === "moderator") && msg.sender !== "system" && (
                                         <div className="flex gap-1 mt-1">
                                             <button
@@ -552,12 +589,21 @@ export default function Chat() {
                                         </div>
                                     )}
                                 </div>
-                                <p className="text-xs text-gray-500 mt-1">
-                                    {d(msg.created_at)}
-                                    {tab === "dm" && msg.sender === user?.username && otherReadAt && new Date(otherReadAt) >= new Date(msg.created_at) && (
-                                        <span className="ms-2 text-blue-400">✓ Seen</span>
-                                    )}
-                                </p>
+								<div className="flex items-center gap-2 mt-1">
+                                    <p className="text-xs text-gray-500">
+                                        {d(msg.created_at)}
+                                        {tab === "dm" && msg.sender === user?.username && otherReadAt && new Date(otherReadAt) >= new Date(msg.created_at) && (
+                                            <span className="ms-2 text-blue-400">✓ Seen</span>
+                                        )}
+                                    </p>
+                                    <button
+                                        onClick={() => translateMessage(msg.id, msg.content)}
+                                        className="text-xs text-gray-500 hover:text-blue-400"
+                                        title={translatedMessages[msg.id] ? t("chat.hideTranslation") : t("chat.translate")}
+                                    >
+                                        {translatingId === msg.id ? "⏳" : "🌐"}
+                                    </button>
+                                </div>
                             </div>
                         )
                     })}

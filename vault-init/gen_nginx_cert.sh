@@ -1,6 +1,8 @@
 #!/usr/bin/env sh
 set -e
 
+CERT_DIR="${CERT_DIR:-/vault/certs}"
+
 # Validate SERVER_IP is set
 if	[ -z "${SERVER_IP:-}" ]; then
 	echo "❌ SERVER_IP environment variable is not set." >&2
@@ -10,10 +12,10 @@ fi
 echo "🔐 Generating nginx certificate for IP: ${SERVER_IP}..."
 
 # 1. Generate nginx private key
-openssl genrsa -out /vault/certs/nginx-key.pem 2048
+openssl genrsa -out "$CERT_DIR/nginx-key.pem" 2048
 
 # 2. Generate nginx CSR config with dynamic SANs
-cat > /vault/certs/nginx.csr.cnf <<EOF
+cat > "$CERT_DIR/nginx.csr.cnf" <<EOF
 [req]
 prompt				= no
 default_bits		= 2048
@@ -40,30 +42,29 @@ EOF
 
 # 3.Create CSR
 openssl req -new \
-	-key	/vault/certs/nginx-key.pem \
-	-out	/vault/certs/nginx.csr \
+	-key	"$CERT_DIR/nginx-key.pem" \
+	-out	"$CERT_DIR/nginx.csr" \
 	-subj	"/CN=nginx/O=Transcendence"
 
 # 4. Sign with existing CA
 openssl x509 -req \
-	-in			/vault/certs/nginx.csr \
-	-CA			/vault/certs/ca-cert.pem \
-	-CAkey		/vault/certs/ca-key.pem \
-	-CAserial	/vault/certs/ca-cert.srl \
-	-out		/vault/certs/nginx-cert.pem \
+	-in			"$CERT_DIR/nginx.csr" \
+	-CA			"$CERT_DIR/ca-cert.pem" \
+	-CAkey		"$CERT_DIR/ca-key.pem" \
+	-CAserial	"$CERT_DIR/ca-cert.srl" \
+	-out		"$CERT_DIR/nginx-cert.pem" \
 	-days		365 -sha256 \
 	-extensions	v3_req \
-	-extfile	/vault/certs/nginx.csr.cnf
+	-extfile	"$CERT_DIR/nginx.csr.cnf"
 
 # 5. Set permissions — nginx (uid 101) must read the key via group
-chown 100:101 /vault/certs/nginx-key.pem
-chmod 640 /vault/certs/nginx-key.pem
-chmod 644 /vault/certs/nginx-cert.pem
+chmod 640 "$CERT_DIR/nginx-key.pem"
+chmod 644 "$CERT_DIR/nginx-cert.pem"
 
 # 6. Clean up
-rm /vault/certs/nginx.csr /vault/certs/nginx.csr.cnf
+rm "$CERT_DIR/nginx.csr" "$CERT_DIR/nginx.csr.cnf"
 
 echo "✅ nginx certificate generated successfully!"
-echo "   nginx certificate : /vault/certs/nginx-cert.pem"
-echo "   nginx private key : /vault/certs/nginx-key.pem"
+echo "   nginx certificate : $CERT_DIR/nginx-cert.pem"
+echo "   nginx private key : $CERT_DIR/nginx-key.pem"
 
