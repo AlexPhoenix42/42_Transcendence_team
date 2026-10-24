@@ -596,6 +596,7 @@ export default function Chat() {
                                             <span className="ms-2 text-blue-400">✓ Seen</span>
                                         )}
                                     </p>
+                                    {locale !== "tlh" && (
                                     <button
                                         onClick={() => translateMessage(msg.id, msg.content)}
                                         className="text-xs text-gray-500 hover:text-blue-400"
@@ -603,6 +604,7 @@ export default function Chat() {
                                     >
                                         {translatingId === msg.id ? "⏳" : "🌐"}
                                     </button>
+                                    )}
                                 </div>
                             </div>
                         )
