@@ -9,7 +9,7 @@ export default function Games() {
         <div className="max-w-4xl mx-auto">
             <h1 className="text-3xl font-bold text-white mb-6">{t("games.title")}</h1>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+			    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Link to="/chess" className="bg-gray-800 p-8 rounded-lg border border-gray-700 hover:border-blue-500 transition text-center">
                     <span className="text-4xl block mb-3">♟</span>
                     <h2 className="text-xl font-semibold text-white mb-2">{t("games.chess.title")}</h2>
@@ -22,10 +22,10 @@ export default function Games() {
                     <p className="text-gray-400">{t("games.coach.body")}</p>
                 </Link>
 
-				<Link to="/goose" className="bg-gray-800 p-8 rounded-lg border border-gray-700 hover:border-green-500 transition text-center">
-                    <span className="text-4xl block mb-3">🪿</span>
-                    <h2 className="text-xl font-semibold text-white mb-2">{t("games.goose.title")}</h2>
-                    <p className="text-gray-400">{t("games.goose.body")}</p>
+				<Link to="/pacman3d" className="bg-gray-800 p-8 rounded-lg border border-gray-700 hover:border-yellow-500 transition text-center">
+                    <span className="text-4xl block mb-3">👻</span>
+                    <h2 className="text-xl font-semibold text-white mb-2">Pacman 3D</h2>
+                    <p className="text-gray-400">Solo — first-person 3D maze with shotgun</p>
                 </Link>
 
 				<Link to="/pacman" className="bg-gray-800 p-8 rounded-lg border border-gray-700 hover:border-blue-500 transition text-center">
@@ -34,7 +34,13 @@ export default function Games() {
                     <p className="text-gray-400">Multiplayer — maze, roles, ghosts</p>
                 </Link>
 
-				<a href="/wbo/boards/community" target="_blank" rel="noopener noreferrer" className="md:col-span-2 bg-gray-800 p-8 rounded-lg border border-gray-700 hover:border-purple-500 transition text-center">
+				<Link to="/goose" className="bg-gray-800 p-8 rounded-lg border border-gray-700 hover:border-green-500 transition text-center">
+                    <span className="text-4xl block mb-3">🪿</span>
+                    <h2 className="text-xl font-semibold text-white mb-2">{t("games.goose.title")}</h2>
+                    <p className="text-gray-400">{t("games.goose.body")}</p>
+                </Link>
+
+				<a href="/wbo/boards/community" target="_blank" rel="noopener noreferrer" className="bg-gray-800 p-8 rounded-lg border border-gray-700 hover:border-purple-500 transition text-center">
                     <span className="text-4xl block mb-3">🎨</span>
                     <h2 className="text-xl font-semibold text-white mb-2">Whiteboard</h2>
                     <p className="text-gray-400">Collaborative drawing board</p>
