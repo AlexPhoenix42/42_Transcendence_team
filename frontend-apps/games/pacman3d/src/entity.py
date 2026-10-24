@@ -238,7 +238,8 @@ class Player3D(Entity):
     def __init__(self, map: Map, pos: Vector2i, movespeed: float) -> None:
         super().__init__(pos, movespeed)
         self.angle = 0.0
-        self.mouse_sensitivity = 0.003
+        #self.mouse_sensitivity = 0.003
+        self.mouse_sensitivity = 0.001
         self.rotation_speed = 0.03
         self._map = map
         self._shoot_sprites = [load_sprite('gameplay/shotgun0.png', 4.0),
@@ -264,10 +265,12 @@ class Player3D(Entity):
             mouse = pygame.mouse.get_pressed()
             if (keys[pygame.K_SPACE] or mouse[0]) and (state.has_superbonus(frame)[0]) and (self._animation == 0):
                 self.play_animation(ATTACK, frame)
-            mouse_pos = pygame.mouse.get_pos()
-            mouse_rel_x = mouse_pos[0] - 400
-            self.angle += mouse_rel_x * self.mouse_sensitivity
-            pygame.mouse.set_pos((400, 300))
+            #mouse_pos = pygame.mouse.get_pos()
+            #mouse_rel_x = mouse_pos[0] - 400
+            #self.angle += mouse_rel_x * self.mouse_sensitivity
+            #pygame.mouse.set_pos((400, 300))
+            mouse_rel = pygame.mouse.get_rel()
+            self.angle += mouse_rel[0] * self.mouse_sensitivity
 
             movespeed = self._movespeed
             if state.speed_boost:

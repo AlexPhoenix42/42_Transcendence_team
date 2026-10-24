@@ -4,7 +4,7 @@ const Pacman3D = () => (
       src="/games/pacman3d/index.html"
       className="w-full h-full border-none"
       title="Pacman 3D"
-      allow="autoplay"
+      allow="autoplay pointer-lock"
     />
   </div>
 );

@@ -142,7 +142,7 @@ sudo -u "$REAL_USER" bash -c '
     cd frontend-react && sfw npm install && npm run build'
 
 # 15. Build Pacman 3D
-bash scripts_dev/build_wasm_pacman3d.sh
+sudo -u "$REAL_USER" bash scripts_dev/build_wasm_pacman3d.sh
 
 # Auto-detect server IP and hostname
 #SERVER_IP=$(ip a | grep inet | awk 'NR==3 {print $2}' | cut -d/ -f1)

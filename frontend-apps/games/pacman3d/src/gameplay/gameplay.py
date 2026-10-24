@@ -265,6 +265,7 @@ class Game:
                         self._pause_selected = 0
                         pygame.event.set_grab(False)
                         pygame.mouse.set_visible(True)
+                        pygame.mouse.get_rel()
                     elif pygame.K_i in pressed_keys:
                         self._state.invincibility = not self._state.invincibility
                         self._cheat_active[0] = self._state.invincibility
