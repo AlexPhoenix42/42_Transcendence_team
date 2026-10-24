@@ -44,3 +44,6 @@ vault/approle/
 vault/certs/
 vault/secrets/
 
+# ── Pygbag WASM build output ────────────
+frontend-apps/games/pacman3d/src/build/
+
