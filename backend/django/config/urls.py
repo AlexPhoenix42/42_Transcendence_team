@@ -48,6 +48,7 @@ urlpatterns = [
     path('api/tournaments/',    include('tournament.urls')),
     path('api/internal/game-finished/', GameFinishedNotify.as_view(), name='game-finished-notify'),
     path('api/goose/',          include('goose_game.urls')),
+    path('api/audit/',          include('audit.urls')),
 ]
 
 if  settings.DEBUG:

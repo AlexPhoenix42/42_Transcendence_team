@@ -31,15 +31,16 @@ def user_avatar_path(instance, filename):
 
 class User(AbstractUser):
     username    = models.CharField(max_length=30, unique=True, ) # editable=False removed it before it creates problems with DRF's ModelSerializer wont inclue it in validated_data
-    intra_id    = models.IntegerField(unique=True, null=True, blank=True)
-    dispname    = models.CharField(max_length=20, unique=True, null=True, blank=True)
-    email       = models.EmailField(unique=True)
-    email_verfd = models.BooleanField(default=False)
-    is_online   = models.BooleanField(default=False)
-    wins        = models.PositiveIntegerField(default=0)
-    loss        = models.PositiveIntegerField(default=0)
-    draw        = models.PositiveIntegerField(default=0)
-    rating      = models.IntegerField(default=1200)
+    intra_id        = models.IntegerField(unique=True, null=True, blank=True)
+    dispname        = models.CharField(max_length=20, unique=True, null=True, blank=True)
+    email           = models.EmailField(unique=True)
+    email_verfd     = models.BooleanField(default=False)
+    is_online       = models.BooleanField(default=False)
+    wins            = models.PositiveIntegerField(default=0)
+    loss            = models.PositiveIntegerField(default=0)
+    draw            = models.PositiveIntegerField(default=0)
+    rating          = models.IntegerField(default=1200)
+    locked_until    = models.DateTimeField(null=True, blank=True, default=None)
 
     avatar      = models.ImageField(
                     upload_to=user_avatar_path, null=True, blank=True, 

@@ -23,6 +23,17 @@ interface UserEntry {
     avatar: string | null
 }
 
+interface AuditEntry {
+    id: number
+    event_type: string
+    username: string
+    ip_address: string | null
+    user_agent: string
+    success: boolean
+    metadata: Record<string, string>
+    timestamp: string
+}
+
 export default function AdminDashboard() {
     const { t, n, ts } = useI18n()
     const { user } = useAuth()
@@ -40,11 +51,22 @@ export default function AdminDashboard() {
     const [loading, setLoading] = useState(false)
 
     // User management
-	const [tab, setTab] = useState<"tournament" | "users" | "status">("tournament")
+	const [tab, setTab] = useState<"tournament" | "users" | "status" | "security">("tournament")
     const [users, setUsers] = useState<UserEntry[]>([])
     const [search, setSearch] = useState("")
     const [userError, setUserError] = useState("")
     const [userSuccess, setUserSuccess] = useState("")
+
+	// Security audit log
+    const [auditLogs, setAuditLogs] = useState<AuditEntry[]>([])
+    const [auditPage, setAuditPage] = useState(1)
+    const [auditTotal, setAuditTotal] = useState(0)
+    const [auditTotalPages, setAuditTotalPages] = useState(0)
+    const [auditEventFilter, setAuditEventFilter] = useState("")
+    const [auditUserFilter, setAuditUserFilter] = useState("")
+    const [auditLoading, setAuditLoading] = useState(false)
+    const [auditError, setAuditError] = useState("")
+    const [unlockSuccess, setUnlockSuccess] = useState("")
 
 	if (!user?.is_staff && user?.role !== "admin" && user?.role !== "moderator") {
         return (
@@ -57,6 +79,10 @@ export default function AdminDashboard() {
     useEffect(() => {
         if (tab === "users") fetchUsers()
     }, [tab, search])
+
+	useEffect(() => {
+        if (tab === "security") fetchAuditLogs()
+    }, [tab, auditPage, auditEventFilter, auditUserFilter])
 
     async function fetchUsers() {
         try {
@@ -132,6 +158,50 @@ export default function AdminDashboard() {
             }
         } catch {
             setUserError(t("common.error.networkShort"))
+        }
+    }
+
+	async function fetchAuditLogs() {
+        setAuditLoading(true)
+        setAuditError("")
+        try {
+            const params = new URLSearchParams({ page: String(auditPage) })
+            if (auditEventFilter) params.set("event_type", auditEventFilter)
+            if (auditUserFilter) params.set("username", auditUserFilter)
+
+            const resp = await api(`/api/audit/logs/?${params}`)
+            if (resp.ok) {
+                const data = await resp.json()
+                setAuditLogs(data.results)
+                setAuditTotal(data.total)
+                setAuditTotalPages(data.total_pages)
+            } else {
+                setAuditError("Failed to load audit logs")
+            }
+        } catch {
+            setAuditError("Network error")
+        } finally {
+            setAuditLoading(false)
+        }
+    }
+
+    async function unlockAccount(username: string) {
+        setAuditError("")
+        setUnlockSuccess("")
+        try {
+            const resp = await api("/api/audit/unlock/", {
+                method: "POST",
+                body: JSON.stringify({ username }),
+            })
+            if (resp.ok) {
+                setUnlockSuccess(`Account "${username}" unlocked`)
+                fetchAuditLogs()
+            } else {
+                const data = await resp.json()
+                setAuditError(data.error || "Failed to unlock account")
+            }
+        } catch {
+            setAuditError("Network error")
         }
     }
 
@@ -255,6 +325,12 @@ export default function AdminDashboard() {
                             className={`px-4 py-2 rounded ${tab === "status" ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-300 hover:bg-gray-600"}`}
                         >
                             {t("admin.tab.systemStatus")}
+                        </button>
+						<button
+                            onClick={() => setTab("security")}
+                            className={`px-4 py-2 rounded ${tab === "security" ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-300 hover:bg-gray-600"}`}
+                        >
+                            Security Audit
                         </button>
                     </>
                 )}
@@ -465,6 +541,148 @@ export default function AdminDashboard() {
 			{/* Status tab */}
             {tab === "status" && (
                 <Status />
+            )}
+
+			{/* Security audit tab */}
+            {tab === "security" && (
+                <div className="bg-gray-800 rounded-lg border border-gray-700 p-6">
+                    <h2 className="text-xl font-semibold text-white mb-4">Security Audit Log</h2>
+
+                    {auditError && (
+                        <div className="bg-red-900/50 border border-red-500 text-red-300 px-4 py-2 rounded mb-4">
+                            {auditError}
+                        </div>
+                    )}
+                    {unlockSuccess && (
+                        <div className="bg-green-900/50 border border-green-500 text-green-300 px-4 py-2 rounded mb-4">
+                            {unlockSuccess}
+                        </div>
+                    )}
+
+                    {/* Filters */}
+                    <div className="flex flex-col md:flex-row gap-3 mb-4">
+                        <select
+                            value={auditEventFilter}
+                            onChange={(e) => { setAuditEventFilter(e.target.value); setAuditPage(1) }}
+                            className="px-3 py-2 bg-gray-900 text-white border border-gray-700 rounded text-sm"
+                        >
+                            <option value="">All events</option>
+                            <option value="login_success">Login Success</option>
+                            <option value="login_failed">Login Failed</option>
+                            <option value="password_reset">Password Reset</option>
+                            <option value="2fa_enabled">2FA Enabled</option>
+                            <option value="2fa_disabled">2FA Disabled</option>
+                            <option value="account_locked">Account Locked</option>
+                            <option value="account_unlocked">Account Unlocked</option>
+                        </select>
+
+                        <input
+                            type="text"
+                            value={auditUserFilter}
+                            onChange={(e) => { setAuditUserFilter(e.target.value); setAuditPage(1) }}
+                            placeholder="Filter by username"
+                            className="px-3 py-2 bg-gray-900 text-white border border-gray-700 rounded text-sm flex-1"
+                        />
+
+                        <button
+                            onClick={() => { setAuditEventFilter(""); setAuditUserFilter(""); setAuditPage(1) }}
+                            className="px-3 py-2 bg-gray-700 text-gray-300 rounded text-sm hover:bg-gray-600"
+                        >
+                            Clear
+                        </button>
+                    </div>
+
+                    {/* Results count */}
+                    <p className="text-gray-500 text-sm mb-3">{auditTotal} event{auditTotal !== 1 ? "s" : ""}</p>
+
+                    {/* Log table */}
+                    {auditLoading ? (
+                        <p className="text-gray-400 text-center py-4">Loading...</p>
+                    ) : auditLogs.length === 0 ? (
+                        <p className="text-gray-400 text-center py-4">No audit events found</p>
+                    ) : (
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-sm">
+                                <thead>
+                                    <tr className="text-gray-400 border-b border-gray-700">
+                                        <th className="text-left py-2 pr-3">Time</th>
+                                        <th className="text-left py-2 pr-3">Event</th>
+                                        <th className="text-left py-2 pr-3">User</th>
+                                        <th className="text-left py-2 pr-3">IP</th>
+                                        <th className="text-left py-2 pr-3">Status</th>
+                                        <th className="text-left py-2">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {auditLogs.map((log) => (
+                                        <tr
+                                            key={log.id}
+                                            className={`border-b border-gray-700/50 ${
+                                                !log.success ? "bg-red-900/10" :
+                                                log.event_type === "account_locked" ? "bg-yellow-900/10" : ""
+                                            }`}
+                                        >
+                                            <td className="py-2 pr-3 text-gray-300 whitespace-nowrap">
+                                                {new Date(log.timestamp).toLocaleString()}
+                                            </td>
+                                            <td className="py-2 pr-3">
+                                                <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                                                    log.event_type === "login_failed" ? "bg-red-900/50 text-red-400" :
+                                                    log.event_type === "account_locked" ? "bg-yellow-900/50 text-yellow-400" :
+                                                    log.event_type === "login_success" ? "bg-green-900/50 text-green-400" :
+                                                    "bg-blue-900/50 text-blue-400"
+                                                }`}>
+                                                    {log.event_type.replace(/_/g, " ")}
+                                                </span>
+                                            </td>
+                                            <td className="py-2 pr-3 text-white">{log.username}</td>
+                                            <td className="py-2 pr-3 text-gray-400 font-mono text-xs">{log.ip_address || "—"}</td>
+                                            <td className="py-2 pr-3">
+                                                {log.success
+                                                    ? <span className="text-green-400 text-xs">OK</span>
+                                                    : <span className="text-red-400 text-xs">FAIL</span>
+                                                }
+                                            </td>
+                                            <td className="py-2">
+                                                {log.event_type === "account_locked" && (
+                                                    <button
+                                                        onClick={() => unlockAccount(log.username)}
+                                                        className="px-2 py-0.5 bg-green-800 text-green-300 rounded text-xs hover:bg-green-700"
+                                                    >
+                                                        Unlock
+                                                    </button>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+
+                    {/* Pagination */}
+                    {auditTotalPages > 1 && (
+                        <div className="flex items-center justify-center gap-3 mt-4">
+                            <button
+                                onClick={() => setAuditPage(p => Math.max(1, p - 1))}
+                                disabled={auditPage <= 1}
+                                className="px-3 py-1 bg-gray-700 text-gray-300 rounded text-sm hover:bg-gray-600 disabled:opacity-50"
+                            >
+                                Previous
+                            </button>
+                            <span className="text-gray-400 text-sm">
+                                Page {auditPage} / {auditTotalPages}
+                            </span>
+                            <button
+                                onClick={() => setAuditPage(p => Math.min(auditTotalPages, p + 1))}
+                                disabled={auditPage >= auditTotalPages}
+                                className="px-3 py-1 bg-gray-700 text-gray-300 rounded text-sm hover:bg-gray-600 disabled:opacity-50"
+                            >
+                                Next
+                            </button>
+                        </div>
+                    )}
+                </div>
             )}
         </div>
     )

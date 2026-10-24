@@ -133,6 +133,7 @@ INSTALLED_APPS = [
     'two_factor_auth',
     'tournament',
     'chess_coach',
+    'audit',
 ]
 
 MIDDLEWARE = [

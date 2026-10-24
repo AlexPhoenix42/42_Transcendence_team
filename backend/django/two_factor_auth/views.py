@@ -104,6 +104,11 @@ class Disable2FAView(APIView):
 
         TOTPDevice.objects.filter(user=request.user).delete()   # type: ignore[attr-defined, misc]
 
+        # ── audit log ───
+        from audit.utils import log_event
+        log_event("2fa_disabled", request, user=request.user)
+        # ────────────────
+
         return Response({"status": "2fa disabled"})
 # ===========================================================================
 
@@ -143,6 +148,11 @@ class ConfirmEnable2FAView(APIView):
         # Activate the device
         device.is_active = True
         device.save(update_fields=["is_active"])
+
+        # ── audit log ───
+        from audit.utils import log_event
+        log_event("2fa_enabled", request, user=request.user)
+        # ────────────────
 
         # Generate recovery codes and return them once
         recovery_codes = generate_recovery_codes(device)
