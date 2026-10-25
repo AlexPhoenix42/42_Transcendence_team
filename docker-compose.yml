@@ -303,6 +303,7 @@ services:
       - "8000:8000"
     volumes:
       - ./frontend-nginx/logs/modsecurity:/var/log/modsecurity
+      - ./frontend-nginx/logs/nginx:/var/log/nginx
       - ./frontend-react/dist:/usr/share/nginx/html:ro
       - ./vault/certs:/vault/certs:ro
       - ./backend/django/media:/usr/share/nginx/media:ro
@@ -469,6 +470,68 @@ services:
       - prometheus
     networks:
       - trans_net
+
+
+  # ── fail2ban: log analysis (unprivileged) ──
+  fail2ban:
+    build:
+      context:      fail2ban
+      dockerfile:   Dockerfile
+      pull:         false
+      cache_from:
+        - type=local,src=${HOME}/goinfre/trans_cache/fail2ban
+      cache_to:
+        - type=local,dest=${HOME}/goinfre/trans_cache/fail2ban,mode=max
+    container_name: trans_fail2ban
+    restart:        unless-stopped
+    volumes:
+      - ./frontend-nginx/logs/nginx:/var/log/nginx:ro
+      - ./frontend-nginx/logs/modsecurity:/var/log/modsecurity:ro
+      - firewall_agent_socket:/var/run/firewall-agent
+    depends_on:
+      frontend_nginx:
+        condition:  service_healthy
+      firewall-agent:
+        condition:  service_healthy
+    networks:
+      - trans_net
+
+  # ── firewall-agent: firewall agent (privilege-separated) ──
+  firewall-agent:
+    build:
+      context:      firewall-agent
+      dockerfile:   Dockerfile
+      pull:         false
+      cache_from:
+        - type=local,src=${HOME}/goinfre/trans_cache/firewall-agent
+      cache_to:
+        - type=local,dest=${HOME}/goinfre/trans_cache/firewall-agent,mode=max
+    container_name: trans_firewall_agent
+    restart:        unless-stopped
+    network_mode:   host
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    read_only:      true
+    pids_limit:     20
+    mem_limit:      32m
+    healthcheck:
+      test: ["CMD-SHELL", "test -S /var/run/firewall-agent/firewall.sock"]
+      interval:     10s
+      timeout:      30s
+      start_period: 300s
+      retries:      20
+    volumes:
+      - firewall_agent_socket:/var/run/firewall-agent
+    tmpfs:
+      - /run:size=1m,mode=750
+
+volumes:
+  firewall_agent_socket:
 
 networks:
   trans_net:

@@ -46,6 +46,10 @@ mkdir -p frontend-nginx/logs/modsecurity
 chown 101:101 frontend-nginx/logs/modsecurity
 chmod 750 frontend-nginx/logs/modsecurity
 
+mkdir -p frontend-nginx/logs/nginx
+chown 101:101 frontend-nginx/logs/nginx
+chmod 750 frontend-nginx/logs/nginx
+
 mkdir -p backend/django/staticfiles
 chown -R 1000:1000 backend/django/staticfiles
 
@@ -165,7 +169,11 @@ echo "⏳ Phase 6: Starting frontend and monitoring..."
 $COMPOSE up -d --wait --wait-timeout 3600 frontend_nginx chess_engine stockfish_ai
 $COMPOSE up -d prometheus grafana alertmanager nginx-exporter postgres-exporter redis-exporter
 
-# Phase 7: Verify backend is responding
+# Phase 7: Security — fail2ban + firewall agent
+echo "⏳ Phase 7: Starting security services..."
+$COMPOSE up -d --wait --wait-timeout 120 firewall-agent fail2ban
+
+# Phase 8: Verify backend is responding
 echo "⏳ Waiting for backend to be ready..."
 _n=0
 until docker exec trans_frontend_nginx curl -sf -o /dev/null -H "Host: localhost" http://backend_django:9000/api/login/ 2>/dev/null; do

@@ -8,6 +8,11 @@ DECRYPTED_SEC_ENV="/dev/shm/trans.env"
 
 export COMPOSE_FILE="docker-compose.yml"
 
+# If running with sudo, use the real user's home dir
+if [ -n "${SUDO_USER:-}" ]; then
+	export HOME="$(getent passwd "$SUDO_USER" | cut -d: -f6)"
+fi
+
 # 1. Prompt for the passphrase once
 read -s -p "Vault bootstrap passphrase: " PASSPHRASE
 echo
@@ -58,12 +63,17 @@ mkdir -p frontend-nginx/logs/modsecurity
 chown 101:101 frontend-nginx/logs/modsecurity
 chmod 750 frontend-nginx/logs/modsecurity
 
+mkdir -p frontend-nginx/logs/nginx
+chown 101:101 frontend-nginx/logs/nginx
+chmod 750 frontend-nginx/logs/nginx
+
 # 9. Prepare build cache directories for services using local cache
 CACHE_BASE="$HOME/goinfre/trans_cache"
 mkdir -p "$CACHE_BASE"
 
 CACHE_SERVICES=(postgres vault-init vault chess_engine stockfish_ai \
-	backend_django timeout_checker frontend_nginx backup )
+	backend_django timeout_checker frontend_nginx backup \
+	fail2ban firewall-agent)
 
 for service in "${CACHE_SERVICES[@]}"; do
 	mkdir -p "$CACHE_BASE/$service"
@@ -210,6 +220,9 @@ docker compose -f docker-compose.yml --env-file "$PLAIN_ENV" --env-file "$DECRYP
 docker compose -f docker-compose.yml --env-file "$PLAIN_ENV" --env-file "$DECRYPTED_SEC_ENV" \
     build frontend_nginx timeout_checker backup
 
+docker compose -f docker-compose.yml --env-file "$PLAIN_ENV" --env-file "$DECRYPTED_SEC_ENV" \
+    build fail2ban firewall-agent
+
 
 export DECRYPTED_SEC_FILE="$DECRYPTED_SEC_ENV"
 
@@ -249,13 +262,20 @@ echo "⏳ Phase 6: Starting frontend and monitoring..."
 $COMPOSE up -d --wait --wait-timeout 3600 frontend_nginx chess_engine stockfish_ai
 $COMPOSE up -d prometheus grafana alertmanager nginx-exporter postgres-exporter redis-exporter
 
+# this is moved here because of the --wait in the phase 7
+echo "⏳ Waiting for backend to be ready..."
+
+# Phase 7: Security — fail2ban + firewall agent
+echo "⏳ Phase 7: Starting security services..."
+$COMPOSE up -d --wait --wait-timeout 3600 firewall-agent fail2ban
+
 # Save pulled images to disk cache
 if [ ! -f "$IMAGES_CACHE" ]; then
     docker save $PULLED_IMAGES -o "$IMAGES_CACHE" 2>/dev/null || true
 fi
 
-# Phase 7: Verify backend is responding
-echo "⏳ Waiting for backend to be ready..."
+# Phase 8: Verify backend is responding
+#echo "⏳ Waiting for backend to be ready..."
 _n=0
 until docker exec trans_frontend_nginx curl -sf -o /dev/null -H "Host: localhost" http://backend_django:9000/api/login/ 2>/dev/null; do
     _n=$((_n+1))
