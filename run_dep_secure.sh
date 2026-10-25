@@ -47,7 +47,9 @@ chown -R 1000:1000 backend/django/media
 chmod 755 backend/django/media
 
 mkdir -p backend/django/secrets
-chmod 755 backend/django/secrets
+chown -R 1000:1000 backend/django/secrets
+chmod 750 backend/django/secrets
+rm -rf backend/django/secrets/deepl_api_key
 cp /home/$SUDO_USER/goinfre/trans_sec/api_sec/deepl_api_key backend/django/secrets/deepl_api_key
 chmod 600 backend/django/secrets/deepl_api_key
 chown 1000:1000 backend/django/secrets/deepl_api_key

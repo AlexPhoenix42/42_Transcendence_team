@@ -228,7 +228,13 @@ services:
       - ./backend/django:/django
       - ./vault/certs:/vault/certs:ro
       - ./vault/approle:/vault/approle:ro
-      - ./backend/django/secrets/deepl_api_key:/run/secrets/deepl_api_key:ro
+      #- ./backend/django/secrets/deepl_api_key:/run/secrets/deepl_api_key:ro
+      - type: bind
+        source: ./backend/django/secrets/deepl_api_key
+        target: /run/secrets/deepl_api_key
+        read_only: true
+        bind:
+          create_host_path: false
     depends_on:
       postgres:
         condition:  service_healthy
