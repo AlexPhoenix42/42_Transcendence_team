@@ -4,6 +4,7 @@ import { Outlet } from "react-router-dom"
 import { useAuth } from "../context/AuthContext.tsx"
 import Navbar from "../components/Navbar"
 import Footer from "../components/Footer"
+import LanguageSwitcher from "../components/LanguageSwitcher"
 
 export default function LegalLayout() {
 	const { user, loading } = useAuth()
@@ -18,7 +19,11 @@ export default function LegalLayout() {
 
 	return (
 			<div className="min-h-screen flex flex-col bg-gray-900">
-				{user && <Navbar />}
+				{user ? <Navbar /> : (
+					<div className="flex justify-end p-4">
+						<LanguageSwitcher />
+					</div>
+				)}
 				<main className="flex-1 p-4 pb-8">
 					<Outlet />
 				</main>

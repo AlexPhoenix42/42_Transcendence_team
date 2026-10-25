@@ -887,5 +887,81 @@ export const fr: MessageTable = {
     "goose.legend.prison":           "⛓️ Prison (passe 2)",
     "goose.legend.death":            "💀 Mort (→départ)",
     "goose.legend.finish":           "🏁 Arrivée (63)",
+
+    // -- Footer ------------------------------------------------------------
+    "footer.privacy":   "Politique de confidentialité",
+    "footer.terms":     "Conditions d'utilisation",
+    "footer.copyright": "© {year} Tous droits réservés.",
+
+    // -- Legal: Terms of Service -----------------------------------------
+    "terms.title":           "Conditions d'utilisation",
+    "terms.updated":         "Mise à jour le 9 septembre 2026",
+    "terms.intro":           "Les Conditions Générales d'Utilisation, ci-après dénommées CGU, s'appliquent à l'utilisation de Born2Transcend, ci-après dénommé le Service. Les CGU s'appliquent à tout utilisateur qui utilise le Service, quelle qu'en soit la finalité. Les CGU peuvent être modifiées ou mises à jour à tout moment ; si l'utilisateur ne souhaite plus s'y conformer, il doit cesser d'utiliser le Service. Pour toute question relative à l'utilisation du Service, vous pouvez contacter les Délégués à la Protection des Données tels que décrits dans la Politique de Confidentialité.",
+    "terms.contents.title":  "Sommaire :",
+    "terms.contents.art1":   "Acceptation des Conditions Générales d'Utilisation",
+    "terms.contents.art2":   "Définition de l'Usage Acceptable",
+    "terms.contents.art3":   "Propriété Intellectuelle",
+    "terms.contents.art4":   "Limitation de Responsabilité",
+    "terms.art1.heading":    "Article 1 : Acceptation des Conditions Générales d'Utilisation",
+    "terms.art1.body":       "En utilisant le Service, vous consentez aux CGU. Toute violation des Conditions d'Utilisation décrites dans ce document entraînera la suspension immédiate et la résiliation de votre compte ainsi que la perte de votre droit d'utiliser le Service à l'avenir.",
+    "terms.art2.heading":    "Article 2 : Définition de l'Usage Acceptable",
+    "terms.art2.body":       "Vous vous engagez à utiliser le Service conformément à sa finalité, à savoir le divertissement et l'éducation. Vous vous engagez à maintenir une discussion courtoise dans les discussions globales, les discussions avec des amis et les discussions avec le coach d'échecs IA, et à vous abstenir de tout langage ou comportement pouvant être considéré comme dénigrant, diffamatoire ou discriminatoire. Vous vous engagez à ne pas abuser de l'usage du coach d'échecs IA, ni à l'utiliser à d'autres fins que la discussion sur les échecs dans un cadre éducatif. Toute tentative d'utiliser le Service à des fins autres que le divertissement ou l'éducation constituera une violation de ce contrat et entraînera la perte de votre droit au Service.",
+    "terms.art3.heading":    "Article 3 : Propriété Intellectuelle",
+    "terms.art3.body":       "Le nom, les logos, les médias, ainsi que le Service lui-même, sont la propriété intellectuelle des auteurs de ce Service, ci-après dénommés les « Fournisseurs du Service ». Toute utilisation, reproduction, modification ou diffusion de ce Service sans le consentement écrit préalable de l'ensemble des Fournisseurs du Service est considérée comme un acte de contrefaçon au sens du Code de la Propriété Intellectuelle, et sera poursuivie.",
+    "terms.art4.heading":    "Article 4 : Limitation de Responsabilité",
+    "terms.art4.body1":      "Les Fournisseurs du Service ne pourront être tenus responsables des omissions, inexactitudes, carences et manquements dans la fourniture de leur Service, dans la mesure où il s'agit d'une erreur provenant d'un service tiers échappant à leur contrôle. L'Utilisateur reste responsable de son utilisation du Service lorsque celle-ci n'est pas conforme à sa finalité. Tout litige relatif au Service, aux Fournisseurs du Service ou à l'Utilisateur sera soumis au droit belge.",
+    "terms.art4.body2":      "Les Fournisseurs du Service se réservent le droit de modifier toute partie du Service à tout moment, pour quelque raison que ce soit.",
+
+    // -- Legal: Privacy Policy --------------------------------------------
+    "privacy.title":            "Politique de confidentialité",
+    "privacy.updated":          "Mise à jour le 9 septembre 2026",
+    "privacy.intro1":           "Cette Politique de Confidentialité explique les pratiques de Born2Transcend concernant la collecte, l'utilisation, la divulgation et la protection des données personnelles que nous recueillons lorsque vous accédez à Born2Transcend, ci-après dénommé le « Service ». Cette Politique de Confidentialité définit et décrit vos droits en matière de confidentialité et la manière dont vous êtes protégé en vertu des lois applicables sur la protection de la vie privée.",
+    "privacy.intro2":           "En utilisant notre Service, vous consentez à la collecte et à l'utilisation de vos données personnelles conformément à cette Politique de Confidentialité. Veuillez ne pas accéder à notre Service ou l'utiliser si vous ne consentez pas à la collecte et à l'utilisation de vos informations telles que décrites dans cette Politique de Confidentialité.",
+    "privacy.toc.title":        "Dans cette Politique :",
+    "privacy.toc.1":            "Qui est responsable du traitement des données personnelles ?",
+    "privacy.toc.2":            "Quelles données personnelles sont collectées ?",
+    "privacy.toc.3":            "Pourquoi mes données personnelles sont-elles collectées ?",
+    "privacy.toc.4":            "Comment puis-je gérer mes préférences en matière de cookies ?",
+    "privacy.toc.5":            "Combien de temps mes données personnelles seront-elles conservées ?",
+    "privacy.toc.6":            "Où mes données sont-elles stockées ?",
+    "privacy.toc.7":            "Qui a accès à mes données personnelles ? Mes données personnelles seront-elles partagées ?",
+    "privacy.toc.8":            "Modifications de cette Politique de Confidentialité",
+
+    "privacy.s1.heading":       "1. Qui est responsable du traitement des données personnelles ?",
+    "privacy.s1.body":          "Dans le cadre des données personnelles collectées par le Service, les auteurs, ci-après dénommés les « Fournisseurs du Service », sont responsables du traitement des données personnelles. Pour toute question ou problème supplémentaire relatif au traitement des données personnelles qui ne serait pas abordé dans cette Politique de Confidentialité, vous pouvez vous adresser à tout Fournisseur du Service en tant que Délégué à la Protection des Données. Vous pouvez les contacter via les canaux officiels de 42 sur Slack ; leurs identifiants figurent dans le README.md de ce Service.",
+
+    "privacy.s2.heading":       "2. Quelles données personnelles sont collectées ?",
+    "privacy.s2.intro":         "Les Fournisseurs du Service collectent des données personnelles de base sous la forme de :",
+    "privacy.s2.item.name":     "Nom",
+    "privacy.s2.item.nickname": "Pseudonyme",
+    "privacy.s2.item.email":    "E-mail",
+    "privacy.s2.item.phone":    "Numéro de téléphone",
+    "privacy.s2.item.password": "Mot de passe",
+    "privacy.s2.item.chatlogs": "Historiques de discussion",
+    "privacy.s2.item.media":    "Tout autre média téléversé par l'Utilisateur",
+    "privacy.s2.note":          "Remarque : Si vous (l'Utilisateur) utilisez un processus d'authentification tiers via OAuth, ces données ne seront collectées ni stockées sous aucune forme par les Fournisseurs.",
+    "privacy.s2.perfIntro":     "Afin d'améliorer les performances de notre Service, nous pouvons occasionnellement collecter des données telles que :",
+    "privacy.s2.item.browser":  "Navigateur",
+    "privacy.s2.item.ip":       "Adresse IP",
+    "privacy.s2.item.device":   "Appareil",
+
+    "privacy.s3.heading":       "3. Pourquoi mes données personnelles sont-elles collectées ?",
+    "privacy.s3.body1":         "Les données personnelles, lorsqu'elles sont nécessaires à l'inscription et à la création d'un compte Utilisateur, ou lorsqu'elles sont nécessaires à l'amélioration des performances de notre Service, sont collectées sur le fondement juridique du RGPD de « l'exécution d'un contrat », car sans celles-ci, l'utilisation du Service ne serait pas possible pour l'Utilisateur. Toute information personnelle allant au-delà de ce qui est strictement nécessaire à la fourniture du Service (telle qu'un Pseudonyme et les Historiques de discussion) est collectée sur le fondement juridique du RGPD du « consentement ».",
+    "privacy.s3.body2":         "L'Utilisateur n'est tenu de fournir que les données personnelles nécessaires à l'inscription et à la création d'un compte, s'il souhaite utiliser le Service.",
+
+    "privacy.s4.heading":       "4. Comment puis-je gérer mes préférences en matière de cookies ?",
+    "privacy.s4.body":          "Aucun cookie n'est utilisé, collecté ou stocké par le Service, à aucun moment.",
+
+    "privacy.s5.heading":       "5. Combien de temps mes données personnelles seront-elles conservées ?",
+    "privacy.s5.body":          "Vos données personnelles seront conservées indéfiniment par le Service, tant que l'Utilisateur dispose d'un compte enregistré. Il est nécessaire de conserver les données personnelles afin de fournir le Service à l'Utilisateur et de lui offrir la meilleure expérience possible.",
+
+    "privacy.s6.heading":       "6. Où mes données sont-elles stockées ?",
+    "privacy.s6.body":          "Les données personnelles sont stockées dans des bases de données sur notre serveur local, en Belgique, au sein de l'UE. Nous garantissons que les données personnelles ne sont jamais transférées hors de l'UE, ni vers un service tiers. Les mots de passe sont toujours stockés sous forme chiffrée.",
+
+    "privacy.s7.heading":       "7. Qui a accès à mes données personnelles ? Mes données personnelles seront-elles partagées ?",
+    "privacy.s7.body":          "Seuls les Fournisseurs du Service ont accès aux données personnelles de l'Utilisateur. Vos données personnelles ne seront partagées avec aucun tiers, à moins que vous ne décidiez de créer un compte via l'autorisation d'un tiers (par OAuth).",
+
+    "privacy.s8.heading":       "8. Modifications de cette Politique de Confidentialité",
+    "privacy.s8.body":          "Cette Politique de Confidentialité peut être modifiée à tout moment. Si l'Utilisateur souhaite retirer son consentement à la collecte de ses données personnelles, il perdra son droit à un compte et à l'utilisation du Service. Pour soulever ce problème, l'Utilisateur doit contacter un Délégué à la Protection des Données, à la section « Qui est responsable du traitement des données personnelles ? » de cette Politique de Confidentialité.",
 } as const
 

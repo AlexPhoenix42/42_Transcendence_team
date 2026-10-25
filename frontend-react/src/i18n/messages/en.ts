@@ -897,6 +897,82 @@ export const en = {
     "goose.legend.prison":           "⛓️ Prison (skip 2)",
     "goose.legend.death":            "💀 Death (→start)",
     "goose.legend.finish":           "🏁 Finish (63)",
+
+    // -- Footer ------------------------------------------------------------
+    "footer.privacy":   "Privacy Policy",
+    "footer.terms":     "Terms of Service",
+    "footer.copyright": "© {year} All rights reserved.",
+
+    // -- Legal: Terms of Service -----------------------------------------
+    "terms.title":           "Terms of Service",
+    "terms.updated":         "Updated as of 09 September 2026",
+    "terms.intro":           "The General Terms of Service, hereafter referred to as GTS, apply to the use of Born2Transcend, hereafter referred to as the Service. GTS applies to any user who uses the Service for any purpose. The GTS can be amended or updated at any time, and if the user wishes to no longer comply, they must stop using the service. For all enquires relating to the use of the Service, you may contact the Data Protection Officers as outlined in the Privacy Policy.",
+    "terms.contents.title":  "Contents:",
+    "terms.contents.art1":   "Acceptance of the General Terms of Use",
+    "terms.contents.art2":   "Definition of Acceptable Use",
+    "terms.contents.art3":   "Intellectual Property",
+    "terms.contents.art4":   "Limitation of Liability",
+    "terms.art1.heading":    "Article 1: Acceptance of the General Terms of Use",
+    "terms.art1.body":       "By using the Service, you consent to the GTS. Any violation of the Terms of Service as outlined in this document will result in the immediate forfeiture and termination of your account and ability to use the Service in the future.",
+    "terms.art2.heading":    "Article 2: Definition of Acceptable Use",
+    "terms.art2.body":       "You agree to use the Service for its intended purpose, which is for entertainment and education. You agree to maintain a civil discussion in global chats, chats with friends and chats with the AI chess coach, and refrain from any use of language or actions which may be considered derogatory, defamatory or discriminatory. You agree to not abuse the use of the Chess AI coach, or use it for any other purposes other than to discuss chess in an educational scope. Any attempts to use the service for purposes other than entertainment or education, will result in the violation of this contract, and you will forfeit your right to the Service.",
+    "terms.art3.heading":    "Article 3: Intellectual Property",
+    "terms.art3.body":       "The name, logos, media, and the Service itself are the intellectual property of the authors of this Service, hereafter referred to as the “Providers of the Service”. Any use, replication, modification or dissemination of this Service without the prior written consent of all Providers of the Service is considered an act of counterfeit under the Intellectual Property Code, and will be pursued.",
+    "terms.art4.heading":    "Article 4: Limitation of Liability",
+    "terms.art4.body1":      "The Providers of the Service shall not be held liable for omissions, inaccuracies, deficiencies and breaches in the provision of their Service, so long as it is an error originating from a third-party service out of their control. The User remains accountable for their use of the Service, when it is not used for its intended purposes. Any pursuance of justice relating to the Service, Providers of the Service, or the User, shall be subjected to Belgian Law.",
+    "terms.art4.body2":      "The Providers of the Service reserve the right to modify any part of the Service at any time, for any reasons.",
+
+    // -- Legal: Privacy Policy --------------------------------------------
+    "privacy.title":            "Privacy Policy",
+    "privacy.updated":          "Updated as of 09 September 2026",
+    "privacy.intro1":           "This Privacy Policy explains the policies of Born2Transcend on the collection, use, disclosure and protection of personal data we collect when you access Born2Transcend, hereafter referred to as the “Service”. This Privacy Policy defines and describes your privacy rights and how you are protected under applicable privacy laws.",
+    "privacy.intro2":           "By using our Service, you are consenting to the collection and use of your personal data in accordance with this Privacy Policy. Please do not access or use our Service if you do not consent to the collection and use of your information as outlined in this Privacy Policy.",
+    "privacy.toc.title":        "In this Policy:",
+    "privacy.toc.1":            "Who is responsible for processing personal data?",
+    "privacy.toc.2":            "What personal data is collected?",
+    "privacy.toc.3":            "Why is my personal data collected?",
+    "privacy.toc.4":            "How can I manage my cookie preferences?",
+    "privacy.toc.5":            "How long will my personal data be kept?",
+    "privacy.toc.6":            "Where is my data stored?",
+    "privacy.toc.7":            "Who has access to my personal data? Will my personal data be shared?",
+    "privacy.toc.8":            "Changes to this Privacy Policy",
+
+    "privacy.s1.heading":       "1. Who is responsible for processing personal data?",
+    "privacy.s1.body":          "In the context of personal data collected by the Service, the authors, hereafter referred to as the “Providers of the Service” are responsible for processing personal data. For any further enquiries or issues relating to the treatment of personal data which are not outlined in this Privacy Policy, you may refer to any Provider of the Service as a Data Protection Officer. You may contact them through official channels of 42 on Slack, their identifiers are in the README.md of this Service.",
+
+    "privacy.s2.heading":       "2. What personal data is collected?",
+    "privacy.s2.intro":         "The Providers of the Service, collect basic personal data in the form of:",
+    "privacy.s2.item.name":     "Name",
+    "privacy.s2.item.nickname": "Nickname",
+    "privacy.s2.item.email":    "Email",
+    "privacy.s2.item.phone":    "Phone Number",
+    "privacy.s2.item.password": "Password",
+    "privacy.s2.item.chatlogs": "Chat Logs",
+    "privacy.s2.item.media":    "Any other uploaded media by the User",
+    "privacy.s2.note":          "Note: If a you, (the User) uses a third-party authentication process through OAuth, this data will not be collected or stored in any form by the Providers.",
+    "privacy.s2.perfIntro":     "In order to improve the performance of our Service, we may occasionally collect data such as:",
+    "privacy.s2.item.browser":  "Browser",
+    "privacy.s2.item.ip":       "IP address",
+    "privacy.s2.item.device":   "Device",
+
+    "privacy.s3.heading":       "3. Why is my personal data collected?",
+    "privacy.s3.body1":         "Personal data, where it is necessary for the sign up and creation of a User account, or where it is necessary to improve the performance of our Service, is collected under the GDPR legal basis of “Performance of a Contract”, as without, the use of the Service would not be possible by the User. Any personal information beyond that strictly necessary to provide the Service (such as a Nickname and Chat Logs) is collected via the GDPR legal basis of “Consent”.",
+    "privacy.s3.body2":         "The User is only obliged to provide the necessary personal data for the sign up and creation of an account, if the User wishes to use the Service.",
+
+    "privacy.s4.heading":       "4. How can I manage my cookie preferences?",
+    "privacy.s4.body":          "No cookies are used, collected or stored by the Service at any point.",
+
+    "privacy.s5.heading":       "5. How long will my personal data be kept?",
+    "privacy.s5.body":          "Your personal data will be kept indefinitely by the Service, so long as a User has a registered account. It is necessary in order to provide the Service to the User, that personal data must be kept, to provide the User with the best experience.",
+
+    "privacy.s6.heading":       "6. Where is my data stored?",
+    "privacy.s6.body":          "Personal data is stored in databases on our local server, within Belgium, in the EU. We guarantee that personal data is never transferred out of the EU, or to a third-party service. Passwords are always stored in encrypted form.",
+
+    "privacy.s7.heading":       "7. Who has access to my personal data? Will my personal data be shared?",
+    "privacy.s7.body":          "Only the Providers of the Service have access to the personal data of the User. Your personal data will not be shared with any third parties, unless you decide to create an account via Authorisation of a third party (through OAuth).",
+
+    "privacy.s8.heading":       "8. Changes to this Privacy Policy",
+    "privacy.s8.body":          "This Privacy Policy may undergo changes at any time. If the User wishes to remove their consent towards the collection of their personal data, they will forfeit their right to an account, and to use the Service. To raise this issue, a User must contact a Data Protection Officer, under the section “Who is responsible for processing personal data?” of this Privacy Policy.",
 } as const
 
 // Every valid key in the app. Deriving this from the object rather than

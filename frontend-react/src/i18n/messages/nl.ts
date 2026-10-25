@@ -892,4 +892,80 @@ export const nl: MessageTable = {
     "goose.legend.prison":           "⛓️ Gevangenis (sla 2 over)",
     "goose.legend.death":            "💀 Dood (→start)",
     "goose.legend.finish":           "🏁 Finish (63)",
+
+    // -- Footer ------------------------------------------------------------
+    "footer.privacy":   "Privacybeleid",
+    "footer.terms":     "Gebruiksvoorwaarden",
+    "footer.copyright": "© {year} Alle rechten voorbehouden.",
+
+    // -- Legal: Terms of Service -----------------------------------------
+    "terms.title":           "Gebruiksvoorwaarden",
+    "terms.updated":         "Bijgewerkt op 9 september 2026",
+    "terms.intro":           "De Algemene Gebruiksvoorwaarden, hierna de AGV, zijn van toepassing op het gebruik van Born2Transcend, hierna de Dienst. De AGV zijn van toepassing op elke gebruiker die de Dienst voor welk doel ook gebruikt. De AGV kunnen op elk moment worden gewijzigd of bijgewerkt; indien de gebruiker hiermee niet langer instemt, dient hij het gebruik van de Dienst te stoppen. Voor alle vragen over het gebruik van de Dienst kunt u contact opnemen met de Functionarissen voor Gegevensbescherming zoals beschreven in het Privacybeleid.",
+    "terms.contents.title":  "Inhoud:",
+    "terms.contents.art1":   "Aanvaarding van de Algemene Gebruiksvoorwaarden",
+    "terms.contents.art2":   "Definitie van Aanvaardbaar Gebruik",
+    "terms.contents.art3":   "Intellectuele Eigendom",
+    "terms.contents.art4":   "Beperking van Aansprakelijkheid",
+    "terms.art1.heading":    "Artikel 1: Aanvaarding van de Algemene Gebruiksvoorwaarden",
+    "terms.art1.body":       "Door de Dienst te gebruiken, stemt u in met de AGV. Elke schending van de Gebruiksvoorwaarden zoals beschreven in dit document leidt tot de onmiddellijke stopzetting van uw account en het verlies van uw recht om de Dienst in de toekomst te gebruiken.",
+    "terms.art2.heading":    "Artikel 2: Definitie van Aanvaardbaar Gebruik",
+    "terms.art2.body":       "U stemt ermee in de Dienst te gebruiken voor het beoogde doel, namelijk ontspanning en educatie. U stemt ermee in een beschaafde houding aan te houden in globale chats, chats met vrienden en chats met de AI-schaakcoach, en zich te onthouden van elk taalgebruik of gedrag dat als kleinerend, lasterlijk of discriminerend kan worden beschouwd. U stemt ermee in de AI-schaakcoach niet te misbruiken, of te gebruiken voor andere doeleinden dan het bespreken van schaken in een educatieve context. Elke poging om de Dienst te gebruiken voor andere doeleinden dan ontspanning of educatie, vormt een schending van dit contract en leidt tot het verlies van uw recht op de Dienst.",
+    "terms.art3.heading":    "Artikel 3: Intellectuele Eigendom",
+    "terms.art3.body":       "De naam, logo's, media en de Dienst zelf zijn de intellectuele eigendom van de auteurs van deze Dienst, hierna de “Aanbieders van de Dienst”. Elk gebruik, elke reproductie, wijziging of verspreiding van deze Dienst zonder de voorafgaande schriftelijke toestemming van alle Aanbieders van de Dienst wordt beschouwd als een inbreuk in de zin van het Wetboek van Intellectuele Eigendom, en zal worden vervolgd.",
+    "terms.art4.heading":    "Artikel 4: Beperking van Aansprakelijkheid",
+    "terms.art4.body1":      "De Aanbieders van de Dienst kunnen niet aansprakelijk worden gesteld voor weglatingen, onnauwkeurigheden, gebreken of inbreuken bij het verlenen van hun Dienst, voor zover deze het gevolg zijn van een fout van een derde partij buiten hun controle. De Gebruiker blijft verantwoordelijk voor zijn gebruik van de Dienst wanneer dit niet overeenstemt met het beoogde doel. Elk geschil met betrekking tot de Dienst, de Aanbieders van de Dienst of de Gebruiker is onderworpen aan het Belgisch recht.",
+    "terms.art4.body2":      "De Aanbieders van de Dienst behouden zich het recht voor om op elk moment en om welke reden dan ook elk onderdeel van de Dienst te wijzigen.",
+
+    // -- Legal: Privacy Policy --------------------------------------------
+    "privacy.title":            "Privacybeleid",
+    "privacy.updated":          "Bijgewerkt op 9 september 2026",
+    "privacy.intro1":           "Dit Privacybeleid legt uit hoe Born2Transcend persoonsgegevens verzamelt, gebruikt, bekendmaakt en beschermt wanneer u toegang krijgt tot Born2Transcend, hierna de “Dienst”. Dit Privacybeleid omschrijft uw privacyrechten en hoe u beschermd wordt onder de toepasselijke privacywetgeving.",
+    "privacy.intro2":           "Door onze Dienst te gebruiken, stemt u in met het verzamelen en gebruiken van uw persoonsgegevens overeenkomstig dit Privacybeleid. Gelieve onze Dienst niet te gebruiken indien u niet instemt met het verzamelen en gebruiken van uw gegevens zoals beschreven in dit Privacybeleid.",
+    "privacy.toc.title":        "In dit Beleid:",
+    "privacy.toc.1":            "Wie is verantwoordelijk voor de verwerking van persoonsgegevens?",
+    "privacy.toc.2":            "Welke persoonsgegevens worden verzameld?",
+    "privacy.toc.3":            "Waarom worden mijn persoonsgegevens verzameld?",
+    "privacy.toc.4":            "Hoe kan ik mijn cookievoorkeuren beheren?",
+    "privacy.toc.5":            "Hoe lang worden mijn persoonsgegevens bewaard?",
+    "privacy.toc.6":            "Waar worden mijn gegevens opgeslagen?",
+    "privacy.toc.7":            "Wie heeft toegang tot mijn persoonsgegevens? Worden mijn persoonsgegevens gedeeld?",
+    "privacy.toc.8":            "Wijzigingen aan dit Privacybeleid",
+
+    "privacy.s1.heading":       "1. Wie is verantwoordelijk voor de verwerking van persoonsgegevens?",
+    "privacy.s1.body":          "In de context van door de Dienst verzamelde persoonsgegevens zijn de auteurs, hierna de “Aanbieders van de Dienst”, verantwoordelijk voor de verwerking van persoonsgegevens. Voor verdere vragen of problemen met betrekking tot de verwerking van persoonsgegevens die niet in dit Privacybeleid zijn opgenomen, kunt u elke Aanbieder van de Dienst als Functionaris voor Gegevensbescherming aanspreken. U kunt hen contacteren via de officiële kanalen van 42 op Slack; hun identificatiegegevens staan in de README.md van deze Dienst.",
+
+    "privacy.s2.heading":       "2. Welke persoonsgegevens worden verzameld?",
+    "privacy.s2.intro":         "De Aanbieders van de Dienst verzamelen basale persoonsgegevens in de vorm van:",
+    "privacy.s2.item.name":     "Naam",
+    "privacy.s2.item.nickname": "Bijnaam",
+    "privacy.s2.item.email":    "E-mailadres",
+    "privacy.s2.item.phone":    "Telefoonnummer",
+    "privacy.s2.item.password": "Wachtwoord",
+    "privacy.s2.item.chatlogs": "Chatlogs",
+    "privacy.s2.item.media":    "Andere door de Gebruiker geüploade media",
+    "privacy.s2.note":          "Opmerking: Indien u (de Gebruiker) gebruikmaakt van een authenticatieproces via een derde partij (OAuth), worden deze gegevens in geen enkele vorm verzameld of opgeslagen door de Aanbieders.",
+    "privacy.s2.perfIntro":     "Om de prestaties van onze Dienst te verbeteren, kunnen wij occasioneel gegevens verzamelen zoals:",
+    "privacy.s2.item.browser":  "Browser",
+    "privacy.s2.item.ip":       "IP-adres",
+    "privacy.s2.item.device":   "Toestel",
+
+    "privacy.s3.heading":       "3. Waarom worden mijn persoonsgegevens verzameld?",
+    "privacy.s3.body1":         "Persoonsgegevens die noodzakelijk zijn voor de registratie en aanmaak van een Gebruikersaccount, of die noodzakelijk zijn om de prestaties van onze Dienst te verbeteren, worden verzameld op basis van de AVG-rechtsgrond “Uitvoering van een overeenkomst”, aangezien het gebruik van de Dienst zonder deze gegevens niet mogelijk zou zijn voor de Gebruiker. Alle persoonsgegevens die niet strikt noodzakelijk zijn om de Dienst te verlenen (zoals een Bijnaam en Chatlogs) worden verzameld op basis van de AVG-rechtsgrond “Toestemming”.",
+    "privacy.s3.body2":         "De Gebruiker is enkel verplicht de noodzakelijke persoonsgegevens te verstrekken voor de registratie en aanmaak van een account, indien de Gebruiker de Dienst wenst te gebruiken.",
+
+    "privacy.s4.heading":       "4. Hoe kan ik mijn cookievoorkeuren beheren?",
+    "privacy.s4.body":          "Er worden op geen enkel moment cookies gebruikt, verzameld of opgeslagen door de Dienst.",
+
+    "privacy.s5.heading":       "5. Hoe lang worden mijn persoonsgegevens bewaard?",
+    "privacy.s5.body":          "Uw persoonsgegevens worden door de Dienst onbeperkt bewaard, zolang een Gebruiker over een geregistreerd account beschikt. Dit is noodzakelijk om de Dienst aan de Gebruiker te kunnen verlenen en om de Gebruiker de beste ervaring te bieden.",
+
+    "privacy.s6.heading":       "6. Waar worden mijn gegevens opgeslagen?",
+    "privacy.s6.body":          "Persoonsgegevens worden opgeslagen in databanken op onze lokale server, in België, binnen de EU. Wij garanderen dat persoonsgegevens nooit buiten de EU of naar een derde partij worden overgedragen. Wachtwoorden worden altijd in versleutelde vorm opgeslagen.",
+
+    "privacy.s7.heading":       "7. Wie heeft toegang tot mijn persoonsgegevens? Worden mijn persoonsgegevens gedeeld?",
+    "privacy.s7.body":          "Enkel de Aanbieders van de Dienst hebben toegang tot de persoonsgegevens van de Gebruiker. Uw persoonsgegevens worden niet gedeeld met derden, behalve indien u beslist een account aan te maken via machtiging van een derde partij (via OAuth).",
+
+    "privacy.s8.heading":       "8. Wijzigingen aan dit Privacybeleid",
+    "privacy.s8.body":          "Dit Privacybeleid kan op elk moment worden gewijzigd. Indien de Gebruiker zijn toestemming voor het verzamelen van zijn persoonsgegevens wenst in te trekken, verliest hij zijn recht op een account en op het gebruik van de Dienst. Om dit probleem aan te kaarten, dient de Gebruiker contact op te nemen met een Functionaris voor Gegevensbescherming, onder de sectie “Wie is verantwoordelijk voor de verwerking van persoonsgegevens?” van dit Privacybeleid.",
 }
