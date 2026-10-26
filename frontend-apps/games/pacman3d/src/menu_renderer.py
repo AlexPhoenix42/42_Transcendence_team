@@ -7,7 +7,15 @@ class Menu:
     def __init__(self, renderer):
         self._renderer = renderer
         self._start_screen = pygame.image.load("images/menu/start_screen.png").convert_alpha()
+        self._start_screen = pygame.transform.smoothscale(
+            self._start_screen,
+            (self._renderer.window_width, self._renderer.window_height),
+        )
         self._menu_background = pygame.image.load("images/menu/menu_background.png").convert_alpha()
+        self._menu_background = pygame.transform.smoothscale(
+            self._menu_background,
+            (self._renderer.window_width, self._renderer.window_height),
+        )
         self._title = pygame.image.load("images/menu/title.png").convert_alpha()
         self._menu_image = pygame.image.load("images/menu/menu.png").convert_alpha()
         self._3d_button = pygame.image.load("images/menu/3d.png").convert_alpha()
@@ -63,10 +71,11 @@ class Menu:
         title_x = (self._renderer.window_width - title_image.get_width()) // 2
         self._renderer._screen.blit(title_image, (title_x, title_y))
 
-        menu_image = self._menu_image.copy()
-        menu_image.set_alpha(menu_alpha)
-        menu_x = (self._renderer.window_width - menu_image.get_width()) // 2
-        self._renderer._screen.blit(menu_image, (menu_x, 170))
+        # it was a left-over so I removed so the new PacMan-3D image work.
+        #menu_image = self._menu_image.copy()
+        #menu_image.set_alpha(menu_alpha)
+        #menu_x = (self._renderer.window_width - menu_image.get_width()) // 2
+        #self._renderer._screen.blit(menu_image, (menu_x, 170))
 
         # Single column layout: 5 buttons
         # [0] Start 3D Game

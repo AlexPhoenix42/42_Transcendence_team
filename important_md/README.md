@@ -470,15 +470,30 @@ erDiagram
 | Feature | Description | 
 |:--------|:------------|
 | User interaction | Users are able to friend, and chat with other users. Users can invite friends to tournaments |
-| LLM Chess Coach | Users can talk to an LLM (Stockfish AI) which is specialised in chess. This provides a unique learning experience tailored to each user's needs |
-| Tournaments | Users can test their skills competitively by participating in tournaments |
-| AI Chess Player | Users can battle against an AI, with varying levels of difficulty. AI players are also able to play amongst themselves, whenever necessary in a tournament. |
-| OAuth and 2FA | Users have the ability to sign in via a third-party software, for added security |
-| Player stats | Players can have their stats displayed |
+| Real-time WebSockets | Django Channels with Redis pub/sub powers real-time communication across chat, games, and notifications |
+| Complete notification system | Full CRUD notifications with real-time delivery via WebSockets |
+| Advanced permissions system | Admin, Moderator, and User roles with full CRUD management |
+| LLM Chess Coach | Users can talk to an LLM (Mistral AI via Ollama) which is specialised in chess. This provides a unique learning experience tailored to each user's needs |
+| Tournaments | Users can test their skills competitively by participating in tournaments. AI players fill in when not enough users join |
+| AI Chess Player | Users can battle against an AI (Stockfish), with varying levels of difficulty. AI players are also able to play amongst themselves, whenever necessary in a tournament |
+| OAuth and 2FA | Users have the ability to sign in via Google or 42 OAuth, with optional TOTP-based 2FA via Authenticator App |
+| Player stats and gamification | Players can view their stats, leaderboards, achievements, badges, and XP/level progression |
+| User activity analytics | Dashboard with Recharts visualisations, date filters, and CSV/PDF export |
 | User roles | Users may have different roles, such as "Moderator" or "Admin" to monitor and manage other users |
-| Multiplayer games | The Goose game and the re-imagined multiplayer Pacman are both multiplayer games, which can handle a flexible number of players. Player roles in the Pacman game can be customised. |
-| 6 languages | The web-application supports 6 languages |
-| RTL language support | The web-application supports an RTL language |
+| Multiplayer games | The Goose game and the re-imagined multiplayer Pacman are both multiplayer games, which can handle a flexible number of players. Player roles in the Pacman game can be customised |
+| Advanced 3D graphics | 3D Pacman via pygbag/WASM and Three.js |
+| Game customization | Power-ups, maps, and custom game settings |
+| Spectator mode | Watch ongoing games with real-time updates |
+| Advanced chat features | Block users, invite from chat, notification history, and real-time chat translation via DeepL |
+| 6 languages | The web-application supports 6 languages: English, French, Dutch, Arabic, Hebrew, and Klingon |
+| RTL language support | The web-application supports RTL languages (Arabic, Hebrew) with full layout mirroring |
+| Data export and import | JSON, CSV, and XML export/import with validation |
+| GDPR compliance | Players can request to download their data and delete their account with email confirmation |
+| Security audit log | Audit model with auto-lock after 5 failed attempts, admin unlock, and demo script |
+| Intrusion detection | fail2ban log analysis (unprivileged) communicating via Unix socket to a privilege-separated firewall agent with CAP_NET_ADMIN for DOCKER-USER iptables rules |
+| Health checks and backups | Docker healthchecks on all services, automated restic backups |
+| Monitoring | Prometheus + Grafana with custom dashboards, nginx/postgres/redis exporters, and alerting via Alertmanager |
+| Collaborative whiteboard | Real-time collaborative drawing via WBO |
 
 ---
 
@@ -487,19 +502,26 @@ The back-end of this application is structured as separate, independently deploy
 
 | Name | Function |
 |:-----|:---------|
-|backend_django | web application + API |
-|chess_engine | C++ move validation (REST API on port 4190)|
-|stockfish_ai | AI oppponent (REST API on port 4191)|
-|timeout_checker | game clock enforcement (REST API) |
-|vault + vault_init | secrets management | 
-|postgres | database |
-|redis | cache + pub/sub (message queue for WebSockets) |
-|frontend_nginx | reverse proxy + WAF + static servicing |
-|whiteboard | collaborative drawing (separate app) |
-|mailpit | email service | 
-|backup | automated backup service |
-|ollama | LLM chess coach (Mistral AI) |
-|prometheus + grafana | monitoring |
+| backend_django | web application + API |
+| chess_engine | C++ move validation (REST API on port 4190) |
+| stockfish_ai | AI opponent (REST API on port 4191) |
+| timeout_checker | game clock enforcement (REST API) |
+| vault + vault_init | secrets management (HashiCorp Vault with AppRole auth) |
+| postgres | database (PostgreSQL) |
+| redis | cache + pub/sub (message queue for WebSockets) |
+| frontend_nginx | reverse proxy + WAF/ModSecurity + static serving |
+| whiteboard | collaborative drawing (WBO, separate app) |
+| mailpit | email service |
+| backup | automated restic backup service |
+| ollama | LLM chess coach (Mistral AI) |
+| prometheus | metrics collection |
+| grafana | monitoring dashboards |
+| alertmanager | alert routing for Prometheus |
+| nginx-exporter | nginx stub_status metrics for Prometheus |
+| postgres-exporter | PostgreSQL metrics for Prometheus |
+| redis-exporter | Redis metrics for Prometheus |
+| fail2ban | log analysis — unprivileged, communicates via Unix socket |
+| firewall-agent | privilege-separated firewall agent (CAP_NET_ADMIN, DOCKER-USER iptables) |
 
 Additionally, Django apps that constitute the chat, chess coach, chess game, goose game, pacman game, and tournaments, are loosely coupled with clear interfaces. Each app has its own models, views, URLs, and consumers. They communicate through Django's ORM and the redis channel layer. The chess coach, chess game, and timeout checker apps are genuine micro-services with REST APIs.
 
@@ -509,31 +531,48 @@ Additionally, Django apps that constitute the chat, chess coach, chess game, goo
 
 |Status | Module                   | Type      | Points  | Category      | Description       | Developer              |
 |:------|:-------------------------|:----------|:--------|:--------------|:------------------|:-----------------------|
-| ✅ |Use a framework for frontend and backend | Major | 2 | Web | React for the front-end framework and Django for the backend framework. | alephoen |
-| ✅ | User interaction | Major | 2 | Web | Users can interact with others via direct-messaging chat, a global chat, friend requests, and match invites. Users have public profiles which can be viewed by other users | alephoen |
-| ✅ | A public API to interact with the database | Major | 2 | Web | A public API which interacts with the database via a secured API key. With at least five endpoints. | alephoen |
-| ✅ | Use a ORM for the database | Minor | 1 | Web | Used the built-in Django ORM with a databse adapter to allow Django to speak natively with PostgreSQL | alephoen |
-| ✅ | Support for 6 languages | Minor | 1 | Web | Translation for English, Dutch, French, Arabic, Hebrew, Klingon | bvan-duy |
-| ✅ | Right to left (RTL) language support | Minor | 1 | Web | The front-end can handle a RTL language | bvan-duy |
-| ✅ | Support for additional browsers | Minor | 1 | Web | Supported by Google Chrome, Firefox, Brave | alephoen |
-| ✅ | Real-time collaborative features (shared workspaces, live editing, collaborative drawing, etc.) | Minor | 1 | Web | A whiteboard app which allows for real-time drawing | alephoen |
-| ✅ | Standard user management and authentication | Major | 2 | User Management | Users can update their profile information, upload an avatar, add other users as friends, and have a profile with their information | mtice |
-| ✅ | Game statistics and match history | Minor | 1 | User Management | User game statistics, match history, achievements, progression and leaderboards are available to users | mtice |
-| ✅ | Implement remote authentication with OAuth 2.0 | Minor | 1 | User Management | OAuth 2.0 (Google and 42) is implemented and automatically creates an account | alephoen |
-| ✅ | Implement a complete 2FA system for users | Minor | 1 | User Management | 2FA is working with the Authenticator App | alephoen |
-| ✅ | Introduce an AI Opponent for games | Major | 2 | AI | Stockfish AI is used as the engine for the AI opponent. AIs can face each other within chess tournaments if necessary | alephoen |
-| ✅ | Implement a complete LLM system interface | Major | 2 | AI | Ollama serves Mistral AI as a chess coach | alephoen |
-| ✅ | Implement WAF/ModSecurity + HashiCorp Vault for secrets | Major | 2 | Cybersecurity | ModSecurity is implemented with HashiCoorp Vault for the encyrption of secrets | alephoen |
-| ✅ | Implement a complete web-base game where users can play against each other | Major | 2 | Gaming and UX | Chess is a 1v1 game which allows users to compete against each other. It is also possible to compete against a AI | alephoen |
-| ✅ | Enable remote players to play real-time | Major | 2 | Gaming and UX | Remote players can play on different devices on the same network | isadbaib |
-| ✅ | Multiplayer game (more than two players) | Major | 2 | Gaming and UX | The re-imagined Pacman multiplayer game and the Goose game allow for a variable amount of players to play. | isadbaib |
-| ✅ | Implement a tournament system | Minor / Major | 1 | Gaming and UX | Players can play chess in tournaments that are started by any user. If there are not enough users, AI may join the tournament. It's a Minor but the implementation deserves a Major | alephoen |
-| ✅ | Implement GDPR compliance features | Minor | 1 | Data and Analytics | Players can request to download their data in readable json format and delete their data with email confirmation | alephoen |
-| ✅ | Infrastructure for log managment using ELK (Elasticsearch, Logstash, Kibana) | Major | removed | Devops | Logging service (removed due school computers limitations) | bvan-duy |
-| ✅ | Monitoring system with Prometheus and Grafana | Major | 2 | Devops | Monitoring with Prometheus and Grafana | alephoen |
-| ✅ | Backend as microservices | Major | 2 | Devops | The back-end is constructed as a group of loosely-coupled micro-services with Docker | alephoen |
+| ✅ | Use a framework for frontend and backend | Major | 2 | Web | React for the front-end framework and Django for the backend framework | alephoen |
+| ✅ | Real-time features using WebSockets | Major | 2 | Web | Django Channels with Redis pub/sub for real-time communication | alephoen |
+| ✅ | User interaction (chat, profiles, friends) | Major | 2 | Web | Users can interact via DM, global chat, friend requests, and match invites. Public profiles viewable by other users | alephoen |
+| ✅ | Public API with secured key (5+ endpoints) | Major | 2 | Web | REST API, rate limited, documented | alephoen |
+| ✅ | Use an ORM for the database | Minor | 1 | Web | Django ORM with PostgreSQL | alephoen |
+| ✅ | Complete notification system | Minor | 1 | Web | Full CRUD notifications with real-time delivery | alephoen |
+| ✅ | Real-time collaborative features | Minor | 1 | Web | Whiteboard (WBO) for real-time collaborative drawing | alephoen |
+| ✅ | Support for multiple languages (6) | Minor | 1 | Accessibility | EN, FR, NL, AR, HE, Klingon | bvan-duy |
+| ✅ | RTL language support | Minor | 1 | Accessibility | Arabic, Hebrew — full layout mirroring | bvan-duy |
+| ✅ | Support for additional browsers | Minor | 1 | Accessibility | Firefox, Brave, Chrome, Edge, iOS, Android | alephoen |
+| ✅ | Standard user management and authentication | Major | 2 | User Management | Profiles, avatars, friends, online status | mtice |
+| ✅ | Advanced permissions system | Major | 2 | User Management | Admin, Moderator, User roles — full CRUD management | alephoen |
+| ✅ | Game statistics and match history | Minor | 1 | User Management | Stats, leaderboards, achievements | mtice |
+| ✅ | Remote authentication with OAuth 2.0 | Minor | 1 | User Management | Google + 42 OAuth, automatic account creation | alephoen |
+| ✅ | Complete 2FA system | Minor | 1 | User Management | TOTP via Authenticator App | alephoen |
+| ✅ | User activity analytics dashboard | Minor | 1 | User Management | Recharts visualisations, date filters, CSV+PDF export | alephoen |
+| ✅ | AI Opponent for games | Major | 2 | AI | Stockfish AI with multiple difficulty levels. AIs can face each other in tournaments | alephoen |
+| ✅ | LLM system interface | Major | 2 | AI | Ollama serves Mistral AI as a chess coach | alephoen |
+| ✅ | WAF/ModSecurity + HashiCorp Vault | Major | 2 | Cybersecurity | OWASP CRS, Vault AppRole, TLS | alephoen |
+| ✅ | Web-based game (users vs each other) | Major | 2 | Gaming & UX | Chess — 1v1, live matches, rules engine | alephoen |
+| ✅ | Remote players in real-time | Major | 2 | Gaming & UX | WebSocket sync across devices | isadbaib |
+| ✅ | Multiplayer game (3+ players) | Major | 2 | Gaming & UX | Pacman + Goose Game, variable number of players | isadbaib |
+| ✅ | Another game + matchmaking | Major | 2 | Gaming & UX | Goose Game — match history, matchmaking | isadbaib |
+| ✅ | Advanced 3D graphics | Major | 2 | Gaming & UX | 3D Pacman via pygbag/WASM, Three.js | isadbaib |
+| ✅ | Advanced chat features | Minor | 1 | Gaming & UX | Block, invite from chat, notifications, history | alephoen |
+| ✅ | Tournament system | Minor | 1 | Gaming & UX | Brackets, matchmaking, AI fill-in | alephoen |
+| ✅ | Game customization options | Minor | 1 | Gaming & UX | Power-ups, maps, custom settings | isadbaib |
+| ✅ | Gamification system | Minor | 1 | Gaming & UX | Achievements, badges, XP/levels | mtice |
+| ✅ | Spectator mode for games | Minor | 1 | Gaming & UX | Watch ongoing games, real-time updates | isadbaib |
+| ✅ | Monitoring: Prometheus + Grafana | Major | 2 | DevOps | Custom dashboards, nginx/postgres/redis exporters, alerting via Alertmanager | alephoen |
+| ✅ | Backend as microservices | Major | 2 | DevOps | Docker Compose, REST APIs, message queues | alephoen |
+| ✅ | Health checks + automated backups | Minor | 1 | DevOps | Docker healthchecks on all services, restic backups | alephoen |
+| ✅ | Advanced analytics dashboard | Major | 2 | Data & Analytics | Recharts, real-time, export PDF/CSV | alephoen |
+| ✅ | Data export and import | Minor | 1 | Data & Analytics | JSON, CSV, XML + validation | alephoen |
+| ✅ | GDPR compliance features | Minor | 1 | Data & Analytics | Data request, deletion, export, email confirmation | alephoen |
+| ✅ | Security audit log & intrusion detection | Major | 2 | Custom | Audit model, auto-lock after 5 failed attempts, admin unlock, demo script | alephoen |
+| ✅ | fail2ban + privilege-separated firewall agent | Major | 2 | Custom | Unprivileged fail2ban → Unix socket → CAP_NET_ADMIN agent, DOCKER-USER iptables | alephoen |
+| ✅ | Real-time chat translation (DeepL) | Minor | 1 | Custom | On-demand per-message translate, REST API, secrets via file mount | alephoen |
 
-**Total Points:** 36
+**Total: 32 modules — 18 Major, 14 Minor — 57 Points**
+
+`NOTE:` Infrastructure for log management using ELK (Elasticsearch, Logstash, Kibana) was implemented by the team but a decision was made to remove it because the school machines lacked the necessary resources (8GB RAM limitation).
 
 ---
 
@@ -543,10 +582,10 @@ Individual contributions are highlighted in the `Modules` section above. Note: a
 
 |Name | Contributions |
 |:----|:--------------|
-|alephoen | Chess game, chess tournaments, chess coach, whiteboard service. Managing the backend as microservices with Docker, setting up the Django backend framework, and the ORM with the PostgresSQL database. Security features such as OAuth and 2FA. Front-end React and TailwindCSS. |
-|isadbaib | Pacman multiplayer game, goose game, Front-end React and TailwindCSS interactions, support for multiple browers, and for mobile. |
-|bvan-duy | Front-end React and TailwindCSS, RTL support, translations. Project-wide testing, reviewing, and bug reports |
-| mtice   | Front-end React and TailwindCSS, documentation, GDPR regulations. Communication and team management |
+|alephoen | Chess game, chess tournaments, chess coach, whiteboard service. Managing the backend as microservices with Docker, setting up the Django backend framework, and the ORM with the PostgreSQL database. WebSocket real-time features with Django Channels and Redis. Security features: OAuth 2.0, 2FA, WAF/ModSecurity, HashiCorp Vault, security audit log with intrusion detection, fail2ban with privilege-separated firewall agent. Public REST API. Advanced permissions system. Complete notification system. Advanced chat features with real-time DeepL translation. User activity analytics dashboard. Advanced analytics dashboard with Recharts. Data export/import. GDPR compliance. Health checks and automated restic backups. Prometheus + Grafana monitoring with exporters and Alertmanager. Front-end React and Tailwind CSS. |
+|isadbaib | Pacman multiplayer game with advanced 3D graphics (pygbag/WASM, Three.js), Goose game with matchmaking, remote real-time multiplayer via WebSockets, game customization options, spectator mode. Front-end React and Tailwind CSS, support for multiple browsers and mobile. |
+|bvan-duy | Front-end React and Tailwind CSS, 6-language translation, RTL language support (Arabic, Hebrew). Project-wide testing, reviewing, and bug reports. |
+|mtice | Front-end React and Tailwind CSS, standard user management and authentication, game statistics and match history, gamification system (achievements, badges, XP/levels), documentation, GDPR regulations. Communication and team management. |
 
 
 
@@ -554,5 +593,4 @@ Individual contributions are highlighted in the `Modules` section above. Note: a
 We faced a few limitations due to the computer hardware at our school, such as:
 * Log management with ELK lagged due to the 8GB ram
 * Limited space on school computers meant that logs, backups, and monitoring activity had to be limited
-
 

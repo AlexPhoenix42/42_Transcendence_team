@@ -4,6 +4,8 @@ import { useState, useEffect, useRef } from "react"
 import { marked } from "marked"
 import mermaid from "mermaid"
 
+import ModuleScorecard from "./ModuleScorecard"
+
 mermaid.initialize({ startOnLoad: false, theme: "dark" })
 
 //const renderer = new marked.Renderer()
@@ -62,6 +64,10 @@ export default function Docs() {
     const historyRef = useRef<HTMLElement[]>([])
 
     useEffect(() => {
+		if (activeDoc === "scorecard") {
+            setLoading(false)
+            return
+        }
         setLoading(true)
         fetch(`/docs/${activeDoc}`)
             .then((r) => {
@@ -141,7 +147,7 @@ export default function Docs() {
         if (last) last.scrollIntoView({ behavior: "smooth", block: "center" })
     }
 
-    return (
+	return (
         <div className="min-h-screen bg-gray-900">
             <div className="bg-gray-800 border-b border-gray-700 px-6 py-3 flex gap-3 items-center">
                 <button
@@ -150,6 +156,12 @@ export default function Docs() {
                 >
                     README
                 </button>
+				<button
+					onClick={() => setActiveDoc("scorecard")}
+					className={`px-3 py-1.5 rounded text-sm ${activeDoc === "scorecard" ? "bg-gray-600 text-white" : "text-gray-400 hover:text-white"}`}
+				>
+					Module Scorecard
+				</button>
                 <button
                     onClick={() => setActiveDoc("API_DOC.md")}
                     className={`px-3 py-1.5 rounded text-sm ${activeDoc === "API_DOC.md" ? "bg-gray-600 text-white" : "text-gray-400 hover:text-white"}`}
@@ -160,15 +172,19 @@ export default function Docs() {
                     onClick={() => setActiveDoc("LICENSE.md")}
                     className={`px-3 py-1.5 rounded text-sm ${activeDoc === "LICENSE.md" ? "bg-gray-600 text-white" : "text-gray-400 hover:text-white"}`}
                 >
-                    LICENSE 
+                    LICENSE
                 </button>
                 <a href="/" className="ml-auto text-gray-400 hover:text-white text-sm">← Back to App</a>
             </div>
-            <div
-                ref={contentRef}
-                className="max-w-4xl mx-auto py-8 px-6 prose prose-invert prose-pre:bg-gray-800 prose-code:text-blue-300"
-                dangerouslySetInnerHTML={{ __html: loading ? "Loading..." : content }}
-            />
+            {activeDoc === "scorecard" ? (
+                <ModuleScorecard />
+            ) : (
+                <div
+                    ref={contentRef}
+                    className="max-w-4xl mx-auto py-8 px-6 prose prose-invert prose-pre:bg-gray-800 prose-code:text-blue-300"
+                    dangerouslySetInnerHTML={{ __html: loading ? "Loading..." : content }}
+                />
+            )}
             <button
                 onClick={goBack}
                 className="fixed bottom-6 right-6 bg-gray-700 text-white px-3 py-2 rounded-full hover:bg-gray-600 text-sm shadow-lg"
