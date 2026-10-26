@@ -44,6 +44,7 @@ services:
   redis:
     image:            redis:8-alpine
     container_name:   trans_redis
+    user:             "999:1000"
     restart:          unless-stopped
     networks:
       - trans_net
@@ -113,6 +114,7 @@ services:
   mailpit:
     image:            axllent/mailpit
     container_name:   mailpit
+    user:             "65534:65534"
     restart:          unless-stopped
     command:          --webroot /mailpit
     healthcheck:

@@ -45,7 +45,7 @@ all:
 	@printf "  $(GREEN)3)$(RESET)  Stop all containers                              $(DIM)(compose down remove-orphans)$(RESET)\n"
 	@printf "  $(RED)4)$(RESET)  Full clean and re-build                          $(DIM)(fclean + build)$(RESET)\n"
 	@printf "  $(RED)5)$(RESET)  Clean containers and images                      $(DIM)(compose down rmi all)$(RESET)\n"
-	@printf "  $(RED)6)$(RESET)  Soft clean, volumes and data (keep images)       $(DIM)(softclean)$(RESET)\n"
+	@printf "  $(RED)6)$(RESET)  Soft clean: keep images and data                 $(DIM)(softclean)$(RESET)\n"
 	@printf "  $(RED)7)$(RESET)  Full clean, volumes, all project images, data    $(DIM)(fclean)$(RESET)\n"
 	@printf "  $(RED)8)$(RESET)  Nuclear: wipe ALL Docker artifacts on system     $(DIM)(nukclean)$(RESET)\n"
 	@printf "  $(YELLOW)9)$(RESET)  Display containers status                        $(DIM)(compose ps)$(RESET)\n"
@@ -81,7 +81,7 @@ all:
 		   read confirm; \
 		   if [ "$$confirm" = "1" ]; then $(MAKE) --no-print-directory clean; \
 		   else printf "  $(SHIELD_ICON) $(DIM)Cancelled.$(RESET)\n"; fi ;; \
-		6) printf "\n  $(WARN_ICON)  This will wipe volumes and data but keep images.\n"; \
+		6) printf "\n  $(WARN_ICON)  This will stop containers and wipe volumes but keep images and data.\n"; \
 		   printf "  $(NUKE_ICON) $(BOLD)(1)$(RESET) Confirm  /  $(SHIELD_ICON) $(BOLD)(0)$(RESET) Cancel: "; \
 		   read confirm; \
 		   if [ "$$confirm" = "1" ]; then $(MAKE) --no-print-directory softclean; \
@@ -110,32 +110,32 @@ help:
 	@printf "  $(BOLD)─────────────────────────────────────────$(RESET)\n"
 	@printf "\n"
 	@printf "  $(GREEN)$(BOLD)Core$(RESET)\n"
-	@printf "    $(CYAN)make build$(RESET)          Build images and start all containers\n"
-	@printf "    $(CYAN)make up$(RESET)             Start containers from existing images\n"
-	@printf "    $(CYAN)make down$(RESET)           Stop all containers\n"
-	@printf "    $(CYAN)make re$(RESET)             Full clean and re-build\n"
+	@printf "    $(CYAN)make build$(RESET)               Build images and start all containers\n"
+	@printf "    $(CYAN)make up$(RESET)                  Start containers from existing images\n"
+	@printf "    $(CYAN)make down$(RESET)                Stop all containers\n"
+	@printf "    $(CYAN)make re$(RESET)                  Full clean and re-build\n"
 	@printf "\n"
 	@printf "  $(RED)$(BOLD)Cleanup$(RESET)\n"
-	@printf "    $(CYAN)make clean$(RESET)          Clean containers and images\n"
-	@printf "    $(CYAN)make softclean$(RESET)      Soft clean: volumes and data (keep images)\n"
-	@printf "    $(CYAN)make fclean$(RESET)         Full clean: volumes, all project images, data\n"
-	@printf "    $(CYAN)make nukclean$(RESET)       Nuclear: wipe ALL Docker artifacts on system\n"
+	@printf "    $(CYAN)make clean$(RESET)               Clean containers and images\n"
+	@printf "    $(CYAN)make softclean$(RESET)           Soft clean: containers and volumes (keep images and data)\n"
+	@printf "    $(CYAN)make fclean$(RESET)              Full clean: volumes, all project images, data\n"
+	@printf "    $(CYAN)make nukclean$(RESET)            Nuclear: wipe ALL Docker artifacts on system\n"
 	@printf "\n"
 	@printf "  $(YELLOW)$(BOLD)Monitoring$(RESET)\n"
-	@printf "    $(CYAN)make status$(RESET)         Display containers status\n"
-	@printf "    $(CYAN)make check$(RESET)          Environment check (containers, images, volumes)\n"
-	@printf "    $(CYAN)make logs$(RESET)           Stream service logs (interactive picker)\n"
-	@printf "    $(CYAN)make logs-<svc>$(RESET)     Stream logs for a specific service\n"
+	@printf "    $(CYAN)make status$(RESET)              Display containers status\n"
+	@printf "    $(CYAN)make check$(RESET)               Environment check (containers, images, volumes)\n"
+	@printf "    $(CYAN)make logs$(RESET)                Stream service logs (interactive picker)\n"
+	@printf "    $(CYAN)make logs-<svc>$(RESET)          Stream logs for a specific service\n"
 	@printf "\n"
 	@printf "  $(SHIELD_ICON) $(BOLD)Security$(RESET)\n"
-	@printf "    $(CYAN)make ban IP=x.x.x.x$(RESET)  Manually ban an IP\n"
-	@printf "    $(CYAN)make unban IP=x.x.x.x$(RESET) Manually unban an IP\n"
-	@printf "    $(CYAN)make banned$(RESET)          List all currently banned IPs\n"
-	@printf "    $(CYAN)make f2b-status$(RESET)      Show fail2ban jail status\n"
-	@printf "    $(CYAN)make f2b-logs$(RESET)        Stream fail2ban logs\n"
-	@printf "    $(CYAN)make fw-logs$(RESET)         Stream firewall-agent logs\n"
-	@printf "    $(CYAN)make f2b-demo$(RESET)        Full chain demo (detection + ban + iptables)\n"
-	@printf "    $(CYAN)make f2b-demo-nat$(RESET)    NAT evidence — why auto-ban can't fire\n"
+	@printf "    $(CYAN)make ban IP=x.x.x.x$(RESET)      Manually ban an IP\n"
+	@printf "    $(CYAN)make unban IP=x.x.x.x$(RESET)    Manually unban an IP\n"
+	@printf "    $(CYAN)make banned$(RESET)              List all currently banned IPs\n"
+	@printf "    $(CYAN)make f2b-status$(RESET)          Show fail2ban jail status\n"
+	@printf "    $(CYAN)make f2b-logs$(RESET)            Stream fail2ban logs\n"
+	@printf "    $(CYAN)make fw-logs$(RESET)             Stream firewall-agent logs\n"
+	@printf "    $(CYAN)make f2b-demo$(RESET)            Full chain demo (detection + ban + iptables)\n"
+	@printf "    $(CYAN)make f2b-demo-nat$(RESET)        NAT evidence — why auto-ban can't fire\n"
 	@printf "\n"
 
 # ── Core ──────────────────────────────────────────────────────────
@@ -165,18 +165,15 @@ clean:
 	@printf "$(SUCCESS_ICON) $(GREEN)Clean complete.$(RESET)\n"
 
 softclean:
-	@printf "$(CLEAN_ICON) $(YELLOW)$(BOLD)Soft cleanup: containers, volumes, data (keeping images)...$(RESET)\n"
+	@printf "$(CLEAN_ICON) $(YELLOW)$(BOLD)Soft cleanup: containers, volumes (keeping images and data)...$(RESET)\n"
 	@$(COMPOSE) down --volumes --remove-orphans 2>/dev/null || true
-	@printf "$(CLEAN_ICON) $(BLUE)Wiping data directory:$(RESET) $(YELLOW)$(DATA_DIR)$(RESET)\n"
-	@sudo rm -rf $(DATA_DIR)
-	@printf "$(SUCCESS_ICON) $(GREEN)Soft cleanup complete (images kept).$(RESET)\n"
+	@printf "$(SUCCESS_ICON) $(GREEN)Soft cleanup complete (images and data kept).$(RESET)\n"
 
 fclean:
 	@printf "$(NUKE_ICON) $(RED)$(BOLD)Full cleanup: containers, volumes, images, data...$(RESET)\n"
 	@$(COMPOSE) down --volumes --rmi all --remove-orphans 2>/dev/null || true
-	@docker rm -f $$(docker ps -a -q --filter "label=com.docker.compose.project" 2>/dev/null) 2>/dev/null || true
-	@docker rmi $$(docker images -q --filter "reference=trans-*" 2>/dev/null) 2>/dev/null || true
-	@$(COMPOSE) config --images 2>/dev/null | xargs -r docker rmi -f 2>/dev/null || true
+	@docker rm -f $$(docker ps -a -q 2>/dev/null) 2>/dev/null || true
+	@docker rmi -f $$(docker images -q 2>/dev/null) 2>/dev/null || true
 	@docker volume prune -f 2>/dev/null || true
 	@printf "$(CLEAN_ICON) $(BLUE)Wiping data directory:$(RESET) $(YELLOW)$(DATA_DIR)$(RESET)\n"
 	@sudo rm -rf $(DATA_DIR)
@@ -184,6 +181,7 @@ fclean:
 
 nukclean:
 	@printf "$(NUKE_ICON) $(RED)$(BOLD)Nuclear cleanup: EVERYTHING on Docker...$(RESET)\n"
+	@docker compose -f docker-compose.yml down -v 2>/dev/null || true
 	@docker rm -f $$(docker ps -a -q 2>/dev/null) 2>/dev/null || true
 	@docker system prune -af 2>/dev/null || true
 	@docker volume prune -f 2>/dev/null || true
@@ -329,8 +327,8 @@ security:
 	@printf "  $(RED)4)$(RESET)  Unban an IP                                      $(DIM)(manual unban)$(RESET)\n"
 	@printf "  $(YELLOW)5)$(RESET)  Stream fail2ban logs                             $(DIM)(compose logs -f)$(RESET)\n"
 	@printf "  $(YELLOW)6)$(RESET)  Stream firewall-agent logs                       $(DIM)(compose logs -f)$(RESET)\n"
-	@printf "  $(GREEN)7)$(RESET)  Run full chain demo                             $(DIM)(f2b-demo)$(RESET)\n"
-	@printf "  $(GREEN)8)$(RESET)  Show NAT evidence                               $(DIM)(f2b-demo-nat)$(RESET)\n"
+	@printf "  $(GREEN)7)$(RESET)  Run full chain demo                             $(DIM) (f2b-demo)$(RESET)\n"
+	@printf "  $(GREEN)8)$(RESET)  Show NAT evidence                               $(DIM) (f2b-demo-nat)$(RESET)\n"
 	@printf "  $(DIM)0)  Back$(RESET)\n"
 	@printf "\n"
 	@read -p "  Pick an option [0-8]: " choice; \
