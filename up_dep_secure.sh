@@ -60,10 +60,17 @@ chmod 755 backend/django/media
 mkdir -p backend/django/secrets
 chown -R 1000:1000 backend/django/secrets
 chmod 750 backend/django/secrets
-rm -rf backend/django/secrets/deepl_api_key
-cp /home/$SUDO_USER/goinfre/trans_sec/api_sec/deepl_api_key backend/django/secrets/deepl_api_key
-chmod 600 backend/django/secrets/deepl_api_key
-chown 1000:1000 backend/django/secrets/deepl_api_key
+# Write DeepL key from decrypted secrets to a mounted file
+DEEPL_KEY=$(grep '^DEEPL_API_KEY=' "$DECRYPTED_SEC_ENV" | cut -d= -f2-)
+if [ -n "$DEEPL_KEY" ]; then
+    printf '%s' "$DEEPL_KEY" > backend/django/secrets/deepl_api_key
+    chmod 600 backend/django/secrets/deepl_api_key
+    chown 1000:1000 backend/django/secrets/deepl_api_key
+    unset DEEPL_KEY
+else
+    echo "⚠️  DEEPL_API_KEY not found in secrets — translation will be disabled"
+    rm -f backend/django/secrets/deepl_api_key
+fi
 
 BACKUP_DATA_DIR="$HOME/goinfre/trans_data/trans_backups"
 mkdir -p "$BACKUP_DATA_DIR/restic-repo"
