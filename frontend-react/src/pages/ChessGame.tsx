@@ -28,6 +28,25 @@ interface GameInfo {
     result_reason?: string
 }
 
+// Maps backend game-over reasons → translation keys.
+// Must cover every value the backend can send (enum members + raw strings
+// from consumers.py / ai_autoplay.py) plus the frontend fallback.
+const REASON_KEY: Record<string, string> = {
+    CHECKMATE:             "chess.reason.checkmate",
+    RESIGNATION:           "chess.reason.resignation",
+    TIMEOUT:               "chess.reason.timeout",
+    DISCONNECT:            "chess.reason.disconnect",
+    STALEMATE:             "chess.reason.stalemate",
+    DRAW:                  "chess.reason.draw",
+    CANCELLED:             "chess.reason.cancelled",     // new key (Change 3)
+    REPETITION:            "reason.repetition",
+    "50_MOVES":            "reason.fiftyMoves",
+    INSUFFICIENT_MATERIAL: "reason.insufficient",
+    DRAW_REPETITION:       "reason.drawRepetition",
+    DRAW_50_MOVES:         "reason.draw50",
+    DRAW_INSUFFICIENT:     "reason.drawInsufficient",
+};
+
 export default function ChessGame() {
     const { t, ts } = useI18n()
     const { id } = useParams()
@@ -311,8 +330,10 @@ export default function ChessGame() {
         const info = gameInfoRef.current
         let winnerName = String(data.winner)
         if (info) {
-            if (info.player1 === String(data.winner)) winnerName = info.player1
-            else if (info.player2 === String(data.winner)) winnerName = info.player2 || "AI"
+            //if (info.player1 === String(data.winner)) winnerName = info.player1
+            //else if (info.player2 === String(data.winner)) winnerName = info.player2 || "AI"
+			if (info.player1_id === data.winner) winnerName = info.player1
+		    else if (info.player2_id === data.winner) winnerName = info.player2 || "AI"
 
             if (data.reason === "TIMEOUT") {
                 const winnerIsPlayer1 = info.player1_id === data.winner
@@ -670,7 +691,18 @@ export default function ChessGame() {
                 <div className="bg-blue-900/50 border border-blue-500 text-blue-300 px-4 py-4 rounded mb-4 text-center">
                     <p className="text-xl font-bold mb-1">{t("chess.gameOver")}</p>
 					<p>
-                        {gameOverInfo.winner} {t("chess.wins")} — {t(`chess.reason.${gameOverInfo.reason.toLowerCase()}`, gameOverInfo.reason)}
+						{(() => {
+                            const hasWinner =
+                                !!gameOverInfo.winner &&
+                                gameOverInfo.winner !== "0" &&
+                                gameOverInfo.winner !== "Unknown";
+                            const reasonLabel = t(
+                                REASON_KEY[gameOverInfo.reason] ?? "chess.reason.unknown"
+                            );
+                            return hasWinner
+                                ? <>{gameOverInfo.winner} {t("chess.wins")} — {reasonLabel}</>
+                                : <>{reasonLabel}</>;
+                        })()}
                     </p>
                 </div>
             )}

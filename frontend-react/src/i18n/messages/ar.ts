@@ -289,6 +289,8 @@ export const ar: MessageTable = {
     "chess.reason.stalemate":   "تعادل بالتقييد",
     "chess.reason.draw":        "تعادل",
     "chess.wins":               "يفوز",
+	"chess.reason.cancelled":   "تم إلغاء المباراة",
+    "chess.reason.unknown":     "نتيجة غير معروفة",
     "chess.yourTurn":           "دورك",
     "chess.promoteTo":          "ترقية إلى:",
     "chess.undo":               "تراجع",

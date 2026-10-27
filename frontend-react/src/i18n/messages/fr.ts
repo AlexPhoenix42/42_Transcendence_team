@@ -276,6 +276,8 @@ export const fr: MessageTable = {
     "chess.reason.stalemate":   "Pat",
     "chess.reason.draw":        "Nul",
     "chess.wins":               "gagne",
+	"chess.reason.cancelled":   "Partie annulée",
+    "chess.reason.unknown":     "Résultat inconnu",
     "chess.yourTurn":           "À votre tour",
     "chess.promoteTo":          "Promouvoir en :",
     "chess.undo":               "Annuler",

@@ -286,6 +286,8 @@ export const he: MessageTable = {
     "chess.reason.stalemate":   "פט",
     "chess.reason.draw":        "שוויון",
     "chess.wins":               "מנצח",
+	"chess.reason.cancelled":   "המשחק בוטל",
+    "chess.reason.unknown":     "תוצאה לא ידועה",
     "chess.yourTurn":           "תורך",
     "chess.promoteTo":          "קדם ל:",
     "chess.undo":               "בטל",

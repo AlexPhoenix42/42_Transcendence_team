@@ -281,6 +281,8 @@ export const nl: MessageTable = {
     "chess.reason.stalemate":   "Pat",
     "chess.reason.draw":        "Remise",
     "chess.wins":               "wint",
+	"chess.reason.cancelled":   "Partij geannuleerd",
+    "chess.reason.unknown":     "Onbekende uitslag",
     "chess.yourTurn":           "Jouw beurt",
     "chess.promoteTo":          "Promoveren naar:",
     "chess.undo":               "Ongedaan maken",

@@ -286,6 +286,8 @@ export const en = {
     "chess.reason.stalemate":   "Stalemate",
     "chess.reason.draw":        "Draw",
     "chess.wins":               "wins",
+	"chess.reason.cancelled":   "Game cancelled",
+    "chess.reason.unknown":     "Unknown result",
     "chess.yourTurn":           "Your turn",
     "chess.promoteTo":          "Promote to:",
     "chess.undo":               "Undo",
