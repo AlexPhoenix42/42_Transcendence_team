@@ -486,11 +486,11 @@ export default function Chat() {
                                     <div className="bg-yellow-900/30 border border-yellow-700 rounded-lg px-4 py-3 text-center">
                                         <p className="text-yellow-300 text-sm">
                                             {isOwnInvite
-                                                ? "⚔️ You sent a game invite"
-                                                : `⚔️ ${fromUser} invited you to play chess!`
+                                                ? `⚔️ ${t("chat.invite.sent")}`
+                                                : `⚔️ ${t("chat.invite.received", { name: fromUser })}`
                                             }
                                             {isExpired && !gameStartedAfter && (
-                                                <span className="ms-1 text-gray-500 text-xs">(expired)</span>
+                                                <span className="ms-1 text-gray-500 text-xs">{t("chat.invite.expired")}</span>
                                             )}
                                         </p>
                                         {showButtons && (
@@ -576,14 +576,14 @@ export default function Chat() {
                                                 onClick={(e) => { e.stopPropagation(); deleteMessage(msg.id) }}
                                                 className="text-[10px] text-red-400 hover:text-red-300"
                                             >
-                                                🗑️ Delete
+                                                🗑️ {t("chat.delete")}
                                             </button>
                                             {msg.sender !== user?.username && (
 												<button
                                                     onClick={(e) => { e.stopPropagation(); setMuteTarget({ id: 0, username: msg.sender }) }}
                                                     className="text-[10px] text-yellow-400 hover:text-yellow-300"
                                                 >
-                                                    🔇 Mute
+                                                    🔇 {t("chat.mute")}
                                                 </button>
                                             )}
                                         </div>
@@ -593,7 +593,7 @@ export default function Chat() {
                                     <p className="text-xs text-gray-500">
                                         {d(msg.created_at)}
                                         {tab === "dm" && msg.sender === user?.username && otherReadAt && new Date(otherReadAt) >= new Date(msg.created_at) && (
-                                            <span className="ms-2 text-blue-400">✓ Seen</span>
+                                            <span className="ms-2 text-blue-400">✓ {t("chat.seen")}</span>
                                         )}
                                     </p>
                                     {locale !== "tlh" && (
@@ -641,7 +641,7 @@ export default function Chat() {
 				{/* Typing indicator */}
                 {typingUser && (
                     <div className="px-4 py-1 text-gray-500 text-xs italic">
-                        {typingUser} is typing...
+                        {t("chat.typing", { name: typingUser })}
                     </div>
                 )}
 
@@ -649,7 +649,7 @@ export default function Chat() {
                 {gameInvite && gameInvite.fromUsername !== user?.username && (
                     <div className="px-4 py-3 border-t border-gray-700 bg-yellow-900/20 flex items-center justify-between">
                         <span className="text-yellow-300 text-sm">
-                            ⚔️ {gameInvite.fromUsername} invited you to play chess!
+                            ⚔️ {t("chat.invite.received", { name: gameInvite.fromUsername })}
                         </span>
                         <div className="flex gap-2">
                             <button
@@ -671,7 +671,7 @@ export default function Chat() {
                 {/* Sent invite confirmation */}
                 {gameInvite && gameInvite.fromUsername === user?.username && (
                     <div className="px-4 py-2 border-t border-gray-700 bg-blue-900/20">
-                        <span className="text-blue-300 text-sm">⚔️ Game invite sent! Waiting for response...</span>
+                        <span className="text-blue-300 text-sm">⚔️ {t("chat.invite.waiting")}</span>
                     </div>
                 )}
 

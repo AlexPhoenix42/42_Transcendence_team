@@ -85,7 +85,7 @@ export default function Status() {
 				<h1 className="text-2xl font-bold text-white mb-1">{t("status.title")}</h1>
 				<p className="text-sm text-gray-500 mb-8">
 					{data
-						? `${Object.keys(data.services).length} services monitored · checked in ${data.total_time_ms} ms`
+						? t("status.summary", { count: Object.keys(data.services).length, ms: data.total_time_ms })
 						: t("status.checking")}
 				</p>
 
@@ -128,7 +128,7 @@ export default function Status() {
 										{KIND_ICONS[svc.kind] ?? "📦"} {name}
 									</div>
 									<div className="text-xs text-gray-500">
-										{svc.kind}{svc.critical ? " · critical" : ""}
+										{svc.kind}{svc.critical ? ` · ${t("status.critical")}` : ""}
 										{svc.error ? ` · ${svc.error}` : ""}
 									</div>
 								</div>
@@ -147,7 +147,7 @@ export default function Status() {
 				{history.length > 1 && (
 					<div className="mt-8">
 						<p className="text-xs text-gray-500 mb-2">
-							Last {t("status.checks", { count: n(history.length) })}
+							{t("status.last", { checks: t("status.checks", { count: n(history.length) }) })}
 						</p>
 						<div className="flex gap-0.5 items-end">
 							{history.map((s, i) => (
@@ -193,7 +193,7 @@ export default function Status() {
 							className="flex items-center gap-2 px-4 py-3 rounded-lg border border-gray-700 bg-gray-800 hover:border-blue-500/50 hover:bg-gray-750 transition"
 						>
 							<span>📚</span>
-							<span className="text-sm text-white font-medium">API Docs</span>
+							<span className="text-sm text-white font-medium">{t("status.link.apiDocs")}</span>
 						</a>
 					</div>
 				</div>

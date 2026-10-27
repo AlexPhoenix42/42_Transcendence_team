@@ -928,6 +928,150 @@ export const en = {
     "goose.legend.prison":           "⛓️ Prison (skip 2)",
     "goose.legend.death":            "💀 Death (→start)",
     "goose.legend.finish":           "🏁 Finish (63)",
+
+    // -- Profile -- 2FA & API key -----------------------------------------
+    "profile.2fa.scanPrompt":    "Scan this QR code with your authenticator app, or enter the secret manually:",
+    "profile.2fa.enabledStatus": "2FA is enabled on your account.",
+    "profile.2fa.msg.enabled":   "2FA enabled successfully!",
+    "profile.2fa.msg.disabled":  "2FA disabled",
+    "apiKey.title":              "API Key",
+    "apiKey.saveWarning":        "Save this key — it won't be shown again:",
+    "apiKey.copy":               "Copy",
+    "apiKey.active":             "Active key:",
+    "apiKey.regenerate":         "Regenerate",
+    "apiKey.revoke":             "Revoke",
+    "apiKey.blurb":              "Generate an API key to access the API from scripts or external tools.",
+    "apiKey.generate":           "Generate API Key",
+    "apiKey.endpoints":          "Available endpoints:",
+    "apiKey.msg.copied":         "API key copied to clipboard.",
+    "apiKey.msg.generated":      "API key generated.",
+    "apiKey.msg.regenerated":    "New API key generated.",
+    "apiKey.msg.revoked":        "API key revoked.",
+
+    // -- Games -- final sweep ---------------------------------------------
+    "games.pacman3d.body":    "Solo — first-person 3D maze with shotgun",
+    "games.pacmanMulti.body": "Multiplayer — maze, roles, ghosts",
+    "games.whiteboard.title": "Whiteboard",
+    "games.whiteboard.body":  "Collaborative drawing board",
+
+    // -- Tournaments -- final sweep ---------------------------------------
+    // {min}/{sec} come from timer presets like "3+2".
+    "common.timeControl":  "{min} min + {sec} sec",
+    "tournaments.players": "Players: {count}/{max}",
+    "tournaments.time":    "Time: {time}",
+
+    // -- Tournament detail -- final sweep ---------------------------------
+    "tdetail.playerCount":    "{count}/{max} players",
+    "tdetail.noParticipants": "No participants yet.",
+
+    // -- Chat -- typing indicator (chat, chess game, tournament) ----------
+    "chat.typing": "{name} is typing...",
+
+    // -- Friends -- final sweep -------------------------------------------
+    "friends.wantsToBeFriend": "{name} wants to be your friend",
+    "friends.waitingFor":      "Waiting for {name} to respond",
+
+    // -- 404 page ---------------------------------------------------------
+    "notFound.title": "Page not found",
+    "notFound.home":  "Go back home",
+
+    // -- Footer -----------------------------------------------------------
+    "footer.privacy": "Privacy Policy",
+    "footer.terms":   "Terms of Service",
+    "footer.rights":  "All rights reserved.",
+
+    // -- System status -- final sweep -------------------------------------
+    "status.summary":      "{count} services monitored · checked in {ms} ms",
+    "status.critical":     "critical",
+    "status.last":         "Last {checks}",
+    "status.link.apiDocs": "API Docs",
+
+    // -- Chess game -- final sweep ----------------------------------------
+    "chess.title":   "Game #{id}",
+    "chess.aiLabel": "AI {level}",
+    "chess.check":   "CHECK!",
+
+    // -- Chess lobby -- final sweep ---------------------------------------
+    "common.timeMinutes": "{min} min",
+    "common.versus":      "{a} vs {b}",
+
+    // -- Chat -- final sweep (icons stay in the JSX) ----------------------
+    "chat.invite.sent":     "You sent a game invite",
+    "chat.invite.received": "{name} invited you to play chess!",
+    "chat.invite.expired":  "(expired)",
+    "chat.invite.waiting":  "Game invite sent! Waiting for response...",
+    "chat.delete":          "Delete",
+    "chat.mute":            "Mute",
+    "chat.seen":            "Seen",
+
+    // -- Analytics -- final sweep -----------------------------------------
+    "analytics.vsHumans": "vs Humans",
+    "analytics.vsAI":     "vs AI",
+
+    // -- Plurals -- games -------------------------------------------------
+    "analytics.games_one":   "{count} game",
+    "analytics.games_other": "{count} games",
+    "analytics.games_zero":  "{count} games",
+    "analytics.games_two":   "{count} games",
+    "analytics.games_few":   "{count} games",
+    "analytics.games_many":  "{count} games",
+
+    // -- Plurals -- friends -----------------------------------------------
+    "publicProfile.friends_one":   "{count} friend",
+    "publicProfile.friends_other": "{count} friends",
+    "publicProfile.friends_zero":  "{count} friends",
+    "publicProfile.friends_two":   "{count} friends",
+    "publicProfile.friends_few":   "{count} friends",
+    "publicProfile.friends_many":  "{count} friends",
+
+    // -- Goose game -- wizard quiz (icons stay in the JSX) ----------------
+    "goose.quiz.askingYou":      "The Grey Wizard is questioning you!",
+    "goose.quiz.askingOther":    "The Grey Wizard is questioning {name}!",
+    "goose.quiz.correct":        "Correct answer!",
+    "goose.quiz.wrong":          "Wrong answer...",
+    "goose.quiz.otherCorrect":   "{name} got it right!",
+    "goose.quiz.otherWrong":     "{name} got it wrong...",
+    "goose.quiz.waitingVerdict": "Waiting for the wizard's verdict...",
+    "goose.quiz.waitingAnswer":  "Waiting for {name}'s answer...",
+
+    // -- Admin -- security audit ------------------------------------------
+    "admin.tab.security":          "Security Audit",
+    "admin.users.disabled":        "(disabled)",
+    "audit.title":                 "Security Audit Log",
+    "audit.filter.allEvents":      "All events",
+    "audit.filter.username":       "Filter by username",
+    "audit.clear":                 "Clear",
+    "audit.empty":                 "No audit events found",
+    "audit.event.loginSuccess":    "Login Success",
+    "audit.event.loginFailed":     "Login Failed",
+    "audit.event.passwordReset":   "Password Reset",
+    "audit.event.2faEnabled":      "2FA Enabled",
+    "audit.event.2faDisabled":     "2FA Disabled",
+    "audit.event.accountLocked":   "Account Locked",
+    "audit.event.accountUnlocked": "Account Unlocked",
+    "audit.col.time":              "Time",
+    "audit.col.event":             "Event",
+    "audit.col.user":              "User",
+    "audit.col.ip":                "IP",
+    "audit.col.status":            "Status",
+    "audit.col.actions":           "Actions",
+    "audit.ok":                    "OK",
+    "audit.fail":                  "FAIL",
+    "audit.unlock":                "Unlock",
+    "audit.prev":                  "Previous",
+    "audit.next":                  "Next",
+    "audit.page":                  "Page {page} / {total}",
+    "audit.msg.unlocked":          "Account \"{name}\" unlocked",
+    "audit.error.load":            "Failed to load audit logs",
+    "audit.error.unlock":          "Failed to unlock account",
+
+    // -- Plurals -- audit events ------------------------------------------
+    "audit.events_one":   "{count} event",
+    "audit.events_other": "{count} events",
+    "audit.events_zero":  "{count} events",
+    "audit.events_two":   "{count} events",
+    "audit.events_few":   "{count} events",
+    "audit.events_many":  "{count} events",
 } as const
 
 // Every valid key in the app. Deriving this from the object rather than

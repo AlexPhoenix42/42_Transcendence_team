@@ -618,7 +618,7 @@ export default function ChessGame() {
         <div className="max-w-4xl mx-auto">
             <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
-                    <h1 className="text-2xl font-bold text-white">Game #{id}</h1>
+                    <h1 className="text-2xl font-bold text-white">{t("chess.title", { id: id ?? "" })}</h1>
                     <span className={`w-2 h-2 rounded-full ${connected ? "bg-green-500" : "bg-red-500"}`}></span>
                     {isSpectator && (
                         <span className="text-yellow-400 text-sm bg-yellow-900/50 px-2 py-1 rounded">{t("chess.spectating")}</span>
@@ -654,7 +654,7 @@ export default function ChessGame() {
 							onClick={() => window.history.length > 1 ? navigate(-1) : navigate("/chess")}
 							className="px-2 py-1 md:px-4 md:py-2 text-sm md:text-base bg-gray-700 text-white rounded hover:bg-gray-600"
 						>
-							Back
+							{t("common.back")}
 						</button>
 					</div>
                 </div>
@@ -689,7 +689,7 @@ export default function ChessGame() {
                                 </span>
                                 {gameInfo?.player2_is_ai && (
                                     <span className="text-base text-yellow-400 bg-yellow-900/50 px-2 py-0.5 rounded">
-                                        AI {gameInfo.ai_difficulty}
+                                        {t("chess.aiLabel", { level: gameInfo.ai_difficulty ?? "" })}
                                     </span>
                                 )}
                             </div>
@@ -799,7 +799,7 @@ export default function ChessGame() {
                                     <span className="text-base text-green-400 font-semibold">{t("chess.yourTurn")}</span>
                                 )}
                                 {check && isMyTurn && (
-                                    <span className="text-base text-red-400 font-bold">CHECK!</span>
+                                    <span className="text-base text-red-400 font-bold">{t("chess.check")}</span>
                                 )}
                             </div>
 							<span className="flex flex-wrap gap-0.5 items-center mt-1 bg-gray-600/50 rounded px-1 py-0.5 empty:hidden w-fit">
@@ -858,7 +858,7 @@ export default function ChessGame() {
                     </div>
 					{chatTypingUser && (
                         <div className="px-3 py-1 text-gray-500 text-xs italic">
-                            {chatTypingUser} is typing...
+                            {t("chat.typing", { name: chatTypingUser })}
                         </div>
                     )}
 					{chatError && (

@@ -513,6 +513,8 @@ export const he: MessageTable = {
     "chat.mutePrompt":         "השתק את {name} למשך:",
     "chat.unmute":             "בטל השתקה",
     "chat.minutes":            "{count} דק'",
+    "chat.translate":          "תרגם",
+    "chat.hideTranslation":    "הסתר תרגום",
     "chat.error.resolveRoom":  "לא ניתן לאתר את חדר הצ'אט הכללי",
     "chat.error.connect":      "ההתחברות לצ'אט הכללי נכשלה",
     "chat.error.auth":         "האימות נכשל. התחבר שוב.",
@@ -627,6 +629,17 @@ export const he: MessageTable = {
     "analytics.streak.win":    "ניצחונות",
     "analytics.streak.loss":   "הפסדים",
     "analytics.streak.draw":   "תיקו",
+    "analytics.exportCSV":         "ייצוא ל-CSV",
+    "analytics.exportPDF":         "ייצוא ל-PDF",
+    "analytics.dateRange":         "טווח תאריכים",
+    "analytics.clearFilter":       "נקה",
+    "analytics.autoRefresh":       "עודכן ב-{time}",
+    "analytics.ratingProgression": "התפתחות הדירוג",
+    "analytics.dailyResults":      "תוצאות יומיות",
+    "analytics.rating":            "דירוג",
+    "analytics.wins":              "ניצחונות",
+    "analytics.losses":            "הפסדים",
+    "analytics.draws":             "תיקו",
     "analytics.error.load":    "טעינת הנתונים נכשלה",
 
     // -- System status -------------------------------------------------
@@ -805,6 +818,24 @@ export const he: MessageTable = {
     "srv.winnerNotPlayer":          "המנצח חייב להיות אחד משחקני המשחק.",
     "srv.winnerNotFound":           "המנצח לא נמצא.",
 
+    // --- GDPR ---
+    "gdpr.title":          "הנתונים שלך",
+    "gdpr.exportDesc":     "הורד עותק של כל הנתונים שלך.",
+    "gdpr.exportBtn":      "ייצא את הנתונים שלי",
+    "gdpr.exportSuccess":  "הנתונים יוצאו בהצלחה.",
+    "gdpr.exportError":    "ייצוא הנתונים נכשל.",
+    "gdpr.importDesc":     "שחזר את שם התצוגה, הביוגרפיה ורשימת החברים מייצוא קודם.",
+    "gdpr.importTooLarge": "הקובץ גדול מדי (מקסימום 10MB).",
+    "gdpr.importSuccess":  "הייבוא הושלם.",
+    "gdpr.importError":    "ייבוא הנתונים נכשל.",
+    "gdpr.importUpdated":  "עודכנו",
+    "gdpr.importSkipped":  "דולגו",
+    "gdpr.importErrors":   "שגיאות",
+    "gdpr.deleteDesc":     "מחק את החשבון שלך לצמיתות. תישלח הודעת אישור בדוא״ל.",
+    "gdpr.deleteBtn":      "מחק את החשבון שלי",
+    "gdpr.deleteSuccess":  "הודעת אישור נשלחה. בדוק את תיבת הדואר שלך.",
+    "gdpr.deleteError":    "שליחת האישור נכשלה.",
+
     // --- Validation ---
     "validate.username.required":        "שם המשתמש נדרש",
     "validate.username.minLength":       "שם המשתמש חייב להיות באורך 3 תווים לפחות",
@@ -897,4 +928,147 @@ export const he: MessageTable = {
     "goose.legend.prison":           "⛓️ כלא (דלג על 2 תורות)",
     "goose.legend.death":            "💀 מוות (→התחלה)",
     "goose.legend.finish":           "🏁 סיום (63)",
+
+    // -- Profile -- 2FA & API key -----------------------------------------
+    "profile.2fa.scanPrompt":    "סרוק את קוד ה-QR באפליקציית האימות, או הזן את הסוד ידנית:",
+    "profile.2fa.enabledStatus": "אימות דו-שלבי מופעל בחשבון שלך.",
+    "profile.2fa.msg.enabled":   "האימות הדו-שלבי הופעל בהצלחה!",
+    "profile.2fa.msg.disabled":  "האימות הדו-שלבי הושבת",
+    "apiKey.title":              "מפתח API",
+    "apiKey.saveWarning":        "שמור את המפתח — הוא לא יוצג שוב:",
+    "apiKey.copy":               "העתק",
+    "apiKey.active":             "מפתח פעיל:",
+    "apiKey.regenerate":         "צור מחדש",
+    "apiKey.revoke":             "בטל מפתח",
+    "apiKey.blurb":              "צור מפתח API כדי לגשת ל-API מסקריפטים או מכלים חיצוניים.",
+    "apiKey.generate":           "צור מפתח API",
+    "apiKey.endpoints":          "נקודות קצה זמינות:",
+    "apiKey.msg.copied":         "מפתח ה-API הועתק ללוח.",
+    "apiKey.msg.generated":      "מפתח API נוצר.",
+    "apiKey.msg.regenerated":    "נוצר מפתח API חדש.",
+    "apiKey.msg.revoked":        "מפתח ה-API בוטל.",
+
+    // -- Games -- final sweep ---------------------------------------------
+    "games.pacman3d.body":    "יחיד — מבוך תלת-ממדי בגוף ראשון עם רובה ציד",
+    "games.pacmanMulti.body": "מרובה משתתפים — מבוך, תפקידים, רוחות",
+    "games.whiteboard.title": "לוח לבן",
+    "games.whiteboard.body":  "לוח ציור שיתופי",
+
+    // -- Tournaments -- final sweep ---------------------------------------
+    "common.timeControl":  "{min} דק' + {sec} שנ'",
+    "tournaments.players": "שחקנים: {count}/{max}",
+    "tournaments.time":    "זמן: {time}",
+
+    // -- Tournament detail -- final sweep ---------------------------------
+    "tdetail.playerCount":    "שחקנים: {count}/{max}",
+    "tdetail.noParticipants": "אין עדיין משתתפים.",
+
+    // -- Chat -- typing indicator (chat, chess game, tournament) ----------
+    "chat.typing": "{name} מקליד/ה...",
+
+    // -- Friends -- final sweep -------------------------------------------
+    "friends.wantsToBeFriend": "{name} רוצה להיות חבר שלך",
+    "friends.waitingFor":      "ממתין לתגובה של {name}",
+
+    // -- 404 page ---------------------------------------------------------
+    "notFound.title": "הדף לא נמצא",
+    "notFound.home":  "חזרה לדף הבית",
+
+    // -- Footer -----------------------------------------------------------
+    "footer.privacy": "מדיניות פרטיות",
+    "footer.terms":   "תנאי שימוש",
+    "footer.rights":  "כל הזכויות שמורות.",
+
+    // -- System status -- final sweep -------------------------------------
+    "status.summary":      "{count} שירותים במעקב · נבדקו תוך {ms} ms",
+    "status.critical":     "קריטי",
+    "status.last":         "{checks} אחרונות",
+    "status.link.apiDocs": "תיעוד API",
+
+    // -- Chess game -- final sweep ----------------------------------------
+    "chess.title":   "משחק מס' {id}",
+    "chess.aiLabel": "בינה מלאכותית {level}",
+    "chess.check":   "שח!",
+
+    // -- Chess lobby -- final sweep ---------------------------------------
+    "common.timeMinutes": "{min} דק'",
+    "common.versus":      "{a} נגד {b}",
+
+    // -- Chat -- final sweep (icons stay in the JSX) ----------------------
+    "chat.invite.sent":     "שלחת הזמנה למשחק",
+    "chat.invite.received": "{name} הזמין/ה אותך לשחק שחמט!",
+    "chat.invite.expired":  "(פג תוקף)",
+    "chat.invite.waiting":  "ההזמנה נשלחה! ממתין לתגובה...",
+    "chat.delete":          "מחק",
+    "chat.mute":            "השתק",
+    "chat.seen":            "נצפה",
+
+    // -- Analytics -- final sweep -----------------------------------------
+    "analytics.vsHumans": "נגד בני אדם",
+    "analytics.vsAI":     "נגד בינה מלאכותית",
+
+    // -- Plurals -- games -------------------------------------------------
+    "analytics.games_one":   "משחק אחד",
+    "analytics.games_other": "{count} משחקים",
+    "analytics.games_zero":  "{count} משחקים",
+    "analytics.games_two":   "שני משחקים",
+    "analytics.games_few":   "{count} משחקים",
+    "analytics.games_many":  "{count} משחקים",
+
+    // -- Plurals -- friends -----------------------------------------------
+    "publicProfile.friends_one":   "חבר אחד",
+    "publicProfile.friends_other": "{count} חברים",
+    "publicProfile.friends_zero":  "{count} חברים",
+    "publicProfile.friends_two":   "שני חברים",
+    "publicProfile.friends_few":   "{count} חברים",
+    "publicProfile.friends_many":  "{count} חברים",
+
+    // -- Goose game -- wizard quiz (icons stay in the JSX) ----------------
+    "goose.quiz.askingYou":      "הקוסם האפור חוקר אותך!",
+    "goose.quiz.askingOther":    "הקוסם האפור חוקר את {name}!",
+    "goose.quiz.correct":        "תשובה נכונה!",
+    "goose.quiz.wrong":          "תשובה שגויה...",
+    "goose.quiz.otherCorrect":   "{name} צדק/ה!",
+    "goose.quiz.otherWrong":     "{name} טעה/תה...",
+    "goose.quiz.waitingVerdict": "ממתין להכרעת הקוסם...",
+    "goose.quiz.waitingAnswer":  "ממתין לתשובה של {name}...",
+
+    // -- Admin -- security audit ------------------------------------------
+    "admin.tab.security":          "ביקורת אבטחה",
+    "admin.users.disabled":        "(מושבת)",
+    "audit.title":                 "יומן ביקורת אבטחה",
+    "audit.filter.allEvents":      "כל האירועים",
+    "audit.filter.username":       "סנן לפי שם משתמש",
+    "audit.clear":                 "נקה",
+    "audit.empty":                 "לא נמצאו אירועי ביקורת",
+    "audit.event.loginSuccess":    "התחברות הצליחה",
+    "audit.event.loginFailed":     "התחברות נכשלה",
+    "audit.event.passwordReset":   "איפוס סיסמה",
+    "audit.event.2faEnabled":      "אימות דו-שלבי הופעל",
+    "audit.event.2faDisabled":     "אימות דו-שלבי הושבת",
+    "audit.event.accountLocked":   "החשבון ננעל",
+    "audit.event.accountUnlocked": "נעילת החשבון שוחררה",
+    "audit.col.time":              "זמן",
+    "audit.col.event":             "אירוע",
+    "audit.col.user":              "משתמש",
+    "audit.col.ip":                "IP",
+    "audit.col.status":            "סטטוס",
+    "audit.col.actions":           "פעולות",
+    "audit.ok":                    "תקין",
+    "audit.fail":                  "נכשל",
+    "audit.unlock":                "שחרר נעילה",
+    "audit.prev":                  "הקודם",
+    "audit.next":                  "הבא",
+    "audit.page":                  "עמוד {page} / {total}",
+    "audit.msg.unlocked":          "נעילת החשבון \"{name}\" שוחררה",
+    "audit.error.load":            "טעינת יומני הביקורת נכשלה",
+    "audit.error.unlock":          "שחרור נעילת החשבון נכשל",
+
+    // -- Plurals -- audit events ------------------------------------------
+    "audit.events_one":   "אירוע אחד",
+    "audit.events_other": "{count} אירועים",
+    "audit.events_zero":  "{count} אירועים",
+    "audit.events_two":   "שני אירועים",
+    "audit.events_few":   "{count} אירועים",
+    "audit.events_many":  "{count} אירועים",
 }

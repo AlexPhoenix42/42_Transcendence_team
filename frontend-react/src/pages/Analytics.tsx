@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react"
 import { useNavigate } from "react-router-dom"
 import { api } from "../api/client.ts"
-import { useT } from "../i18n/I18nProvider.tsx"
+import { useI18n } from "../i18n/I18nProvider.tsx"
 import {
     LineChart, Line, BarChart, Bar,
     XAxis, YAxis, CartesianGrid, Tooltip, Legend,
@@ -33,7 +33,7 @@ interface AnalyticsData {
 }
 
 export default function Analytics() {
-    const t = useT()
+    const { t, tn } = useI18n()
     const navigate = useNavigate()
     const [data, setData] = useState<AnalyticsData | null>(null)
     const [error, setError] = useState("")
@@ -277,7 +277,7 @@ export default function Analytics() {
                             <div className="flex items-center gap-3">
                                 <span className="text-green-400 font-semibold">{data.white_wins}W</span>
                                 <span className="text-gray-500">/</span>
-                                <span className="text-gray-400">{data.white_total} games</span>
+                                <span className="text-gray-400">{tn("analytics.games", data.white_total)}</span>
                                 <span className="text-white font-bold w-12 text-end">{winRate(data.white_wins, data.white_total)}</span>
                             </div>
                         </div>
@@ -289,7 +289,7 @@ export default function Analytics() {
                             <div className="flex items-center gap-3">
                                 <span className="text-green-400 font-semibold">{data.black_wins}W</span>
                                 <span className="text-gray-500">/</span>
-                                <span className="text-gray-400">{data.black_total} games</span>
+                                <span className="text-gray-400">{tn("analytics.games", data.black_total)}</span>
                                 <span className="text-white font-bold w-12 text-end">{winRate(data.black_wins, data.black_total)}</span>
                             </div>
                         </div>
@@ -301,20 +301,20 @@ export default function Analytics() {
                     <h2 className="text-lg font-semibold text-white mb-4">{t("analytics.byOpponent")}</h2>
                     <div className="space-y-3">
                         <div className="flex items-center justify-between">
-                            <span className="text-gray-300">vs Humans</span>
+                            <span className="text-gray-300">{t("analytics.vsHumans")}</span>
                             <div className="flex items-center gap-3">
                                 <span className="text-green-400 font-semibold">{data.human_wins}W</span>
                                 <span className="text-gray-500">/</span>
-                                <span className="text-gray-400">{data.human_total} games</span>
+                                <span className="text-gray-400">{tn("analytics.games", data.human_total)}</span>
                                 <span className="text-white font-bold w-12 text-end">{winRate(data.human_wins, data.human_total)}</span>
                             </div>
                         </div>
                         <div className="flex items-center justify-between">
-                            <span className="text-gray-300">vs AI</span>
+                            <span className="text-gray-300">{t("analytics.vsAI")}</span>
                             <div className="flex items-center gap-3">
                                 <span className="text-green-400 font-semibold">{data.ai_wins}W</span>
                                 <span className="text-gray-500">/</span>
-                                <span className="text-gray-400">{data.ai_total} games</span>
+                                <span className="text-gray-400">{tn("analytics.games", data.ai_total)}</span>
                                 <span className="text-white font-bold w-12 text-end">{winRate(data.ai_wins, data.ai_total)}</span>
                             </div>
                         </div>
@@ -343,7 +343,7 @@ export default function Analytics() {
                     <div className="space-y-3">
                         <div className="flex justify-between">
                             <span className="text-gray-400">{t("analytics.avgLength")}</span>
-                            <span className="text-white font-semibold">{data.avg_moves} moves</span>
+                            <span className="text-white font-semibold">{tn("history.moves", data.avg_moves)}</span>
                         </div>
                         <div className="flex justify-between">
                             <span className="text-gray-400">{t("analytics.longestStreak")}</span>
@@ -371,7 +371,7 @@ export default function Analytics() {
                                 className="flex items-center justify-between py-2 px-3 rounded hover:bg-gray-700/50 cursor-pointer"
                             >
                                 <span className="text-white font-semibold"><bdi>{opp.username}</bdi></span>
-                                <span className="text-gray-400 text-sm">{opp.games} game{opp.games !== 1 ? "s" : ""}</span>
+                                <span className="text-gray-400 text-sm">{tn("analytics.games", opp.games)}</span>
                             </div>
                         ))}
                     </div>

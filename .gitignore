@@ -47,3 +47,8 @@ vault/secrets/
 # ── Pygbag WASM build output ────────────
 frontend-apps/games/pacman3d/src/build/
 
+# ── CLAUDE ────────────────────────
+.claude/
+CLAUDE.md
+note.md
+

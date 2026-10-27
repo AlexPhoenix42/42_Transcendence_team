@@ -176,10 +176,10 @@ export default function AdminDashboard() {
                 setAuditTotal(data.total)
                 setAuditTotalPages(data.total_pages)
             } else {
-                setAuditError("Failed to load audit logs")
+                setAuditError(t("audit.error.load"))
             }
         } catch {
-            setAuditError("Network error")
+            setAuditError(t("common.error.networkShort"))
         } finally {
             setAuditLoading(false)
         }
@@ -194,14 +194,14 @@ export default function AdminDashboard() {
                 body: JSON.stringify({ username }),
             })
             if (resp.ok) {
-                setUnlockSuccess(`Account "${username}" unlocked`)
+                setUnlockSuccess(t("audit.msg.unlocked", { name: username }))
                 fetchAuditLogs()
             } else {
                 const data = await resp.json()
-                setAuditError(data.error || "Failed to unlock account")
+                setAuditError(data.error || t("audit.error.unlock"))
             }
         } catch {
-            setAuditError("Network error")
+            setAuditError(t("common.error.networkShort"))
         }
     }
 
@@ -330,7 +330,7 @@ export default function AdminDashboard() {
                             onClick={() => setTab("security")}
                             className={`px-4 py-2 rounded ${tab === "security" ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-300 hover:bg-gray-600"}`}
                         >
-                            Security Audit
+                            {t("admin.tab.security")}
                         </button>
                     </>
                 )}
@@ -406,9 +406,9 @@ export default function AdminDashboard() {
                                 className="w-full px-4 py-2 bg-gray-900 text-white border border-gray-700 rounded focus:outline-none focus:border-blue-500"
                             >
                                 <option value="">{t("admin.form.unlimited")}</option>
-                                <option value="3+2">3 min + 2 sec</option>
-                                <option value="5+0">5 min</option>
-                                <option value="10+5">10 min + 5 sec</option>
+                                <option value="3+2">{t("common.timeControl", { min: 3, sec: 2 })}</option>
+                                <option value="5+0">{t("common.timeMinutes", { min: 5 })}</option>
+                                <option value="10+5">{t("common.timeControl", { min: 10, sec: 5 })}</option>
                             </select>
                         </div>
 
@@ -489,7 +489,7 @@ export default function AdminDashboard() {
                                         </span>
                                         {roleBadge(u.role)}
                                         <span className={`w-2 h-2 rounded-full ${u.is_online ? "bg-green-500" : "bg-gray-500"}`}></span>
-                                        {!u.is_active && <span className="text-xs text-red-400">(disabled)</span>}
+                                        {!u.is_active && <span className="text-xs text-red-400">{t("admin.users.disabled")}</span>}
                                     </div>
                                     <p className="text-gray-500 text-xs truncate">{u.email}</p>
                                 </div>
@@ -546,7 +546,7 @@ export default function AdminDashboard() {
 			{/* Security audit tab */}
             {tab === "security" && (
                 <div className="bg-gray-800 rounded-lg border border-gray-700 p-6">
-                    <h2 className="text-xl font-semibold text-white mb-4">Security Audit Log</h2>
+                    <h2 className="text-xl font-semibold text-white mb-4">{t("audit.title")}</h2>
 
                     {auditError && (
                         <div className="bg-red-900/50 border border-red-500 text-red-300 px-4 py-2 rounded mb-4">
@@ -566,21 +566,21 @@ export default function AdminDashboard() {
                             onChange={(e) => { setAuditEventFilter(e.target.value); setAuditPage(1) }}
                             className="px-3 py-2 bg-gray-900 text-white border border-gray-700 rounded text-sm"
                         >
-                            <option value="">All events</option>
-                            <option value="login_success">Login Success</option>
-                            <option value="login_failed">Login Failed</option>
-                            <option value="password_reset">Password Reset</option>
-                            <option value="2fa_enabled">2FA Enabled</option>
-                            <option value="2fa_disabled">2FA Disabled</option>
-                            <option value="account_locked">Account Locked</option>
-                            <option value="account_unlocked">Account Unlocked</option>
+                            <option value="">{t("audit.filter.allEvents")}</option>
+                            <option value="login_success">{t("audit.event.loginSuccess")}</option>
+                            <option value="login_failed">{t("audit.event.loginFailed")}</option>
+                            <option value="password_reset">{t("audit.event.passwordReset")}</option>
+                            <option value="2fa_enabled">{t("audit.event.2faEnabled")}</option>
+                            <option value="2fa_disabled">{t("audit.event.2faDisabled")}</option>
+                            <option value="account_locked">{t("audit.event.accountLocked")}</option>
+                            <option value="account_unlocked">{t("audit.event.accountUnlocked")}</option>
                         </select>
 
                         <input
                             type="text"
                             value={auditUserFilter}
                             onChange={(e) => { setAuditUserFilter(e.target.value); setAuditPage(1) }}
-                            placeholder="Filter by username"
+                            placeholder={t("audit.filter.username")}
                             className="px-3 py-2 bg-gray-900 text-white border border-gray-700 rounded text-sm flex-1"
                         />
 
@@ -588,29 +588,29 @@ export default function AdminDashboard() {
                             onClick={() => { setAuditEventFilter(""); setAuditUserFilter(""); setAuditPage(1) }}
                             className="px-3 py-2 bg-gray-700 text-gray-300 rounded text-sm hover:bg-gray-600"
                         >
-                            Clear
+                            {t("audit.clear")}
                         </button>
                     </div>
 
                     {/* Results count */}
-                    <p className="text-gray-500 text-sm mb-3">{auditTotal} event{auditTotal !== 1 ? "s" : ""}</p>
+                    <p className="text-gray-500 text-sm mb-3">{tn("audit.events", auditTotal)}</p>
 
                     {/* Log table */}
                     {auditLoading ? (
-                        <p className="text-gray-400 text-center py-4">Loading...</p>
+                        <p className="text-gray-400 text-center py-4">{t("common.loading")}</p>
                     ) : auditLogs.length === 0 ? (
-                        <p className="text-gray-400 text-center py-4">No audit events found</p>
+                        <p className="text-gray-400 text-center py-4">{t("audit.empty")}</p>
                     ) : (
                         <div className="overflow-x-auto">
                             <table className="w-full text-sm">
                                 <thead>
                                     <tr className="text-gray-400 border-b border-gray-700">
-                                        <th className="text-left py-2 pr-3">Time</th>
-                                        <th className="text-left py-2 pr-3">Event</th>
-                                        <th className="text-left py-2 pr-3">User</th>
-                                        <th className="text-left py-2 pr-3">IP</th>
-                                        <th className="text-left py-2 pr-3">Status</th>
-                                        <th className="text-left py-2">Actions</th>
+                                        <th className="text-left py-2 pr-3">{t("audit.col.time")}</th>
+                                        <th className="text-left py-2 pr-3">{t("audit.col.event")}</th>
+                                        <th className="text-left py-2 pr-3">{t("audit.col.user")}</th>
+                                        <th className="text-left py-2 pr-3">{t("audit.col.ip")}</th>
+                                        <th className="text-left py-2 pr-3">{t("audit.col.status")}</th>
+                                        <th className="text-left py-2">{t("audit.col.actions")}</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -639,8 +639,8 @@ export default function AdminDashboard() {
                                             <td className="py-2 pr-3 text-gray-400 font-mono text-xs">{log.ip_address || "—"}</td>
                                             <td className="py-2 pr-3">
                                                 {log.success
-                                                    ? <span className="text-green-400 text-xs">OK</span>
-                                                    : <span className="text-red-400 text-xs">FAIL</span>
+                                                    ? <span className="text-green-400 text-xs">{t("audit.ok")}</span>
+                                                    : <span className="text-red-400 text-xs">{t("audit.fail")}</span>
                                                 }
                                             </td>
                                             <td className="py-2">
@@ -649,7 +649,7 @@ export default function AdminDashboard() {
                                                         onClick={() => unlockAccount(log.username)}
                                                         className="px-2 py-0.5 bg-green-800 text-green-300 rounded text-xs hover:bg-green-700"
                                                     >
-                                                        Unlock
+                                                        {t("audit.unlock")}
                                                     </button>
                                                 )}
                                             </td>
@@ -668,17 +668,17 @@ export default function AdminDashboard() {
                                 disabled={auditPage <= 1}
                                 className="px-3 py-1 bg-gray-700 text-gray-300 rounded text-sm hover:bg-gray-600 disabled:opacity-50"
                             >
-                                Previous
+                                {t("audit.prev")}
                             </button>
                             <span className="text-gray-400 text-sm">
-                                Page {auditPage} / {auditTotalPages}
+                                {t("audit.page", { page: auditPage, total: auditTotalPages })}
                             </span>
                             <button
                                 onClick={() => setAuditPage(p => Math.min(auditTotalPages, p + 1))}
                                 disabled={auditPage >= auditTotalPages}
                                 className="px-3 py-1 bg-gray-700 text-gray-300 rounded text-sm hover:bg-gray-600 disabled:opacity-50"
                             >
-                                Next
+                                {t("audit.next")}
                             </button>
                         </div>
                     )}

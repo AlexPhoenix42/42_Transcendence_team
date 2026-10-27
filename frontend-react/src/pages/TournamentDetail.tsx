@@ -323,7 +323,7 @@ export default function TournamentDetail() {
     function formatTimer(timer: string | null): string {
         if (!timer) return t("tournaments.unlimited")
         const parts = timer.split("+")
-        return `${parts[0]} min + ${parts[1]} sec`
+        return t("common.timeControl", { min: parts[0], sec: parts[1] })
     }
 
     function statusColor(status: string): string {
@@ -368,7 +368,7 @@ export default function TournamentDetail() {
                             {tournament.status}
                         </span>
                         <span className="text-gray-400 text-sm">
-                            {participants.length}/{tournament.max_players} players
+                            {t("tdetail.playerCount", { count: participants.length, max: tournament.max_players })}
                         </span>
                         <span className="text-gray-400 text-sm">
                             {formatTimer(tournament.timer)}
@@ -453,7 +453,7 @@ export default function TournamentDetail() {
             <div className="bg-gray-800 rounded-lg border border-gray-700 p-5 mb-6">
                 <h2 className="text-xl font-semibold text-white mb-3">{t("tdetail.participants")}</h2>
                 {participants.length === 0 ? (
-                    <p className="text-gray-400">No participants yet.</p>
+                    <p className="text-gray-400">{t("tdetail.noParticipants")}</p>
                 ) : (
                     <div className="flex flex-wrap gap-2">
                         {participants.map((p) => (
@@ -612,7 +612,7 @@ export default function TournamentDetail() {
                         </div>
 						{chatTypingUser && (
                             <div className="px-3 py-1 text-gray-500 text-xs italic">
-                                {chatTypingUser} is typing...
+                                {t("chat.typing", { name: chatTypingUser })}
                             </div>
                         )}
                         <form onSubmit={handleChatSend} className="border-t border-gray-700 p-3 flex gap-2">

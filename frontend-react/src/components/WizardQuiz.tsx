@@ -1,6 +1,7 @@
 // frontend-react/src/components/WizardQuiz.tsx
 
 import { useEffect, useState } from "react"
+import { useT } from "../i18n/I18nProvider.tsx"
 
 const ANSWER_SECONDS = 25
 
@@ -14,6 +15,7 @@ interface Props {
 }
 
 export default function WizardQuiz({ target, isTarget, question, choices, onAnswer, result }: Props) {
+    const t = useT()
     const [selected, setSelected] = useState<number | null>(null)
     const [secondsLeft, setSecondsLeft] = useState(ANSWER_SECONDS)
 
@@ -41,7 +43,7 @@ export default function WizardQuiz({ target, isTarget, question, choices, onAnsw
             <div className="bg-gray-800 border border-gray-600 rounded-xl p-6 max-w-md w-full shadow-2xl">
                 <div className="flex items-center justify-between mb-3">
                     <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                        {isTarget ? "🧙 Le Magicien Gris t'interroge !" : `🧙 Le Magicien Gris interroge ${target} !`}
+                        {isTarget ? `🧙 ${t("goose.quiz.askingYou")}` : `🧙 ${t("goose.quiz.askingOther", { name: target })}`}
                     </h3>
                     {!result && pickedIndex === null && (
                         <span className="text-xs text-gray-400">{secondsLeft}s</span>
@@ -81,17 +83,17 @@ export default function WizardQuiz({ target, isTarget, question, choices, onAnsw
                 {result && (
                     <p className={`mt-4 text-center font-semibold ${result.correct ? "text-green-400" : "text-red-400"}`}>
                         {isTarget
-                            ? (result.correct ? "👍 Bonne réponse !" : "👎 Mauvaise réponse...")
-                            : (result.correct ? `👍 ${target} a trouvé !` : `👎 ${target} s'est trompé...`)}
+                            ? (result.correct ? `👍 ${t("goose.quiz.correct")}` : `👎 ${t("goose.quiz.wrong")}`)
+                            : (result.correct ? `👍 ${t("goose.quiz.otherCorrect", { name: target })}` : `👎 ${t("goose.quiz.otherWrong", { name: target })}`)}
                     </p>
                 )}
 
                 {!result && pickedIndex !== null && (
-                    <p className="mt-4 text-center text-gray-400 text-sm">En attente du verdict du magicien...</p>
+                    <p className="mt-4 text-center text-gray-400 text-sm">{t("goose.quiz.waitingVerdict")}</p>
                 )}
 
                 {!result && pickedIndex === null && !isTarget && (
-                    <p className="mt-4 text-center text-gray-400 text-sm">En attente de la réponse de {target}...</p>
+                    <p className="mt-4 text-center text-gray-400 text-sm">{t("goose.quiz.waitingAnswer", { name: target })}</p>
                 )}
             </div>
         </div>

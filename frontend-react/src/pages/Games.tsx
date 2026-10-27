@@ -25,13 +25,13 @@ export default function Games() {
 				<Link to="/pacman3d" className="bg-gray-800 p-8 rounded-lg border border-gray-700 hover:border-yellow-500 transition text-center">
                     <span className="text-4xl block mb-3">👻</span>
                     <h2 className="text-xl font-semibold text-white mb-2">Pacman 3D</h2>
-                    <p className="text-gray-400">Solo — first-person 3D maze with shotgun</p>
+                    <p className="text-gray-400">{t("games.pacman3d.body")}</p>
                 </Link>
 
 				<Link to="/pacman" className="bg-gray-800 p-8 rounded-lg border border-gray-700 hover:border-blue-500 transition text-center">
                     <span className="text-4xl block mb-3">👾</span>
                     <h2 className="text-xl font-semibold text-white mb-2">Pacman</h2>
-                    <p className="text-gray-400">Multiplayer — maze, roles, ghosts</p>
+                    <p className="text-gray-400">{t("games.pacmanMulti.body")}</p>
                 </Link>
 
 				<Link to="/goose" className="bg-gray-800 p-8 rounded-lg border border-gray-700 hover:border-green-500 transition text-center">
@@ -42,8 +42,8 @@ export default function Games() {
 
 				<a href="/wbo/boards/community" target="_blank" rel="noopener noreferrer" className="bg-gray-800 p-8 rounded-lg border border-gray-700 hover:border-purple-500 transition text-center">
                     <span className="text-4xl block mb-3">🎨</span>
-                    <h2 className="text-xl font-semibold text-white mb-2">Whiteboard</h2>
-                    <p className="text-gray-400">Collaborative drawing board</p>
+                    <h2 className="text-xl font-semibold text-white mb-2">{t("games.whiteboard.title")}</h2>
+                    <p className="text-gray-400">{t("games.whiteboard.body")}</p>
                 </a>
             </div>
         </div>

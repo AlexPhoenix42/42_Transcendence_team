@@ -516,6 +516,8 @@ export const ar: MessageTable = {
     "chat.mutePrompt":         "كتم {name} لمدة:",
     "chat.unmute":             "إلغاء الكتم",
     "chat.minutes":            "{count} د",
+    "chat.translate":          "ترجمة",
+    "chat.hideTranslation":    "إخفاء الترجمة",
     "chat.error.resolveRoom":  "تعذّر تحديد غرفة الدردشة العامة",
     "chat.error.connect":      "فشل الاتصال بالدردشة العامة",
     "chat.error.auth":         "فشلت المصادقة. يُرجى تسجيل الدخول مجددًا.",
@@ -630,6 +632,17 @@ export const ar: MessageTable = {
     "analytics.streak.win":    "فوز",
     "analytics.streak.loss":   "خسارة",
     "analytics.streak.draw":   "تعادل",
+    "analytics.exportCSV":         "تصدير CSV",
+    "analytics.exportPDF":         "تصدير PDF",
+    "analytics.dateRange":         "الفترة الزمنية",
+    "analytics.clearFilter":       "مسح",
+    "analytics.autoRefresh":       "آخر تحديث {time}",
+    "analytics.ratingProgression": "تطور التصنيف",
+    "analytics.dailyResults":      "النتائج اليومية",
+    "analytics.rating":            "التصنيف",
+    "analytics.wins":              "انتصارات",
+    "analytics.losses":            "هزائم",
+    "analytics.draws":             "تعادل",
     "analytics.error.load":    "فشل تحميل التحليلات",
 
     // -- System status -------------------------------------------------
@@ -808,6 +821,24 @@ export const ar: MessageTable = {
     "srv.winnerNotPlayer":          "يجب أن يكون الفائز أحد لاعبي المباراة.",
     "srv.winnerNotFound":           "الفائز غير موجود.",
 
+    // --- GDPR ---
+    "gdpr.title":          "بياناتك",
+    "gdpr.exportDesc":     "نزّل نسخة من جميع بياناتك.",
+    "gdpr.exportBtn":      "تصدير بياناتي",
+    "gdpr.exportSuccess":  "تم تصدير البيانات بنجاح.",
+    "gdpr.exportError":    "فشل تصدير البيانات.",
+    "gdpr.importDesc":     "استعد اسم العرض والنبذة وقائمة الأصدقاء من تصدير سابق.",
+    "gdpr.importTooLarge": "الملف كبير جدًا (الحد الأقصى 10 ميغابايت).",
+    "gdpr.importSuccess":  "اكتمل الاستيراد.",
+    "gdpr.importError":    "فشل استيراد البيانات.",
+    "gdpr.importUpdated":  "تم التحديث",
+    "gdpr.importSkipped":  "تم التخطي",
+    "gdpr.importErrors":   "أخطاء",
+    "gdpr.deleteDesc":     "احذف حسابك نهائيًا. سيتم إرسال بريد إلكتروني للتأكيد.",
+    "gdpr.deleteBtn":      "حذف حسابي",
+    "gdpr.deleteSuccess":  "تم إرسال بريد التأكيد. تحقق من صندوق الوارد.",
+    "gdpr.deleteError":    "فشل إرسال التأكيد.",
+
     // --- Validation ---
     "validate.username.required":        "اسم المستخدم مطلوب",
     "validate.username.minLength":       "يجب أن يتكون اسم المستخدم من 3 أحرف على الأقل",
@@ -900,4 +931,147 @@ export const ar: MessageTable = {
     "goose.legend.prison":           "⛓️ سجن (تخطَّ دورين)",
     "goose.legend.death":            "💀 موت (→البداية)",
     "goose.legend.finish":           "🏁 النهاية (63)",
+
+    // -- Profile -- 2FA & API key -----------------------------------------
+    "profile.2fa.scanPrompt":    "امسح رمز QR هذا باستخدام تطبيق المصادقة، أو أدخل المفتاح السري يدويًا:",
+    "profile.2fa.enabledStatus": "المصادقة الثنائية مفعّلة على حسابك.",
+    "profile.2fa.msg.enabled":   "تم تفعيل المصادقة الثنائية بنجاح!",
+    "profile.2fa.msg.disabled":  "تم تعطيل المصادقة الثنائية",
+    "apiKey.title":              "مفتاح API",
+    "apiKey.saveWarning":        "احفظ هذا المفتاح — لن يُعرض مرة أخرى:",
+    "apiKey.copy":               "نسخ",
+    "apiKey.active":             "المفتاح النشط:",
+    "apiKey.regenerate":         "إعادة الإنشاء",
+    "apiKey.revoke":             "إلغاء",
+    "apiKey.blurb":              "أنشئ مفتاح API للوصول إلى الواجهة البرمجية من السكربتات أو الأدوات الخارجية.",
+    "apiKey.generate":           "إنشاء مفتاح API",
+    "apiKey.endpoints":          "نقاط الوصول المتاحة:",
+    "apiKey.msg.copied":         "تم نسخ مفتاح API إلى الحافظة.",
+    "apiKey.msg.generated":      "تم إنشاء مفتاح API.",
+    "apiKey.msg.regenerated":    "تم إنشاء مفتاح API جديد.",
+    "apiKey.msg.revoked":        "تم إلغاء مفتاح API.",
+
+    // -- Games -- final sweep ---------------------------------------------
+    "games.pacman3d.body":    "فردي — متاهة ثلاثية الأبعاد من منظور الشخص الأول مع بندقية",
+    "games.pacmanMulti.body": "متعدد اللاعبين — متاهة، أدوار، أشباح",
+    "games.whiteboard.title": "السبورة البيضاء",
+    "games.whiteboard.body":  "لوحة رسم تشاركية",
+
+    // -- Tournaments -- final sweep ---------------------------------------
+    "common.timeControl":  "{min} د + {sec} ث",
+    "tournaments.players": "اللاعبون: {count}/{max}",
+    "tournaments.time":    "الوقت: {time}",
+
+    // -- Tournament detail -- final sweep ---------------------------------
+    "tdetail.playerCount":    "اللاعبون: {count}/{max}",
+    "tdetail.noParticipants": "لا يوجد مشاركون بعد.",
+
+    // -- Chat -- typing indicator (chat, chess game, tournament) ----------
+    "chat.typing": "{name} يكتب...",
+
+    // -- Friends -- final sweep -------------------------------------------
+    "friends.wantsToBeFriend": "{name} يريد أن يصبح صديقك",
+    "friends.waitingFor":      "في انتظار رد {name}",
+
+    // -- 404 page ---------------------------------------------------------
+    "notFound.title": "الصفحة غير موجودة",
+    "notFound.home":  "العودة إلى الصفحة الرئيسية",
+
+    // -- Footer -----------------------------------------------------------
+    "footer.privacy": "سياسة الخصوصية",
+    "footer.terms":   "شروط الخدمة",
+    "footer.rights":  "جميع الحقوق محفوظة.",
+
+    // -- System status -- final sweep -------------------------------------
+    "status.summary":      "الخدمات المراقَبة: {count} · مدة الفحص {ms} مللي ثانية",
+    "status.critical":     "حرجة",
+    "status.last":         "آخر {checks}",
+    "status.link.apiDocs": "توثيق API",
+
+    // -- Chess game -- final sweep ----------------------------------------
+    "chess.title":   "المباراة رقم {id}",
+    "chess.aiLabel": "ذكاء اصطناعي {level}",
+    "chess.check":   "كش!",
+
+    // -- Chess lobby -- final sweep ---------------------------------------
+    "common.timeMinutes": "{min} د",
+    "common.versus":      "{a} ضد {b}",
+
+    // -- Chat -- final sweep (icons stay in the JSX) ----------------------
+    "chat.invite.sent":     "أرسلت دعوة للعب",
+    "chat.invite.received": "{name} يدعوك للعب الشطرنج!",
+    "chat.invite.expired":  "(منتهية)",
+    "chat.invite.waiting":  "تم إرسال الدعوة! في انتظار الرد...",
+    "chat.delete":          "حذف",
+    "chat.mute":            "كتم",
+    "chat.seen":            "تمت المشاهدة",
+
+    // -- Analytics -- final sweep -----------------------------------------
+    "analytics.vsHumans": "ضد البشر",
+    "analytics.vsAI":     "ضد الذكاء الاصطناعي",
+
+    // -- Plurals -- games -------------------------------------------------
+    "analytics.games_one":   "مباراة واحدة",
+    "analytics.games_other": "{count} مباراة",
+    "analytics.games_zero":  "لا توجد مباريات",
+    "analytics.games_two":   "مباراتان",
+    "analytics.games_few":   "{count} مباريات",
+    "analytics.games_many":  "{count} مباراة",
+
+    // -- Plurals -- friends -----------------------------------------------
+    "publicProfile.friends_one":   "صديق واحد",
+    "publicProfile.friends_other": "{count} صديق",
+    "publicProfile.friends_zero":  "لا يوجد أصدقاء",
+    "publicProfile.friends_two":   "صديقان",
+    "publicProfile.friends_few":   "{count} أصدقاء",
+    "publicProfile.friends_many":  "{count} صديقًا",
+
+    // -- Goose game -- wizard quiz (icons stay in the JSX) ----------------
+    "goose.quiz.askingYou":      "الساحر الرمادي يستجوبك!",
+    "goose.quiz.askingOther":    "الساحر الرمادي يستجوب {name}!",
+    "goose.quiz.correct":        "إجابة صحيحة!",
+    "goose.quiz.wrong":          "إجابة خاطئة...",
+    "goose.quiz.otherCorrect":   "أجاب {name} بشكل صحيح!",
+    "goose.quiz.otherWrong":     "أخطأ {name}...",
+    "goose.quiz.waitingVerdict": "في انتظار حكم الساحر...",
+    "goose.quiz.waitingAnswer":  "في انتظار إجابة {name}...",
+
+    // -- Admin -- security audit ------------------------------------------
+    "admin.tab.security":          "التدقيق الأمني",
+    "admin.users.disabled":        "(معطّل)",
+    "audit.title":                 "سجل التدقيق الأمني",
+    "audit.filter.allEvents":      "كل الأحداث",
+    "audit.filter.username":       "التصفية حسب اسم المستخدم",
+    "audit.clear":                 "مسح",
+    "audit.empty":                 "لا توجد أحداث تدقيق",
+    "audit.event.loginSuccess":    "تسجيل دخول ناجح",
+    "audit.event.loginFailed":     "فشل تسجيل الدخول",
+    "audit.event.passwordReset":   "إعادة تعيين كلمة المرور",
+    "audit.event.2faEnabled":      "تفعيل المصادقة الثنائية",
+    "audit.event.2faDisabled":     "تعطيل المصادقة الثنائية",
+    "audit.event.accountLocked":   "قفل الحساب",
+    "audit.event.accountUnlocked": "فتح قفل الحساب",
+    "audit.col.time":              "الوقت",
+    "audit.col.event":             "الحدث",
+    "audit.col.user":              "المستخدم",
+    "audit.col.ip":                "IP",
+    "audit.col.status":            "الحالة",
+    "audit.col.actions":           "الإجراءات",
+    "audit.ok":                    "نجاح",
+    "audit.fail":                  "فشل",
+    "audit.unlock":                "فتح القفل",
+    "audit.prev":                  "السابق",
+    "audit.next":                  "التالي",
+    "audit.page":                  "صفحة {page} / {total}",
+    "audit.msg.unlocked":          "تم فتح قفل الحساب \"{name}\"",
+    "audit.error.load":            "فشل تحميل سجلات التدقيق",
+    "audit.error.unlock":          "فشل فتح قفل الحساب",
+
+    // -- Plurals -- audit events ------------------------------------------
+    "audit.events_one":   "حدث واحد",
+    "audit.events_other": "{count} حدث",
+    "audit.events_zero":  "لا توجد أحداث",
+    "audit.events_two":   "حدثان",
+    "audit.events_few":   "{count} أحداث",
+    "audit.events_many":  "{count} حدثًا",
 }

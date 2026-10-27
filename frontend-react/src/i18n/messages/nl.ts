@@ -508,6 +508,8 @@ export const nl: MessageTable = {
     "chat.mutePrompt":         "{name} dempen voor:",
     "chat.unmute":             "Dempen opheffen",
     "chat.minutes":            "{count}m",
+    "chat.translate":          "Vertalen",
+    "chat.hideTranslation":    "Vertaling verbergen",
     "chat.error.resolveRoom":  "Algemene chatruimte niet gevonden",
     "chat.error.connect":      "Verbinden met algemene chat mislukt",
     "chat.error.auth":         "Authenticatie mislukt. Log opnieuw in.",
@@ -622,6 +624,17 @@ export const nl: MessageTable = {
     "analytics.streak.win":    "gewonnen",
     "analytics.streak.loss":   "verloren",
     "analytics.streak.draw":   "gelijk",
+    "analytics.exportCSV":         "CSV exporteren",
+    "analytics.exportPDF":         "PDF exporteren",
+    "analytics.dateRange":         "Periode",
+    "analytics.clearFilter":       "Wissen",
+    "analytics.autoRefresh":       "Bijgewerkt om {time}",
+    "analytics.ratingProgression": "Ratingverloop",
+    "analytics.dailyResults":      "Resultaten per dag",
+    "analytics.rating":            "Rating",
+    "analytics.wins":              "Overwinningen",
+    "analytics.losses":            "Verliezen",
+    "analytics.draws":             "Gelijkspel",
     "analytics.error.load":    "Laden van statistieken mislukt",
 
     // -- System status -------------------------------------------------
@@ -800,6 +813,24 @@ export const nl: MessageTable = {
     "srv.winnerNotPlayer":          "De winnaar moet een van de spelers zijn.",
     "srv.winnerNotFound":           "Winnaar niet gevonden.",
 
+    // --- GDPR ---
+    "gdpr.title":          "Jouw gegevens",
+    "gdpr.exportDesc":     "Download een kopie van al je gegevens.",
+    "gdpr.exportBtn":      "Mijn gegevens exporteren",
+    "gdpr.exportSuccess":  "Gegevens succesvol geëxporteerd.",
+    "gdpr.exportError":    "Gegevens exporteren mislukt.",
+    "gdpr.importDesc":     "Herstel je weergavenaam, bio en vriendenlijst vanuit een eerdere export.",
+    "gdpr.importTooLarge": "Bestand te groot (max. 10 MB).",
+    "gdpr.importSuccess":  "Import voltooid.",
+    "gdpr.importError":    "Gegevens importeren mislukt.",
+    "gdpr.importUpdated":  "Bijgewerkt",
+    "gdpr.importSkipped":  "Overgeslagen",
+    "gdpr.importErrors":   "Fouten",
+    "gdpr.deleteDesc":     "Verwijder je account definitief. Er wordt een bevestigingsmail verstuurd.",
+    "gdpr.deleteBtn":      "Mijn account verwijderen",
+    "gdpr.deleteSuccess":  "Bevestigingsmail verstuurd. Controleer je inbox.",
+    "gdpr.deleteError":    "Bevestiging versturen mislukt.",
+
     // --- Validation ---
     "validate.username.required":        "Gebruikersnaam is verplicht",
     "validate.username.minLength":       "Gebruikersnaam moet minstens 3 tekens bevatten",
@@ -892,4 +923,147 @@ export const nl: MessageTable = {
     "goose.legend.prison":           "⛓️ Gevangenis (sla 2 over)",
     "goose.legend.death":            "💀 Dood (→start)",
     "goose.legend.finish":           "🏁 Finish (63)",
+
+    // -- Profile -- 2FA & API key -----------------------------------------
+    "profile.2fa.scanPrompt":    "Scan deze QR-code met je authenticator-app, of voer de geheime sleutel handmatig in:",
+    "profile.2fa.enabledStatus": "2FA is ingeschakeld voor je account.",
+    "profile.2fa.msg.enabled":   "2FA succesvol ingeschakeld!",
+    "profile.2fa.msg.disabled":  "2FA uitgeschakeld",
+    "apiKey.title":              "API-sleutel",
+    "apiKey.saveWarning":        "Bewaar deze sleutel — hij wordt niet opnieuw getoond:",
+    "apiKey.copy":               "Kopiëren",
+    "apiKey.active":             "Actieve sleutel:",
+    "apiKey.regenerate":         "Opnieuw genereren",
+    "apiKey.revoke":             "Intrekken",
+    "apiKey.blurb":              "Genereer een API-sleutel om de API te gebruiken vanuit scripts of externe tools.",
+    "apiKey.generate":           "API-sleutel genereren",
+    "apiKey.endpoints":          "Beschikbare endpoints:",
+    "apiKey.msg.copied":         "API-sleutel gekopieerd naar het klembord.",
+    "apiKey.msg.generated":      "API-sleutel gegenereerd.",
+    "apiKey.msg.regenerated":    "Nieuwe API-sleutel gegenereerd.",
+    "apiKey.msg.revoked":        "API-sleutel ingetrokken.",
+
+    // -- Games -- final sweep ---------------------------------------------
+    "games.pacman3d.body":    "Solo — 3D-doolhof in first-person met jachtgeweer",
+    "games.pacmanMulti.body": "Multiplayer — doolhof, rollen, spoken",
+    "games.whiteboard.title": "Whiteboard",
+    "games.whiteboard.body":  "Gezamenlijk tekenbord",
+
+    // -- Tournaments -- final sweep ---------------------------------------
+    "common.timeControl":  "{min} min + {sec} sec",
+    "tournaments.players": "Spelers: {count}/{max}",
+    "tournaments.time":    "Tijd: {time}",
+
+    // -- Tournament detail -- final sweep ---------------------------------
+    "tdetail.playerCount":    "{count}/{max} spelers",
+    "tdetail.noParticipants": "Nog geen deelnemers.",
+
+    // -- Chat -- typing indicator (chat, chess game, tournament) ----------
+    "chat.typing": "{name} is aan het typen...",
+
+    // -- Friends -- final sweep -------------------------------------------
+    "friends.wantsToBeFriend": "{name} wil je vriend worden",
+    "friends.waitingFor":      "Wachten tot {name} reageert",
+
+    // -- 404 page ---------------------------------------------------------
+    "notFound.title": "Pagina niet gevonden",
+    "notFound.home":  "Terug naar home",
+
+    // -- Footer -----------------------------------------------------------
+    "footer.privacy": "Privacybeleid",
+    "footer.terms":   "Servicevoorwaarden",
+    "footer.rights":  "Alle rechten voorbehouden.",
+
+    // -- System status -- final sweep -------------------------------------
+    "status.summary":      "{count} diensten bewaakt · gecontroleerd in {ms} ms",
+    "status.critical":     "kritiek",
+    "status.last":         "Laatste {checks}",
+    "status.link.apiDocs": "API-documentatie",
+
+    // -- Chess game -- final sweep ----------------------------------------
+    "chess.title":   "Partij #{id}",
+    "chess.aiLabel": "AI {level}",
+    "chess.check":   "SCHAAK!",
+
+    // -- Chess lobby -- final sweep ---------------------------------------
+    "common.timeMinutes": "{min} min",
+    "common.versus":      "{a} tegen {b}",
+
+    // -- Chat -- final sweep (icons stay in the JSX) ----------------------
+    "chat.invite.sent":     "Je hebt een speluitnodiging gestuurd",
+    "chat.invite.received": "{name} nodigt je uit voor een partij schaak!",
+    "chat.invite.expired":  "(verlopen)",
+    "chat.invite.waiting":  "Uitnodiging verstuurd! Wachten op antwoord...",
+    "chat.delete":          "Verwijderen",
+    "chat.mute":            "Dempen",
+    "chat.seen":            "Gezien",
+
+    // -- Analytics -- final sweep -----------------------------------------
+    "analytics.vsHumans": "tegen mensen",
+    "analytics.vsAI":     "tegen AI",
+
+    // -- Plurals -- games -------------------------------------------------
+    "analytics.games_one":   "{count} partij",
+    "analytics.games_other": "{count} partijen",
+    "analytics.games_zero":  "{count} partijen",
+    "analytics.games_two":   "{count} partijen",
+    "analytics.games_few":   "{count} partijen",
+    "analytics.games_many":  "{count} partijen",
+
+    // -- Plurals -- friends -----------------------------------------------
+    "publicProfile.friends_one":   "{count} vriend",
+    "publicProfile.friends_other": "{count} vrienden",
+    "publicProfile.friends_zero":  "{count} vrienden",
+    "publicProfile.friends_two":   "{count} vrienden",
+    "publicProfile.friends_few":   "{count} vrienden",
+    "publicProfile.friends_many":  "{count} vrienden",
+
+    // -- Goose game -- wizard quiz (icons stay in the JSX) ----------------
+    "goose.quiz.askingYou":      "De Grijze Tovenaar ondervraagt jou!",
+    "goose.quiz.askingOther":    "De Grijze Tovenaar ondervraagt {name}!",
+    "goose.quiz.correct":        "Goed antwoord!",
+    "goose.quiz.wrong":          "Fout antwoord...",
+    "goose.quiz.otherCorrect":   "{name} had het goed!",
+    "goose.quiz.otherWrong":     "{name} had het fout...",
+    "goose.quiz.waitingVerdict": "Wachten op het oordeel van de tovenaar...",
+    "goose.quiz.waitingAnswer":  "Wachten op het antwoord van {name}...",
+
+    // -- Admin -- security audit ------------------------------------------
+    "admin.tab.security":          "Beveiligingsaudit",
+    "admin.users.disabled":        "(uitgeschakeld)",
+    "audit.title":                 "Beveiligingsauditlog",
+    "audit.filter.allEvents":      "Alle gebeurtenissen",
+    "audit.filter.username":       "Filteren op gebruikersnaam",
+    "audit.clear":                 "Wissen",
+    "audit.empty":                 "Geen auditgebeurtenissen gevonden",
+    "audit.event.loginSuccess":    "Geslaagde login",
+    "audit.event.loginFailed":     "Mislukte login",
+    "audit.event.passwordReset":   "Wachtwoord gereset",
+    "audit.event.2faEnabled":      "2FA ingeschakeld",
+    "audit.event.2faDisabled":     "2FA uitgeschakeld",
+    "audit.event.accountLocked":   "Account geblokkeerd",
+    "audit.event.accountUnlocked": "Account gedeblokkeerd",
+    "audit.col.time":              "Tijd",
+    "audit.col.event":             "Gebeurtenis",
+    "audit.col.user":              "Gebruiker",
+    "audit.col.ip":                "IP",
+    "audit.col.status":            "Status",
+    "audit.col.actions":           "Acties",
+    "audit.ok":                    "OK",
+    "audit.fail":                  "MISLUKT",
+    "audit.unlock":                "Deblokkeren",
+    "audit.prev":                  "Vorige",
+    "audit.next":                  "Volgende",
+    "audit.page":                  "Pagina {page} / {total}",
+    "audit.msg.unlocked":          "Account \"{name}\" gedeblokkeerd",
+    "audit.error.load":            "Auditlogs laden mislukt",
+    "audit.error.unlock":          "Account deblokkeren mislukt",
+
+    // -- Plurals -- audit events ------------------------------------------
+    "audit.events_one":   "{count} gebeurtenis",
+    "audit.events_other": "{count} gebeurtenissen",
+    "audit.events_zero":  "{count} gebeurtenissen",
+    "audit.events_two":   "{count} gebeurtenissen",
+    "audit.events_few":   "{count} gebeurtenissen",
+    "audit.events_many":  "{count} gebeurtenissen",
 }

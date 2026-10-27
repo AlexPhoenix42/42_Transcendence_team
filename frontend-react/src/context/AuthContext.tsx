@@ -35,7 +35,7 @@ const AuthContext = createContext<AuthContextType | null>(null)
 export function AuthProvider({ children }: { children: ReactNode }) {
     // Safe because main.tsx renders <I18nProvider> ABOVE <App/>, so this
     // provider is always inside the i18n context.
-    const { ts } = useI18n()
+    const { t, ts } = useI18n()
     const [user, setUser]       = useState<User | null>(null)
     const [loading, setLoading] = useState(true)
 
@@ -71,7 +71,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             const data = await resp.json()
 
             if (!resp.ok) {
-				return { success: false, error: data.detail || data.error || data.non_field_errors?.[0] || "Login failed" }
+				return { success: false, error: data.detail || data.error || data.non_field_errors?.[0] || t("login.error.failed") }
             }
 
             if (data.requires_2fa) {
@@ -83,7 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             await fetchMe()
             return { success: true }
         } catch {
-            return { success: false, error: "Network error. Please try again." }
+            return { success: false, error: t("common.error.network") }
         }
     }
 
@@ -111,7 +111,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             await fetchMe()
             return { success: true }
         } catch {
-            return { success: false, error: "Network error. Please try again." }
+            return { success: false, error: t("common.error.network") }
         }
     }
 
@@ -135,7 +135,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             await fetchMe()
             return { success: true }
         } catch {
-            return { success: false, error: "Network error. Please try again." }
+            return { success: false, error: t("common.error.network") }
         }
     }
 

@@ -216,7 +216,7 @@ export default function Profile() {
                 setConfirmCode("")
                 setRecoveryCodes(data.recovery_codes || [])
                 setError("")
-                setSuccess("2FA enabled successfully!")
+                setSuccess(t("profile.2fa.msg.enabled"))
             } else {
                 setError(ts(data.error, "twofa.error.invalidCode"))
             }
@@ -251,7 +251,7 @@ export default function Profile() {
                 setShowDisable(false)
                 setDisablePassword("")
                 setDisableCode("")
-                setSuccess("2FA disabled")
+                setSuccess(t("profile.2fa.msg.disabled"))
             } else {
                 const data = await resp.json()
                 setError(ts(data.error))
@@ -413,7 +413,7 @@ export default function Profile() {
 
                 {enabling2FA ? (
                     <div className="space-y-4">
-                        <p className="text-gray-400">Scan this QR code with your authenticator app, or enter the secret manually:</p>
+                        <p className="text-gray-400">{t("profile.2fa.scanPrompt")}</p>
 
                         <div className="bg-white p-4 rounded inline-block">
 							<QRCodeSVG value={qrUri} size={200} />
@@ -446,7 +446,7 @@ export default function Profile() {
                     </div>
                 ) : has2FA ? (
                     <div>
-                        <p className="text-green-400 mb-4">2FA is enabled on your account.</p>
+                        <p className="text-green-400 mb-4">{t("profile.2fa.enabledStatus")}</p>
 
                         {showDisable ? (
                             <form onSubmit={handleDisable2FA} className="space-y-3">
@@ -614,21 +614,21 @@ export default function Profile() {
             </div>
 			{/* API Key Section */}
             <div className="bg-gray-800 rounded-lg p-6 border border-gray-700 mt-6">
-                <h2 className="text-xl text-white font-semibold mb-4">API Key</h2>
+                <h2 className="text-xl text-white font-semibold mb-4">{t("apiKey.title")}</h2>
 
 				{newApiKey && (
                     <div className="bg-yellow-900/50 border border-yellow-500 text-yellow-300 px-4 py-4 rounded mb-4">
-                        <p className="font-bold mb-2">Save this key — it won't be shown again:</p>
+                        <p className="font-bold mb-2">{t("apiKey.saveWarning")}</p>
                         <div className="flex items-center gap-2">
                             <code className="text-green-400 bg-gray-900 px-3 py-1 rounded text-sm block break-all flex-1">{newApiKey}</code>
                             <button
                                 onClick={() => {
                                     navigator.clipboard.writeText(newApiKey)
-                                    setSuccess("API key copied to clipboard.")
+                                    setSuccess(t("apiKey.msg.copied"))
                                 }}
                                 className="px-3 py-1 bg-gray-700 text-white rounded hover:bg-gray-600 text-sm shrink-0"
                             >
-                                Copy
+                                {t("apiKey.copy")}
                             </button>
                         </div>
                     </div>
@@ -636,7 +636,7 @@ export default function Profile() {
 
                 {hasApiKey ? (
                     <div>
-                        <p className="text-gray-400 mb-2">Active key: <code className="text-green-400">{apiKeyPrefix}...</code></p>
+                        <p className="text-gray-400 mb-2">{t("apiKey.active")} <code className="text-green-400">{apiKeyPrefix}...</code></p>
                         <div className="flex gap-2">
                             <button
                                 onClick={async () => {
@@ -647,13 +647,13 @@ export default function Profile() {
                                             setNewApiKey(data.api_key)
                                             setHasApiKey(true)
                                             setApiKeyPrefix(data.api_key.substring(0, 8))
-                                            setSuccess("New API key generated.")
+                                            setSuccess(t("apiKey.msg.regenerated"))
                                         }
                                     } catch { setError(t("common.error.network")) }
                                 }}
                                 className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
                             >
-                                Regenerate
+                                {t("apiKey.regenerate")}
                             </button>
                             <button
                                 onClick={async () => {
@@ -663,19 +663,19 @@ export default function Profile() {
                                             setHasApiKey(false)
                                             setApiKeyPrefix("")
                                             setNewApiKey("")
-                                            setSuccess("API key revoked.")
+                                            setSuccess(t("apiKey.msg.revoked"))
                                         }
                                     } catch { setError(t("common.error.network")) }
                                 }}
                                 className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
                             >
-                                Revoke
+                                {t("apiKey.revoke")}
                             </button>
                         </div>
                     </div>
                 ) : (
                     <div>
-                        <p className="text-gray-400 mb-4">Generate an API key to access the API from scripts or external tools.</p>
+                        <p className="text-gray-400 mb-4">{t("apiKey.blurb")}</p>
                         <button
                             onClick={async () => {
                                 try {
@@ -685,19 +685,19 @@ export default function Profile() {
                                         setNewApiKey(data.api_key)
                                         setHasApiKey(true)
                                         setApiKeyPrefix(data.api_key.substring(0, 8))
-                                        setSuccess("API key generated.")
+                                        setSuccess(t("apiKey.msg.generated"))
                                     }
                                 } catch { setError(t("common.error.network")) }
                             }}
                             className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
                         >
-                            Generate API Key
+                            {t("apiKey.generate")}
                         </button>
                     </div>
                 )}
 
                 <div className="mt-4 text-gray-500 text-sm">
-				    <p className="mb-2">Available endpoints:</p>
+				    <p className="mb-2">{t("apiKey.endpoints")}</p>
                     <div className="space-y-1 font-mono text-xs text-gray-400">
                         {["/api/me/", "/api/leaderboard/", "/api/match-history/", "/api/analytics/", "/api/achievements/", "/api/me/export/"].map((ep) => (
                             <p key={ep}>curl -sk -H "X-API-Key: YOUR_KEY" {window.location.origin}{ep}</p>

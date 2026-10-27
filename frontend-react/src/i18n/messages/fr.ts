@@ -503,6 +503,8 @@ export const fr: MessageTable = {
     "chat.mutePrompt":         "Rendre {name} muet pendant :",
     "chat.unmute":             "Réactiver",
     "chat.minutes":            "{count} min",
+    "chat.translate":          "Traduire",
+    "chat.hideTranslation":    "Masquer la traduction",
     "chat.error.resolveRoom":  "Impossible de résoudre le salon global",
     "chat.error.connect":      "Impossible de se connecter au salon global",
     "chat.error.auth":         "Authentification échouée. Reconnectez-vous.",
@@ -617,6 +619,17 @@ export const fr: MessageTable = {
     "analytics.streak.win":    "victoire",
     "analytics.streak.loss":   "défaite",
     "analytics.streak.draw":   "nul",
+    "analytics.exportCSV":         "Exporter en CSV",
+    "analytics.exportPDF":         "Exporter en PDF",
+    "analytics.dateRange":         "Période",
+    "analytics.clearFilter":       "Effacer",
+    "analytics.autoRefresh":       "Mis à jour à {time}",
+    "analytics.ratingProgression": "Évolution du classement",
+    "analytics.dailyResults":      "Résultats par jour",
+    "analytics.rating":            "Classement",
+    "analytics.wins":              "Victoires",
+    "analytics.losses":            "Défaites",
+    "analytics.draws":             "Nuls",
     "analytics.error.load":    "Impossible de charger les statistiques",
 
     // -- System status -------------------------------------------------
@@ -795,6 +808,24 @@ export const fr: MessageTable = {
     "srv.winnerNotPlayer":          "Le gagnant doit être l'un des joueurs du match.",
     "srv.winnerNotFound":           "Gagnant introuvable.",
 
+    // --- GDPR ---
+    "gdpr.title":          "Vos données",
+    "gdpr.exportDesc":     "Téléchargez une copie de toutes vos données.",
+    "gdpr.exportBtn":      "Exporter mes données",
+    "gdpr.exportSuccess":  "Données exportées avec succès.",
+    "gdpr.exportError":    "Impossible d'exporter les données.",
+    "gdpr.importDesc":     "Restaurez votre nom d'affichage, votre bio et votre liste d'amis depuis un export précédent.",
+    "gdpr.importTooLarge": "Fichier trop volumineux (10 Mo max).",
+    "gdpr.importSuccess":  "Import terminé.",
+    "gdpr.importError":    "Impossible d'importer les données.",
+    "gdpr.importUpdated":  "Mis à jour",
+    "gdpr.importSkipped":  "Ignorés",
+    "gdpr.importErrors":   "Erreurs",
+    "gdpr.deleteDesc":     "Supprimez définitivement votre compte. Un e-mail de confirmation vous sera envoyé.",
+    "gdpr.deleteBtn":      "Supprimer mon compte",
+    "gdpr.deleteSuccess":  "E-mail de confirmation envoyé. Consultez votre boîte de réception.",
+    "gdpr.deleteError":    "Impossible d'envoyer la confirmation.",
+
     // --- Validation ---
     "validate.username.required":        "Le nom d'utilisateur est requis",
     "validate.username.minLength":       "Le nom d'utilisateur doit comporter au moins 3 caractères",
@@ -887,5 +918,148 @@ export const fr: MessageTable = {
     "goose.legend.prison":           "⛓️ Prison (passe 2)",
     "goose.legend.death":            "💀 Mort (→départ)",
     "goose.legend.finish":           "🏁 Arrivée (63)",
+
+    // -- Profile -- 2FA & API key -----------------------------------------
+    "profile.2fa.scanPrompt":    "Scannez ce QR code avec votre application d'authentification, ou saisissez le secret manuellement :",
+    "profile.2fa.enabledStatus": "La 2FA est activée sur votre compte.",
+    "profile.2fa.msg.enabled":   "2FA activée avec succès !",
+    "profile.2fa.msg.disabled":  "2FA désactivée",
+    "apiKey.title":              "Clé API",
+    "apiKey.saveWarning":        "Conservez cette clé — elle ne sera plus affichée :",
+    "apiKey.copy":               "Copier",
+    "apiKey.active":             "Clé active :",
+    "apiKey.regenerate":         "Régénérer",
+    "apiKey.revoke":             "Révoquer",
+    "apiKey.blurb":              "Générez une clé API pour accéder à l'API depuis des scripts ou des outils externes.",
+    "apiKey.generate":           "Générer une clé API",
+    "apiKey.endpoints":          "Endpoints disponibles :",
+    "apiKey.msg.copied":         "Clé API copiée dans le presse-papiers.",
+    "apiKey.msg.generated":      "Clé API générée.",
+    "apiKey.msg.regenerated":    "Nouvelle clé API générée.",
+    "apiKey.msg.revoked":        "Clé API révoquée.",
+
+    // -- Games -- final sweep ---------------------------------------------
+    "games.pacman3d.body":    "Solo — labyrinthe 3D à la première personne avec fusil à pompe",
+    "games.pacmanMulti.body": "Multijoueur — labyrinthe, rôles, fantômes",
+    "games.whiteboard.title": "Tableau blanc",
+    "games.whiteboard.body":  "Tableau de dessin collaboratif",
+
+    // -- Tournaments -- final sweep ---------------------------------------
+    "common.timeControl":  "{min} min + {sec} s",
+    "tournaments.players": "Joueurs : {count}/{max}",
+    "tournaments.time":    "Temps : {time}",
+
+    // -- Tournament detail -- final sweep ---------------------------------
+    "tdetail.playerCount":    "{count}/{max} joueurs",
+    "tdetail.noParticipants": "Aucun participant pour l'instant.",
+
+    // -- Chat -- typing indicator (chat, chess game, tournament) ----------
+    "chat.typing": "{name} est en train d'écrire...",
+
+    // -- Friends -- final sweep -------------------------------------------
+    "friends.wantsToBeFriend": "{name} souhaite devenir votre ami",
+    "friends.waitingFor":      "En attente de la réponse de {name}",
+
+    // -- 404 page ---------------------------------------------------------
+    "notFound.title": "Page introuvable",
+    "notFound.home":  "Retour à l'accueil",
+
+    // -- Footer -----------------------------------------------------------
+    "footer.privacy": "Politique de confidentialité",
+    "footer.terms":   "Conditions d'utilisation",
+    "footer.rights":  "Tous droits réservés.",
+
+    // -- System status -- final sweep -------------------------------------
+    "status.summary":      "{count} services surveillés · vérifiés en {ms} ms",
+    "status.critical":     "critique",
+    "status.last":         "{checks} les plus récentes",
+    "status.link.apiDocs": "Documentation API",
+
+    // -- Chess game -- final sweep ----------------------------------------
+    "chess.title":   "Partie n°{id}",
+    "chess.aiLabel": "IA {level}",
+    "chess.check":   "ÉCHEC !",
+
+    // -- Chess lobby -- final sweep ---------------------------------------
+    "common.timeMinutes": "{min} min",
+    "common.versus":      "{a} contre {b}",
+
+    // -- Chat -- final sweep (icons stay in the JSX) ----------------------
+    "chat.invite.sent":     "Vous avez envoyé une invitation à jouer",
+    "chat.invite.received": "{name} vous invite à jouer aux échecs !",
+    "chat.invite.expired":  "(expirée)",
+    "chat.invite.waiting":  "Invitation envoyée ! En attente de réponse...",
+    "chat.delete":          "Supprimer",
+    "chat.mute":            "Rendre muet",
+    "chat.seen":            "Vu",
+
+    // -- Analytics -- final sweep -----------------------------------------
+    "analytics.vsHumans": "contre des humains",
+    "analytics.vsAI":     "contre l'IA",
+
+    // -- Plurals -- games -------------------------------------------------
+    "analytics.games_one":   "{count} partie",
+    "analytics.games_other": "{count} parties",
+    "analytics.games_zero":  "{count} partie",
+    "analytics.games_two":   "{count} parties",
+    "analytics.games_few":   "{count} parties",
+    "analytics.games_many":  "{count} parties",
+
+    // -- Plurals -- friends -----------------------------------------------
+    "publicProfile.friends_one":   "{count} ami",
+    "publicProfile.friends_other": "{count} amis",
+    "publicProfile.friends_zero":  "{count} ami",
+    "publicProfile.friends_two":   "{count} amis",
+    "publicProfile.friends_few":   "{count} amis",
+    "publicProfile.friends_many":  "{count} amis",
+
+    // -- Goose game -- wizard quiz (icons stay in the JSX) ----------------
+    "goose.quiz.askingYou":      "Le Magicien Gris t'interroge !",
+    "goose.quiz.askingOther":    "Le Magicien Gris interroge {name} !",
+    "goose.quiz.correct":        "Bonne réponse !",
+    "goose.quiz.wrong":          "Mauvaise réponse...",
+    "goose.quiz.otherCorrect":   "{name} a trouvé !",
+    "goose.quiz.otherWrong":     "{name} s'est trompé...",
+    "goose.quiz.waitingVerdict": "En attente du verdict du magicien...",
+    "goose.quiz.waitingAnswer":  "En attente de la réponse de {name}...",
+
+    // -- Admin -- security audit ------------------------------------------
+    "admin.tab.security":          "Audit de sécurité",
+    "admin.users.disabled":        "(désactivé)",
+    "audit.title":                 "Journal d'audit de sécurité",
+    "audit.filter.allEvents":      "Tous les événements",
+    "audit.filter.username":       "Filtrer par nom d'utilisateur",
+    "audit.clear":                 "Effacer",
+    "audit.empty":                 "Aucun événement d'audit trouvé",
+    "audit.event.loginSuccess":    "Connexion réussie",
+    "audit.event.loginFailed":     "Échec de connexion",
+    "audit.event.passwordReset":   "Réinitialisation du mot de passe",
+    "audit.event.2faEnabled":      "2FA activée",
+    "audit.event.2faDisabled":     "2FA désactivée",
+    "audit.event.accountLocked":   "Compte verrouillé",
+    "audit.event.accountUnlocked": "Compte déverrouillé",
+    "audit.col.time":              "Heure",
+    "audit.col.event":             "Événement",
+    "audit.col.user":              "Utilisateur",
+    "audit.col.ip":                "IP",
+    "audit.col.status":            "Statut",
+    "audit.col.actions":           "Actions",
+    "audit.ok":                    "OK",
+    "audit.fail":                  "ÉCHEC",
+    "audit.unlock":                "Déverrouiller",
+    "audit.prev":                  "Précédent",
+    "audit.next":                  "Suivant",
+    "audit.page":                  "Page {page} / {total}",
+    "audit.msg.unlocked":          "Compte « {name} » déverrouillé",
+    "audit.error.load":            "Impossible de charger le journal d'audit",
+    "audit.error.unlock":          "Impossible de déverrouiller le compte",
+
+    // -- Plurals -- audit events ------------------------------------------
+    "audit.events_one":   "{count} événement",
+    "audit.events_other": "{count} événements",
+    "audit.events_zero":  "{count} événement",
+    "audit.events_two":   "{count} événements",
+    "audit.events_few":   "{count} événements",
+    "audit.events_many":  "{count} événements",
 } as const
 

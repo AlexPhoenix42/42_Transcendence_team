@@ -247,7 +247,7 @@ export default function Friends() {
                     {requests.map((req) => (
                         <div key={req.id} className="bg-gray-800 p-4 rounded-lg border border-gray-700 flex items-center gap-3">
                             <span className="text-white flex-1">
-                                {req.sent_by} wants to be your friend
+                                {t("friends.wantsToBeFriend", { name: req.sent_by })}
                             </span>
                             <button
                                 onClick={() => respondRequest(req.id, "accept")}
@@ -274,7 +274,7 @@ export default function Friends() {
                     {sentRequests.map((req) => (
                         <div key={req.id} className="bg-gray-800 p-4 rounded-lg border border-gray-700 flex items-center gap-3">
                             <span className="text-white flex-1">
-                                Waiting for {req.from_user === req.sent_by ? req.to_user : req.from_user} to respond
+                                {t("friends.waitingFor", { name: req.from_user === req.sent_by ? req.to_user : req.from_user })}
                             </span>
                             <button
                                 onClick={() => cancelRequest(req.id)}
