@@ -245,12 +245,24 @@ export default function Login() {
             </h1>
 		   */}
 			<div className="text-center mb-8">
-                <img src="/angry_unicorn.png" alt="" className="w-20 h-20 mx-auto mb-4" />
+                <img
+                    src="/angry_unicorn.png"
+                    alt=""
+                    onClick={() => {
+                        setUsername("")
+                        setPassword("")
+                        setError("")
+                        setSuccess("")
+                        setShowResend(false)
+                        setResendEmail("")
+                    }}
+                    className="w-20 h-20 mx-auto mb-4 cursor-pointer"
+                />
                 <h1 className="text-3xl font-bold text-white">
                     ♟ Born2Transcend ♟
                 </h1>
             </div>
-
+			
             {/* Username Conflict Dialog */}
             {showUsernameConflict && (
                 <div className="bg-yellow-900/30 border border-yellow-600 rounded p-4 mb-4 space-y-3">
