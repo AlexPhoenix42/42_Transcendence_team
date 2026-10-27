@@ -11,6 +11,7 @@ import { ChatSocket, ChatMessage } from "../ws/chat.ts"
 
 import { wsUrl } from '../ws/utils';
 import { debug } from '../utils/debug'
+import type { MessageKey } from "../i18n/messages/index.ts"
 
 interface GameInfo {
     id: number
@@ -31,7 +32,7 @@ interface GameInfo {
 // Maps backend game-over reasons → translation keys.
 // Must cover every value the backend can send (enum members + raw strings
 // from consumers.py / ai_autoplay.py) plus the frontend fallback.
-const REASON_KEY: Record<string, string> = {
+const REASON_KEY: Record<string, MessageKey> = {
     CHECKMATE:             "chess.reason.checkmate",
     RESIGNATION:           "chess.reason.resignation",
     TIMEOUT:               "chess.reason.timeout",

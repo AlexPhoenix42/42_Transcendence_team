@@ -5,7 +5,7 @@ import { useNavigate, Link, useSearchParams } from "react-router-dom"
 import { useAuth } from "../context/AuthContext.tsx"
 import { useI18n } from "../i18n/I18nProvider.tsx"
 import { serverMessageKey } from "../i18n/serverErrors.ts"
-import { validateRequired } from '../utils/validate'
+import { validateRequired, validateUsername } from '../utils/validate'
 
 
 // Decides whether to show the resend-verification prompt.
