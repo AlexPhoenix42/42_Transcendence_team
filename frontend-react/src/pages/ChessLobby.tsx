@@ -143,10 +143,10 @@ export default function ChessLobby() {
         setSuccess("")
 
         try {
-            const body: Record<string, string> = { ai_difficulty: aiDifficulty }
+			const body: Record<string, string> = { ai_difficulty: aiDifficulty }
             if (aiTimer) body.timer = aiTimer
             if (aiFen.trim()) body.fen = aiFen.trim()
-			if (pvpPractice) body.is_practice = "true"
+			if (aiPractice) body.is_practice = "true"
 
             const resp = await api("/api/chess/ai/", {
                 method: "POST",
@@ -326,7 +326,7 @@ export default function ChessLobby() {
                                     <option value="10+5">{t("common.timeControl", { min: 10, sec: 5 })}</option>
                                 </select>
                             </div>
-                            <div>
+							<div>
                                 <label className="text-gray-400 text-sm">{t("chessLobby.customFen")}</label>
                                 <input
                                     type="text"
@@ -338,8 +338,8 @@ export default function ChessLobby() {
 								<label className="flex items-center gap-2 text-gray-400 text-sm">
                                 <input
                                     type="checkbox"
-                                    checked={pvpPractice}
-                                    onChange={(e) => setPvpPractice(e.target.checked)}
+                                    checked={aiPractice}
+                                    onChange={(e) => setAiPractice(e.target.checked)}
                                     className="rounded"
                                 />
                                 {t("chessLobby.practiceMode")}
