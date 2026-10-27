@@ -63,6 +63,8 @@ export default function MatchHistory() {
         const labels: Record<string, string> = {
             CHECKMATE: t("reason.checkmate"),
             RESIGNATION: t("reason.resignation"),
+			DISCONNECT: t("chess.reason.disconnect"),
+			CANCELLED:  t("chess.reason.cancelled"),
             TIMEOUT: t("reason.timeout"),
             STALEMATE: t("reason.stalemate"),
             REPETITION: t("reason.repetition"),
@@ -73,7 +75,7 @@ export default function MatchHistory() {
             DRAW_50_MOVES: t("reason.draw50"),
             DRAW_INSUFFICIENT: t("reason.drawInsufficient"),
         }
-        return labels[reason] || reason || ""
+		return labels[reason] || t("chess.reason.unknown") || ""
     }
 
     function formatDate(iso: string): string {
