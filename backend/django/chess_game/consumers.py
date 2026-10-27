@@ -159,13 +159,15 @@ class GameConsumer(AsyncWebsocketConsumer):
         try:
             data = await sync_to_async(cache.get)(key)
             if  data:
-                # Refresh TTL to keep the key alive while game is active
-                await sync_to_async(cache.set)(key, data, timeout=86400)
+                # Refresh TTL without overwriting — avoids race with concurrent writes
+                try:
+                    await sync_to_async(cache.touch)(key, 86400)
+                except Exception:
+                    pass
             return data if data else {}
         except Exception:
             logger.exception("Redis read failed for key %s", key)
             return {}
-
 
     @database_sync_to_async
     def _get_db_game_state(self) -> dict:
@@ -223,13 +225,23 @@ class GameConsumer(AsyncWebsocketConsumer):
 
 
     async def receive(self, text_data=None, bytes_data=None):
-        # ── 0. Handle spectators ──────────────────────────────────────
+        # ── 0. Allow state resync for everyone (including spectators) ──
+        if text_data:
+            try:
+                peek = json.loads(text_data)
+            except json.JSONDecodeError:
+                peek = {}
+            if peek.get("type") == "get_state":
+                await self._send_game_state()
+                return
+
+        # ── 1. Handle spectators ──────────────────────────────────────
         if  self.is_spectator:
             await self._send_error("SPECTATOR_READONLY")
             return
 
 
-        # ── 1. Parse JSON ─────────────────────────────────────────────
+        # ── 2. Parse JSON ─────────────────────────────────────────────
         if  text_data is None:
             await self._send_error("EMPTY_MESSAGE")
             return
@@ -240,7 +252,7 @@ class GameConsumer(AsyncWebsocketConsumer):
             await self._send_error("INVALID_JSON")
             return
 
-        # ── Handle undo request ────────────────────────────────────────
+        # ── 3. Handle undo request ────────────────────────────────────────
         if  data.get("type") == "undo":
             await self._handle_undo()
             return
@@ -250,7 +262,7 @@ class GameConsumer(AsyncWebsocketConsumer):
             await self._handle_set_fen(data.get("fen", ""))
             return
 
-        # ── 2. Validate required fields ─────────────────────────────────
+        # ── 4. Validate required fields ─────────────────────────────────
         move_from   = data.get("from")
         move_to     = data.get("to")
 
@@ -259,14 +271,14 @@ class GameConsumer(AsyncWebsocketConsumer):
             return
 
 
-        # ── 3. Promotion ─────────────────────────────────────────────────
+        # ── 5. Promotion ─────────────────────────────────────────────────
         promotion   = data.get("promotion")
         move_str    = f"{move_from}{move_to}"
         if  promotion in ("q", "r", "b", "n"):
             move_str += promotion
 
 
-        # ── 4. Read live state from Redis ─────────────────────────────────
+        # ── 6. Read live state from Redis ─────────────────────────────────
         game_key    = f"game:{self.game_id}"
         state       = await self._get_redis_hash(game_key)
 
@@ -287,14 +299,14 @@ class GameConsumer(AsyncWebsocketConsumer):
             return
 
 
-        # ── 5. Turn validation ────────────────────────────────────────────
+        # ── 7. Turn validation ────────────────────────────────────────────
         # only the player whose turn it is can move
         if  str(state.get("crnt_turn")) != str(self.user.pk):
             await self._send_error("NOT_YOUR_TURN")
             return
 
 
-        # ── 6. Call the external chess engine ─────────────────────────────
+        # ── 8. Call the external chess engine ─────────────────────────────
         # Call the external chess engine
         try:
             async with httpx.AsyncClient() as client:
@@ -327,21 +339,21 @@ class GameConsumer(AsyncWebsocketConsumer):
             return
 
 
-        # ── 7. Process engine response ──────────────────────────────────
+        # ── 9. Process engine response ──────────────────────────────────
         # If the move is illegal, reject it
         if  not engine_data.get("legal"):
             await self._send_error("ILLEGAL_MOVE")
             return
 
 
-        # ── 8. Re‑read status to avoid race with concurrent resignation ──
+        # ── 10. Re‑read status to avoid race with concurrent resignation ──
         state   = await self._get_redis_hash(game_key)
         if  not state or state.get("status") != GameStatus.IN_PROGRESS:
             await self._send_error("GAME_OVER")
             return
 
 
-        # ── INSERT CLOCK UPDATE HERE ─────────────────────────────────────
+        # ── 11. INSERT CLOCK UPDATE HERE ─────────────────────────────────────
         now = time.time()
         if  state.get("timer"):
             timer   = state["timer"]
@@ -372,25 +384,25 @@ class GameConsumer(AsyncWebsocketConsumer):
             state["last_tick"]  = now
 
 
-        # ── 9. Update game state in Redis ─────────────────────────────────
+        # ── 12. Update game state in Redis ─────────────────────────────────
         # Move is legal, update game state
         opponent    = self.game.player2 if self.user == self.game.player1 else self.game.player1
         opponent_id = opponent.pk
 
-        # Update the in-memory state dict
+        #  ── 13. Update the in-memory state dict ───────────────────────────
         new_fen             = engine_data.get("new_fen")
         if  new_fen is None:
             await self._send_error("ENGINE_ERROR", detail="Engine response missing new_fen")
             return
 
-                # ── Draw rule checks ─────────────────────────────────────────────
+        # ── 14. Draw rule checks ───────────────────────────────────────────
         fen_parts = new_fen.split(" ")
         position_key = " ".join(fen_parts[:4])
 
         pos_counts: dict[str, int] = state.setdefault("position_counts", {})
         pos_counts[position_key] = pos_counts.get(position_key, 0) + 1
 
-        # Threefold repetition
+        # ── 15. Threefold repetition ───────────────────────────────────────
         if pos_counts[position_key] >= 3:
             ai_user_id = await self._get_ai_user_id()
             if ai_user_id is not None:
@@ -881,8 +893,16 @@ class GameConsumer(AsyncWebsocketConsumer):
             "checkmate" : state.get("checkmate", False),
             "status"    : state.get("status", GameStatus.IN_PROGRESS),
         }
+
         if  state.get("clocks"):
-            payload["clocks"] = state["clocks"]
+            import time as _time
+            clocks      = dict(state["clocks"])     # copy
+            last_tick   = state.get("last_tick")
+            crnt        = str(state.get("crnt_turn"))
+            if  last_tick and crnt in clocks:
+                elapsed         = _time.time() - last_tick
+                clocks[crnt]    = max(0, clocks[crnt] - elapsed)
+            payload["clocks"] = clocks
 
         if  state.get("timer"):
             payload["timer"] = state["timer"]

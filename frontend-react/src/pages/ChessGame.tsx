@@ -147,8 +147,6 @@ export default function ChessGame() {
         if (!id || !infoLoaded) return
 		if (gameOver) return
 
-        //const wsHost = window.location.hostname + ":9000"
-        //const ws = new WebSocket(`ws://${wsHost}/ws/chess/${id}/`)
 		const ws = new WebSocket(wsUrl(`/ws/chess/${id}/`))
 
         ws.onopen = () => {
@@ -209,7 +207,8 @@ export default function ChessGame() {
         checkmate: boolean
         status: string
         clocks?: Record<string, number>
-    }) {
+    }) 
+	{
 		if (!data.fen || data.fen.split(" ").length < 2) {
 			setError(t("chess.error.invalidPosition"))
             return
@@ -249,28 +248,16 @@ export default function ChessGame() {
             setHasClock(true)
             const info = gameInfoRef.current
             if (info) {
-                const entries = Object.entries(data.clocks)
-                if (entries.length === 2) {
-                    const [, time1] = entries[0]
-                    const [, time2] = entries[1]
-                    setWhiteTime(info.player1_color ? Number(time1) : Number(time2))
-                    setBlackTime(info.player1_color ? Number(time2) : Number(time1))
-                }
+                const p1Id = String(info.player1_id)
+                const p2Id = String(info.player2_id)
+                const p1Clock = Number(data.clocks[p1Id] ?? 0)
+                const p2Clock = Number(data.clocks[p2Id] ?? 0)
+                setWhiteTime(info.player1_color ? p1Clock : p2Clock)
+                setBlackTime(info.player1_color ? p2Clock : p1Clock)
             }
         }
-
     }
 
-	//function handleSetFen(e: React.FormEvent) {
-    //    e.preventDefault()
-    //    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
-    //        setError(t("chess.error.notConnected"))
-    //        return
-    //    }
-    //    if (!fenInput.trim()) return
-    //    wsRef.current.send(JSON.stringify({ type: "set_fen", fen: fenInput.trim() }))
-    //    setFenInput("")
-    //}
 
 	function handleSetFen(e: React.FormEvent) {
         e.preventDefault()
@@ -279,7 +266,7 @@ export default function ChessGame() {
             return
         }
         if (!fenInput.trim()) return
-        console.log("SENDING FEN:", fenInput.trim())
+        //console.log("SENDING FEN:", fenInput.trim())
         debug("SENDING FEN:", fenInput.trim())
         wsRef.current.send(JSON.stringify({ type: "set_fen", fen: fenInput.trim() }))
         setFenInput("")
@@ -317,7 +304,8 @@ export default function ChessGame() {
         return { whiteCaptures, blackCaptures }
     }
 
-    function handleGameOver(data: { winner: number; reason: string }) {
+
+	function handleGameOver(data: { winner: number; reason: string }) {
         setGameOver(true)
 		gameOverRef.current = true
         const info = gameInfoRef.current
@@ -325,11 +313,32 @@ export default function ChessGame() {
         if (info) {
             if (info.player1 === String(data.winner)) winnerName = info.player1
             else if (info.player2 === String(data.winner)) winnerName = info.player2 || "AI"
+
+            if (data.reason === "TIMEOUT") {
+                const winnerIsPlayer1 = info.player1_id === data.winner
+                const loserIsWhite = winnerIsPlayer1 ? !info.player1_color : info.player1_color
+                if (loserIsWhite) setWhiteTime(0)
+                else setBlackTime(0)
+            }
         }
         setGameOverInfo({ winner: winnerName, reason: data.reason })
     }
 
-    // Clock tick
+	
+	// Resync clocks when tab becomes visible again
+    useEffect(() => {
+		function handleVisibility() {
+            if (document.visibilityState === "visible") {
+                if (wsRef.current?.readyState === WebSocket.OPEN) {
+                    wsRef.current.send(JSON.stringify({ type: "get_state" }))
+                }
+            }
+        }
+        document.addEventListener("visibilitychange", handleVisibility)
+        return () => document.removeEventListener("visibilitychange", handleVisibility)
+    }, [])
+
+	// Clock tick
     useEffect(() => {
         if (!hasClock || gameOver) {
             if (clockIntervalRef.current) clearInterval(clockIntervalRef.current)
@@ -337,6 +346,7 @@ export default function ChessGame() {
         }
 
         clockIntervalRef.current = setInterval(() => {
+            if (document.visibilityState !== "visible") return
             const turnColor = fen.split(" ")[1]
             if (turnColor === "w") {
                 setWhiteTime((prev) => prev !== null ? Math.max(0, prev - 1) : null)
@@ -440,107 +450,6 @@ export default function ChessGame() {
         }
     }
 
-	{/*
-    function handleSquareClick({ square }: { piece?: string; square: string }) {
-        if (isSpectator || gameOver) return
-
-        if (!moveFrom) {
-            const piece = chessRef.current.get(square as Square)
-            if (!piece) return
-            const pieceColor = piece.color === "w" ? "white" : "black"
-            if (pieceColor !== myColorRef.current) return
-            if (!isMyTurn) return
-
-            setMoveFrom(square)
-            getMoveOptions(square as Square)
-            return
-        }
-
-        sendMove(moveFrom, square)
-        setMoveFrom(null)
-        setOptionSquares({})
-    }
-	*/}
-
-	//function handleSquareClick({ square }: { piece?: string; square: string }) {
-    //    if (isSpectator || gameOver) return
-
-    //    if (!moveFrom) {
-    //        const piece = chessRef.current.get(square as Square)
-    //        if (!piece) return
-    //        const pieceColor = piece.color === "w" ? "white" : "black"
-    //        if (pieceColor !== myColorRef.current) return
-    //        if (!isMyTurn) return
-
-    //        setMoveFrom(square)
-    //        getMoveOptions(square as Square)
-    //        return
-    //    }
-
-    //    // Try move locally first
-    //    try {
-    //        const move = chessRef.current.move({
-    //            from: moveFrom,
-    //            to: square,
-    //            promotion: "q",
-    //        })
-    //        if (move) {
-    //            setFen(chessRef.current.fen())
-    //            setIsMyTurn(false)
-    //            sendMove(moveFrom, square)
-    //        }
-    //    } catch {
-    //        // Invalid move — ignore
-    //    }
-
-    //    setMoveFrom(null)
-    //    setOptionSquares({})
-    //}
-
-    //function handleSquareClick({ square }: { piece?: string; square: string }) {
-    //    if (isSpectator || gameOver) return
-
-    //    if (!moveFrom) {
-    //        const piece = chessRef.current.get(square as Square)
-    //        if (!piece) return
-    //        const pieceColor = piece.color === "w" ? "white" : "black"
-    //        if (pieceColor !== myColorRef.current) return
-    //        if (!isMyTurn) return
-
-    //        setMoveFrom(square)
-    //        getMoveOptions(square as Square)
-    //        return
-    //    }
-
-    //    // Detect promotion BEFORE applying move
-    //    const piece = chessRef.current.get(moveFrom as Square)
-    //    let promotion: string | undefined
-    //    if (piece && piece.type === "p") {
-    //        const targetRank = square[1]
-    //        if ((piece.color === "w" && targetRank === "8") || (piece.color === "b" && targetRank === "1")) {
-    //            promotion = "q"
-    //        }
-    //    }
-
-    //    try {
-    //        const move = chessRef.current.move({
-    //            from: moveFrom,
-    //            to: square,
-    //            promotion: "q",
-    //        })
-    //        if (move) {
-    //            setFen(chessRef.current.fen())
-    //            setIsMyTurn(false)
-    //            sendMove(moveFrom, square, promotion)
-    //        }
-    //    } catch {
-    //        // Invalid move
-    //    }
-
-    //    setMoveFrom(null)
-    //    setOptionSquares({})
-    //}
-
 	function handleSquareClick({ square }: { piece?: string; square: string }) {
         if (isSpectator || gameOver) return
         if (pendingPromotion) return
@@ -588,25 +497,7 @@ export default function ChessGame() {
         setOptionSquares({})
     }
 
-    //function handlePromotionChoice(piece: string) {
-    //    if (!pendingPromotion) return
 
-    //    try {
-    //        const move = chessRef.current.move({
-    //            from: pendingPromotion.from,
-    //            to: pendingPromotion.to,
-    //            promotion: piece,
-    //        })
-    //        if (move) {
-    //            setFen(chessRef.current.fen())
-    //            setIsMyTurn(false)
-    //            sendMove(pendingPromotion.from, pendingPromotion.to, piece)
-    //        }
-    //    } catch {}
-
-    //    setPendingPromotion(null)
-    //}
-	
 	function handlePromotionChoice(piece: string) {
         if (!pendingPromotion) return
         try {
@@ -627,60 +518,6 @@ export default function ChessGame() {
         setPendingPromotion(null)
     }
 
-    //function handlePieceDrop({ sourceSquare, targetSquare }:
-	//	{ piece: string; sourceSquare: string; targetSquare: string }): boolean
-	//{
-    //    if (isSpectator || gameOver || !isMyTurn) return false
-
-	//	try {
-	//		const move = chessRef.current.move({
-	//			from		: sourceSquare,
-	//			to			: targetSquare,
-	//			promotion	: "q",
-	//		})
-
-	//		if	(move) {
-	//			setFen(chessRef.current.fen())
-	//			setIsMyTurn(false)
-	//			sendMove(sourceSquare, targetSquare)
-	//			return true
-	//		}
-	//	} catch {
-	//		// Invalide move
-	//	}
-    //    return false
-    //}
-
-	//function handlePieceDrop({ sourceSquare, targetSquare }: { piece: string; sourceSquare: string; targetSquare: string }): boolean {
-    //    if (isSpectator || gameOver || !isMyTurn) return false
-
-    //    // Detect promotion BEFORE applying move
-    //    const piece = chessRef.current.get(sourceSquare as Square)
-    //    let promotion: string | undefined
-    //    if (piece && piece.type === "p") {
-    //        const targetRank = targetSquare[1]
-    //        if ((piece.color === "w" && targetRank === "8") || (piece.color === "b" && targetRank === "1")) {
-    //            promotion = "q"
-    //        }
-    //    }
-
-    //    try {
-    //        const move = chessRef.current.move({
-    //            from: sourceSquare,
-    //            to: targetSquare,
-    //            promotion: "q",
-    //        })
-    //        if (move) {
-    //            setFen(chessRef.current.fen())
-    //            setIsMyTurn(false)
-    //            sendMove(sourceSquare, targetSquare, promotion)
-    //            return true
-    //        }
-    //    } catch {
-    //        // Invalid move
-    //    }
-    //    return false
-    //}
 
 	const [pendingPromotion, setPendingPromotion] = useState<{ from: string; to: string } | null>(null)
 
@@ -715,27 +552,6 @@ export default function ChessGame() {
         return false
     }
 
-    //function sendMove(from: string, to: string) {
-    //    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
-    //        setError(t("chess.error.notConnected"))
-    //        return
-    //    }
-
-    //    const piece = chessRef.current.get(from as Square)
-    //    let promotion: string | undefined
-    //    if (piece && piece.type === "p") {
-    //        const targetRank = to[1]
-    //        if ((piece.color === "w" && targetRank === "8") || (piece.color === "b" && targetRank === "1")) {
-    //            promotion = "q"
-    //        }
-    //    }
-
-    //    const payload: Record<string, string> = { from, to }
-    //    if (promotion) payload.promotion = promotion
-
-    //    wsRef.current.send(JSON.stringify(payload))
-    //    setError("")
-    //}
 	
 	function sendMove(from: string, to: string, promotion?: string) {
         if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
@@ -863,19 +679,6 @@ export default function ChessGame() {
                 <div className="relative">
                     {/* Opponent info + clock (top) */}
                     <div className="flex items-center justify-between mb-2 px-1">
-						{/*<div className="flex items-center gap-2">
-                            <span className="text-gray-300 text-xl font-semibold">{opponentName}</span>
-							{gameInfo?.player2_is_ai && (
-								<span className="text-base text-yellow-400 bg-yellow-900/50 px-2 py-0.5 rounded">
-                                    AI {gameInfo.ai_difficulty}
-                                </span>
-                            )}
-							<span className="ms-2 flex gap-0.5 items-center bg-gray-600/50 rounded px-1 py-0.5">
-                                {(myColor === "white" ? capturedBlack : capturedWhite).map((p, i) => (
-									<img key={i} src={`/pieces/${p}.svg`} alt={p} className={`w-8 h-8 ${p.startsWith("b") ? "drop-shadow-[0_0_3px_rgba(255,255,255,0.9)]" : ""}`} />
-                                ))}
-                            </span>
-                        </div>*/}
 					    <div>
 							<div className="flex items-center gap-2">
                                 <span
@@ -984,21 +787,6 @@ export default function ChessGame() {
 
                     {/* Your info + clock (bottom) */}
                     <div className="flex items-center justify-between mt-2 px-1">
-						{/*<div className="flex items-center gap-2">
-                            <span className="text-white text-xl font-bold">{myName}</span>
-                            {!isSpectator && isMyTurn && !gameOver && (
-								<span className="text-base text-green-400 font-semibold">{t("chess.yourTurn")}</span>
-                            )}
-							{check && isMyTurn && (
-                                <span className="text-base text-red-400 font-bold">CHECK!</span>
-                            )}
-							<span className="ms-2 flex gap-0.5 items-center bg-gray-600/50 rounded px-1 py-0.5">
-                                {(myColor === "white" ? capturedWhite : capturedBlack).map((p, i) => (
-                                    <img key={i} src={`/pieces/${p}.svg`} alt={p} className="w-8 h-8" />
-
-                                ))}
-                            </span>
-                        </div>*/}
 					    <div>
 						    <div className="flex items-center gap-2">
                                 <span
