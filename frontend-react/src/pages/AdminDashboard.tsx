@@ -1,6 +1,6 @@
 // frontend-react/src/pages/AdminDashboard.tsx
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useNavigate } from "react-router-dom"
 import { api, mediaUrl } from "../api/client.ts"
 import { useAuth } from "../context/AuthContext.tsx"
@@ -68,23 +68,14 @@ export default function AdminDashboard() {
     const [auditError, setAuditError] = useState("")
     const [unlockSuccess, setUnlockSuccess] = useState("")
 
-	if (!user?.is_staff && user?.role !== "admin" && user?.role !== "moderator") {
-        return (
-            <div className="max-w-4xl mx-auto">
-                <p className="text-red-400 text-center mt-10">{t("admin.denied")}</p>
-            </div>
-        )
-    }
 
-    useEffect(() => {
-        if (tab === "users") fetchUsers()
-    }, [tab, search])
-
-	useEffect(() => {
-        if (tab === "security") fetchAuditLogs()
-    }, [tab, auditPage, auditEventFilter, auditUserFilter])
-
-    async function fetchUsers() {
+	// Hooks must run in the same order on every render, so the
+    // useCallbacks + useEffects come BEFORE the permission check below.
+    // Otherwise: on first render `user` is still loading → the early
+    // return fires → these hooks are skipped. When `user` resolves, the
+    // return stops firing and the hooks run — React throws
+    // "Rendered more hooks than during the previous render".
+    const fetchUsers = useCallback(async () => {
         try {
             const url = search
                 ? `/api/users/?search=${encodeURIComponent(search)}`
@@ -98,6 +89,46 @@ export default function AdminDashboard() {
         } catch {
             setUserError(t("common.error.networkShort"))
         }
+    }, [search, t])
+
+    const fetchAuditLogs = useCallback(async () => {
+        setAuditLoading(true)
+        setAuditError("")
+        try {
+            const params = new URLSearchParams({ page: String(auditPage) })
+            if (auditEventFilter) params.set("event_type", auditEventFilter)
+            if (auditUserFilter) params.set("username", auditUserFilter)
+
+            const resp = await api(`/api/audit/logs/?${params}`)
+            if (resp.ok) {
+                const data = await resp.json()
+                setAuditLogs(data.results)
+                setAuditTotal(data.total)
+                setAuditTotalPages(data.total_pages)
+            } else {
+                setAuditError(t("audit.error.load"))
+            }
+        } catch {
+            setAuditError(t("common.error.networkShort"))
+        } finally {
+            setAuditLoading(false)
+        }
+    }, [auditPage, auditEventFilter, auditUserFilter, t])
+
+    useEffect(() => {
+        if (tab === "users") fetchUsers()
+    }, [tab, fetchUsers])
+
+    useEffect(() => {
+        if (tab === "security") fetchAuditLogs()
+    }, [tab, fetchAuditLogs])
+
+	if (!user?.is_staff && user?.role !== "admin" && user?.role !== "moderator") {
+        return (
+            <div className="max-w-4xl mx-auto">
+                <p className="text-red-400 text-center mt-10">{t("admin.denied")}</p>
+            </div>
+        )
     }
 
     async function updateUserRole(userId: number, role: string) {
@@ -158,30 +189,6 @@ export default function AdminDashboard() {
             }
         } catch {
             setUserError(t("common.error.networkShort"))
-        }
-    }
-
-	async function fetchAuditLogs() {
-        setAuditLoading(true)
-        setAuditError("")
-        try {
-            const params = new URLSearchParams({ page: String(auditPage) })
-            if (auditEventFilter) params.set("event_type", auditEventFilter)
-            if (auditUserFilter) params.set("username", auditUserFilter)
-
-            const resp = await api(`/api/audit/logs/?${params}`)
-            if (resp.ok) {
-                const data = await resp.json()
-                setAuditLogs(data.results)
-                setAuditTotal(data.total)
-                setAuditTotalPages(data.total_pages)
-            } else {
-                setAuditError(t("audit.error.load"))
-            }
-        } catch {
-            setAuditError(t("common.error.networkShort"))
-        } finally {
-            setAuditLoading(false)
         }
     }
 
