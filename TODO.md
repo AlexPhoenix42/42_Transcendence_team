@@ -281,6 +281,48 @@ Duplicate work; remove one.
 `management/commands/check_timeouts0.py` is a fully-commented-out older
 version. Untouched but confusing during recon. Consider deleting.
 
+### 2.7 `STALEMATE` conflates stalemate and checkmate (AI-no-move branch)
+
+`consumers.py:719-729` handles `move_uci == "(none)"` from Stockfish —
+i.e. the AI has no legal move — but that happens in two different chess
+situations:
+
+  - **Checkmate**: AI is in check → human wins, reason should be CHECKMATE
+  - **Stalemate**: AI is not in check → draw, reason should be DRAW_STALEMATE
+
+The current code lumps them together, awards the win to the human, and
+labels both "STALEMATE". Correctness issue, not a crash. Requires reading
+whether the "(none)" response carries a check flag so the two cases can be
+distinguished. Behavioural change → do post-deadline, in isolation.
+
+(Related to §2.1 — this is the branch that makes "human advances on
+H-vs-AI draw" true for stalemate but not for repetition/50-move/etc.)
+
+### 2.8 Backend test suite is stale (149/161 failing)
+
+Every failure traces to tests mocking `chess_game.views.get_redis_connection`,
+an attribute that no longer exists in production code. Grep confirms the
+only references are in `tests/*.py` — `views.py` and `consumers.py` don't
+have it. This is test-code drift from a prior views refactor, not a runtime
+bug and not caused by the game-over reason fix (backend untouched).
+
+Fixing requires updating every test that mocks the old redis API across:
+  test_ai_consumer.py, test_consumers0.py, test_consumers_edge.py, test_all.py
+
+Pre-existing. Post-deadline.
+
+### 2.9 `tsconfig.json` uses removed `baseUrl` option
+
+`frontend-react/tsconfig.json:12` still uses `"baseUrl": "."`, which newer
+TypeScript versions (7.x+) reject with TS5102. The project's actual build
+(Vite/esbuild) does not use this option and is unaffected, so the app runs
+fine. Only `npx tsc --noEmit` fails, which is not part of the normal build.
+Fix is to migrate to `"paths": { "*": ["./*"] }` and remove `baseUrl`, but
+that changes import resolution project-wide — do post-deadline with a
+full build + test pass.
+
+Pre-existing. Cosmetic / tooling-only.
+
 ---
 
 ## Reference — wire values currently emitted by backend
