@@ -503,6 +503,64 @@ normalising when convenient.
 
 ---
 
+### 3.22 19 backend error messages unmapped in serverErrors.ts
+
+`python3 scripts_dev/check_i18n.py` reports 19 of 134 Django error
+strings that reach the frontend without an entry in
+`frontend-react/src/i18n/serverErrors.ts`. Consequence: `ts(...)` returns
+them verbatim (English), so a non-English user sees the English error.
+
+Unmapped strings (from check run):
+  "Account temporarily locked. Try again later."
+  "Expected a JSON object."
+  "Failed to delete account."
+  "Failed to export data."
+  "Failed to send confirmation email."
+  "File too large (max 10MB)."
+  "Forbidden"
+  "Game not found"
+  "Import failed."
+  "Invalid JSON file."
+  "No API key found."
+  "No target_lang provided."
+  "No text provided."
+  "Only the creator can delete this room."
+  "Save this key — it won['t be shown again]" (truncated in report)
+  ... (4 more, run the script to see the full list)
+
+Fix per item: add a `srv.*` key to `frontend-react/src/i18n/messages/
+en.ts` and the 5 other locale files, then add the mapping line to
+`serverErrors.ts`. Small but 19 × (6 locales + 1 mapping) = ~120 edits.
+
+Pre-existing. Deferred. Post-deadline cleanup; the check exists so drift
+is visible and enumerable, which is the first step.
+
+### 3.23 29 hard-coded English literals flagged in components
+
+`check_i18n.py` flags 29 lines matching its literal heuristic
+(`>[A-Z]...<`, `placeholder="..."`, `setError("...")`) across:
+  Achievements.tsx (1)   Chat.tsx (6)    Games.tsx (1)
+  ModuleScorecard.tsx (1) PrivacyPolicy.tsx (3+)
+
+Not all are real bugs — PrivacyPolicy/legal text is intentionally
+English and translating it would require legal sign-off, not code
+work. Treat as a **candidate list to triage**, not a defect count.
+
+Fix: review each hit, decide `translate | keep English | exempt`, add
+appropriate translation keys where needed. Possibly extend the script
+with an inline-allowlist comment (`// i18n-exempt: legal text`) so
+intentional English doesn't dominate the report.
+
+Pre-existing. Deferred. Post-deadline cleanup.
+
+Related
+-------
+If either is ever closed, add a `check-i18n` Makefile target
+(`check-i18n: ; @python3 ./scripts_dev/check_i18n.py`) or wire to CI
+so the script runs automatically. Currently only runnable manually.
+
+-------
+
 ## Reference — wire values currently emitted by backend
 
 Proven inventory (all read, none inferred):
