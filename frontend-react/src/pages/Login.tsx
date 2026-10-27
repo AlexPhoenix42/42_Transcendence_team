@@ -4,7 +4,20 @@ import { useState, useEffect, useRef } from "react"
 import { useNavigate, Link, useSearchParams } from "react-router-dom"
 import { useAuth } from "../context/AuthContext.tsx"
 import { useI18n } from "../i18n/I18nProvider.tsx"
+import { serverMessageKey } from "../i18n/serverErrors.ts"
 import { validateRequired } from '../utils/validate'
+
+
+// Decides whether to show the resend-verification prompt.
+// Checks the RAW server message (English, pre-translation) so it works
+// identically in every UI language. Falls back to an English substring
+// check for any backend message not yet mapped in serverErrors.ts.
+function needsResend(rawError: string | undefined): boolean {
+    if (!rawError) return false
+    if (serverMessageKey(rawError) === "srv.accountFrozen") return true
+    const lower = rawError.toLowerCase()
+    return lower.includes("frozen") || lower.includes("verify")
+}
 
 export default function Login() {
     const { login, exchangeOAuthToken } = useAuth()
@@ -81,9 +94,9 @@ export default function Login() {
             } else if (result.requires2FA) {
                 navigate(`/2fa?token=${result.tmpToken}`)
             } else {
-                const errMsg = result.error || t("login.error.oauth")
+				const errMsg = result.error || t("login.error.oauth")
                 setError(errMsg)
-                if (errMsg.toLowerCase().includes("frozen") || errMsg.toLowerCase().includes("verify")) {
+                if (needsResend(result.rawError)) {
                     setShowResend(true)
                 }
             }
@@ -120,9 +133,9 @@ export default function Login() {
             } else if (result.requires2FA) {
                 navigate(`/2fa?token=${result.tmpToken}`)
             } else {
-                const errMsg = result.error || t("login.error.failed")
+				const errMsg = result.error || t("login.error.failed")
                 setError(errMsg)
-                if (errMsg.toLowerCase().includes("frozen") || errMsg.toLowerCase().includes("verify")) {
+                if (needsResend(result.rawError)) {
                     setShowResend(true)
                 }
             }

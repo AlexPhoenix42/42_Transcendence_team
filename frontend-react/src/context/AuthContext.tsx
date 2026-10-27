@@ -19,6 +19,7 @@ interface LoginResult {
     requires2FA?    : boolean
     tmpToken?       : string
     error?          : string
+	rawError?		: string
 }
 
 interface AuthContextType {
@@ -31,6 +32,13 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | null>(null)
+
+// Extract the human-readable error from a DRF error response.
+// DRF is inconsistent: some endpoints use "error", some "detail",
+// some "non_field_errors" (serializer validation). Try all three.
+function extractError(data: any): string {
+    return data.detail || data.error || data.non_field_errors?.[0] || ""
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
     // Safe because main.tsx renders <I18nProvider> ABOVE <App/>, so this
@@ -70,9 +78,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
             const data = await resp.json()
 
-            if (!resp.ok) {
-				return { success: false, error: data.detail || data.error || data.non_field_errors?.[0] || t("login.error.failed") }
-            }
+			if (!resp.ok) {
+				const raw = extractError(data)
+				return {
+					success: false,
+					error: raw || t("login.error.failed"),   // unchanged: raw, as today
+					rawError: raw,
+				}
+			}
 
             if (data.requires_2fa) {
                 return { success: false, requires2FA: true, tmpToken: data.tmp_token }
@@ -99,7 +112,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             const data = await resp.json()
 
             if (!resp.ok) {
-                return { success: false, error: ts(data.error) }
+				const raw = extractError(data)
+				return { success: false, error: ts(raw), rawError: raw }
             }
 
             if (data.requires_2fa) {
@@ -127,7 +141,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             const data = await resp.json()
 
             if (!resp.ok) {
-                return { success: false, error: ts(data.error) }
+				const raw = extractError(data)
+				return { success: false, error: ts(raw), rawError: raw }
             }
 
             setAccessToken(data.access)
