@@ -78,10 +78,17 @@ export async function api(url: string, options: ApiOptions = {}): Promise<Respon
 		}
 
         return resp
-    } catch {
+	} catch {
+        // `new Response` rejects any status outside 200-599, so 0 (the
+        // classic "network failure" sentinel) throws RangeError before this
+        // return statement even completes. 503 is a valid code and makes
+        // `resp.ok` false, so callers handle it via their normal !resp.ok
+        // path. The header lets future code distinguish a synthetic
+        // network-failure response from a real backend 503.
         return new Response(JSON.stringify({ error: "Network error" }), {
-            status: 0,
+            status: 503,
             statusText: "Network Error",
+            headers: { "X-Synthetic-Network": "true" },
         })
     }
 }
