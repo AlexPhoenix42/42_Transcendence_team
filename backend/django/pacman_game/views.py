@@ -183,7 +183,7 @@ class GameCancelView(APIView):
             )
             if  game.created_by_id != request.user.pk:
                 return Response(
-                    {"error": "Only the creator can delete this room."}
+                    {"error": "Only the creator can delete this room."},
                     status=status.HTTP_403_FORBIDDEN,
                 )
             room_name = game.room_name

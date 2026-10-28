@@ -71,3 +71,43 @@ Proposed commit (chunk 1):
 - [LOW] Unverified claim in the Q3 comment — scripts_dev/check_i18n.py — the comment says internal_views.py is consumed by "a Django management command", but backend/timeout_checker/ looks like a separate service; worth confirming the wording.
 - [LOW] Dead serverErrors.ts entries — frontend-react/src/i18n/serverErrors.ts — strings like "oaauth credentials not configured" now exist only in the fully commented-out open_auth/views0.py, so their mappings are unreachable (harmless).
 STATUS: waiting for user
+### Chunk 1 committed — 68373c0 — 2026-10-28
+(User also committed cbc9a04 fix(pacman): respond in English — pacman_game/views.py:186 now "Only the creator can delete this room."; no French alias needed in Phase 3.)
+
+DECISION for Phase 4 (user): call sites become `ts(data.error) || t("fallback.key")`, NOT `ts(data.error, "fallback.key")` —
+ts() with a fallback replaces any unmapped server text, which would hide specific server messages.
+
+### Starting chunk 2 — Phase 2: exempt markers (legal file-level + 5 inline) — 2026-10-28
+Finished chunk 2 — applied. Literals 22 -> 0. Checker exit 1 (see below). tsc 22 (unchanged).
+Files touched:
+frontend-react/src/pages/PrivacyPolicy.tsx
+frontend-react/src/pages/TermsOfService.tsx
+frontend-react/src/pages/Games.tsx
+frontend-react/src/pages/ModuleScorecard.tsx
+frontend-react/src/pages/Profile.tsx
+frontend-react/src/pages/Status.tsx
+WORKLOG.md
+Verification:
+- git diff --stat: 6 files, 7 insertions, 0 deletions (marker lines only)
+- check_i18n.py: keys 888 ✓; literals ✓ none; backend 16/121 unmapped; 2 unparseable files:
+  config/vault.py (PermissionError — SANDBOX ARTIFACT) and pacman_game/views.py (SyntaxError — REAL, see below)
+- npx tsc --noEmit: 22 errors (unchanged)
+Scope note: the i18n-exempt-file marker exempts the ENTIRE file. PrivacyPolicy.tsx and TermsOfService.tsx are pure legal
+prose today; a future non-legal line (button, label) added to either will NOT be flagged by check_i18n.py.
+BLOCKER found at Checkpoint 2: commit cbc9a04 removed the trailing comma at backend/django/pacman_game/views.py:186
+(`{"error": "Only the creator can delete this room."}` followed by `status=...`) → SyntaxError; Django will fail to import
+the module. One-character fix (restore the comma) — user's backend commit, not touched by the agent.
+Exit 1 is therefore due to: 16 unmapped (Phase 3), vault.py (sandbox artifact), pacman_game/views.py SyntaxError (real).
+Unmapped is 16 not 17 only because pacman_game/views.py could not be parsed; its message is identical to goose's, so the
+count stays 16 once the comma is restored.
+Proposed commit: per plan Phase 5, chunk 2 is folded into the combined "fix(i18n): map remaining backend messages + call
+sites" commit (Phases 2-4). If committed alone:
+  git add frontend-react/src/pages/PrivacyPolicy.tsx frontend-react/src/pages/TermsOfService.tsx frontend-react/src/pages/Games.tsx frontend-react/src/pages/ModuleScorecard.tsx frontend-react/src/pages/Profile.tsx frontend-react/src/pages/Status.tsx WORKLOG.md
+  git commit -m "chore(i18n): mark intentional English with i18n-exempt" -m "Legal pages get a file-level marker (legal review needed to translate); brand, product and format names and the dev-facing scorecard get inline markers. Comment-only lines; no rendered output changes."
+STATUS: committed by user (see below)
+
+BLOCKER RESOLVED — user restored the comma; pacman fix now dffffd5 (amended; cbc9a04 no longer in history).
+Re-check: backend/django/pacman_game/views.py parses; check_i18n.py reports only config/vault.py unparseable
+(sandbox artifact), 16/121 backend messages unmapped, 0 hard-coded literals.
+### Chunk 2 committed — as "chore(i18n): mark intentional English with i18n-exempt markers" (stand-alone, not folded
+into the Phase 5 combined commit; Phase 5 will propose only the Phases 3+4 commit) — 2026-10-28

@@ -509,6 +509,7 @@ export default function Profile() {
                                 defaultValue="json"
                                 className="px-3 py-2 bg-gray-900 text-white border border-gray-700 rounded focus:outline-none focus:border-blue-500"
                             >
+                                {/* i18n-exempt: format name */}
                                 <option value="json">JSON</option>
                                 <option value="csv">CSV</option>
                                 <option value="xml">XML</option>

@@ -70,6 +70,7 @@ export default function ModuleScorecard() {
           <p className="text-gray-400 italic text-sm">Rise from the ashes &amp; code</p>
           <p className="text-gray-500 text-sm mb-6">ft_transcendence — 42 Project Module Scorecard</p>
           <div className="text-6xl font-bold text-blue-500">57</div>
+          {/* i18n-exempt: internal — dev-facing module scorecard */}
           <div className="text-gray-400 text-sm mb-4">Total Points</div>
           <hr className="border-gray-600 mb-3" />
           <div className="flex justify-center gap-6 text-sm text-gray-400">

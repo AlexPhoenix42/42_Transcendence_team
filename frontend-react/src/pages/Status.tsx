@@ -175,6 +175,7 @@ export default function Status() {
 							className="flex items-center gap-2 px-4 py-3 rounded-lg border border-gray-700 bg-gray-800 hover:border-blue-500/50 hover:bg-gray-750 transition"
 						>
 							<span>📊</span>
+							{/* i18n-exempt: product name */}
 							<span className="text-sm text-white font-medium">Grafana</span>
 						</a>
 						<a
@@ -184,6 +185,7 @@ export default function Status() {
 							className="flex items-center gap-2 px-4 py-3 rounded-lg border border-gray-700 bg-gray-800 hover:border-blue-500/50 hover:bg-gray-750 transition"
 						>
 							<span>📧</span>
+							{/* i18n-exempt: product name */}
 							<span className="text-sm text-white font-medium">Mailpit</span>
 						</a>
 						<a

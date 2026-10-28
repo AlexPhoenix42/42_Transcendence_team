@@ -1,4 +1,5 @@
 //frontend-react/src/pages/PrivacyPolicy.tsx
+// i18n-exempt-file: legal text — requires legal review to translate
 
 export default function PrivacyPolicy() {
 		return (

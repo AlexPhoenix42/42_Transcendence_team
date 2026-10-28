@@ -30,6 +30,7 @@ export default function Games() {
 
 				<Link to="/pacman" className="bg-gray-800 p-8 rounded-lg border border-gray-700 hover:border-blue-500 transition text-center">
                     <span className="text-4xl block mb-3">👾</span>
+                    {/* i18n-exempt: brand name */}
                     <h2 className="text-xl font-semibold text-white mb-2">Pacman</h2>
                     <p className="text-gray-400">{t("games.pacmanMulti.body")}</p>
                 </Link>
