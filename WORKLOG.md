@@ -229,3 +229,16 @@ No open i18n tasks. Remaining deferred work tracked in TODO.md:
 If a fresh session picks this up: there is nothing left to do for
 the i18n cleanup. Do not re-run any phase. The worklog is closed.
 
+### Post-commit verification — 2026-10-28
+
+- srv.accountLocked: verified in browser, all 5 non-English locales
+  render correctly after lockout threshold.
+- Frozen-account resend prompt: verified with email_verfd=False +
+  date_joined backdated 4 days; frozen error message translated
+  correctly and yellow resend prompt appears in non-English locales.
+- git log -8 --stat: no .env or vault files in any i18n commit.
+- Key count is 904, not 903 (srv.invalidCredentials added in SimpleJWT
+  follow-up commit).
+
+Session closed. No open i18n work.
+
