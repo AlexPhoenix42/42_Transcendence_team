@@ -13,7 +13,17 @@ Three things drift silently and are painful to find by eye:
   3. A hard-coded English literal that slipped back into a component.
 
 None of these break the build, which is exactly why they need a check.
+
+Intentional English is allowlisted in the source, so the reason travels
+with the code:
+
+  {/* i18n-exempt: brand name */}      JSX, on the line above the literal
+  // i18n-exempt: product name          TS/TSX, on the line above
+  // i18n-exempt-file: legal text       whole file, in its first 10 lines
+
+The reason after the colon is mandatory; a bare marker is reported.
 """
+import ast
 import re
 import sys
 import pathlib
@@ -25,6 +35,35 @@ DJANGO = ROOT / "backend/django"
 
 GREEN, RED, YELLOW, OFF = "\033[32m", "\033[31m", "\033[33m", "\033[0m"
 problems = 0
+
+# -- allowlist markers ----------------------------------------------------
+#
+# A reason must say WHY the text stays English. "exempt" or "ok" says nothing,
+# so those count as missing.
+EXEMPT = re.compile(r"i18n-exempt:(.*)")
+EXEMPT_FILE = re.compile(r"i18n-exempt-file:(.*)")
+FILE_MARKER_LINES = 10
+bad_markers = []
+
+
+def _reason(raw: str) -> str:
+    """Text after the colon, minus comment closers like */ and */}."""
+    return re.sub(r"\*/\}?\s*$", "", raw).strip()
+
+
+def _valid(reason: str) -> bool:
+    return len(reason) >= 3 and reason.lower() not in ("exempt", "ok", "todo")
+
+
+def marker_on(line: str, where: str, pattern=EXEMPT) -> bool:
+    """True if `line` carries a valid marker; a bare marker is recorded."""
+    m = pattern.search(line)
+    if not m:
+        return False
+    if _valid(_reason(m.group(1))):
+        return True
+    bad_markers.append(where)
+    return False
 
 
 def keys_of(path: pathlib.Path) -> set[str]:
@@ -102,19 +141,59 @@ for loc, is_complete in completeness.items():
               f"{len(other)}/{len(en)} keys ({pct:.0f}%), rest falls back to English")
 
 # -- 2. every backend message is mapped -----------------------------------
-pat = re.compile(r'["\'](?:error|detail|message)["\']\s*:\s*["\']([^"\']{3,120})["\']')
+#
+# Parsed with ast rather than a regex: a regex cannot tell a string delimiter
+# from an apostrophe inside it ("it won't be shown" used to be cut at "won"),
+# and it also matched text in comments and docstrings. Here only real dict
+# literals count: {"error" | "detail" | "message": "<plain string>"}.
+# f-strings (ast.JoinedStr) are skipped -- a dynamic string cannot be mapped.
+
+# Skip chess_game/internal_views.py — its error responses are
+# consumed by the timeout checker (a Django management command),
+# never by the user interface. Adding these to serverErrors.ts
+# would create dead mappings.
+BACKEND_SKIP = {"chess_game/internal_views.py"}
+MESSAGE_KEYS = {"error", "detail", "message"}
+
+# Backend messages the UI never reads; exempt from mapping.
+EXEMPT_MESSAGES = {
+    "Save this key — it won't be shown again":
+        "dead message; UI shows its own apiKey.saveWarning "
+        "(Profile.tsx)",
+}
+
 backend = set()
-for f in DJANGO.rglob("*.py"):
-    if "migrations" in str(f) or "/tests/" in str(f):
+unreadable = []
+for f in sorted(DJANGO.rglob("*.py")):
+    rel = f.relative_to(DJANGO).as_posix()
+    if "migrations" in str(f) or "/tests/" in str(f) or rel in BACKEND_SKIP:
         continue
     try:
         txt = f.read_text(encoding="utf-8")
-    except Exception:
+        tree = ast.parse(txt, filename=str(f))
+    except (OSError, UnicodeDecodeError, SyntaxError) as e:
+        unreadable.append(f"{rel}: {type(e).__name__}")
         continue
-    for m in pat.finditer(txt):
-        v = m.group(1).strip()
-        if v and v[0].isupper() and not v.startswith(("http", "{")):
-            backend.add(v)
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Dict):
+            continue
+        for k, v in zip(node.keys, node.values):
+            if not (isinstance(k, ast.Constant) and k.value in MESSAGE_KEYS):
+                continue
+            if not (isinstance(v, ast.Constant) and isinstance(v.value, str)):
+                continue
+            s = v.value.strip()
+            if not (3 <= len(s) <= 120) or not s[0].isupper() or s.startswith(("http", "{")):
+                continue
+            if s.rstrip(".") in EXEMPT_MESSAGES:
+                continue
+            backend.add(s)
+
+if unreadable:
+    problems += 1
+    print(f"  {RED}✗{OFF} {len(unreadable)} backend file(s) could not be parsed")
+    for u in unreadable[:10]:
+        print(f"        {u}")
 
 
 def norm(s: str) -> str:
@@ -137,15 +216,36 @@ else:
     print(f"  {GREEN}✓{OFF} all {len(backend)} backend messages mapped")
 
 # -- 3. no hard-coded English left in components --------------------------
+#
+# Comment lines are skipped: // lines, and {/* */} or /* */ blocks, including
+# ones that span several lines. They cannot render, so a literal inside one is
+# not a leak.
 literal = re.compile(r'>[A-Z][A-Za-z ]{3,40}<|placeholder="[^"]+"|setError\("[^"]+"\)')
 skip = re.compile(r"Content-Type|XMLHttp|X-Requested")
 leaks = []
 for f in sorted(SRC.rglob("*.tsx")):
     if "/i18n/" in str(f):
         continue
-    for i, line in enumerate(f.read_text(encoding="utf-8").split("\n"), 1):
+    rel = f.relative_to(ROOT)
+    lines = f.read_text(encoding="utf-8").split("\n")
+    if any(marker_on(l, f"{rel}:{n}", EXEMPT_FILE)
+           for n, l in enumerate(lines[:FILE_MARKER_LINES], 1)):
+        continue
+    in_block = False
+    for i, line in enumerate(lines, 1):
+        s = line.strip()
+        if in_block:
+            in_block = "*/" not in s
+            continue
+        if s.startswith(("{/*", "/*")):
+            in_block = "*/" not in s
+            continue
+        if s.startswith("//"):
+            continue
         if literal.search(line) and not skip.search(line):
-            leaks.append(f"{f.relative_to(ROOT)}:{i}")
+            if i >= 2 and marker_on(lines[i - 2], f"{rel}:{i - 1}"):
+                continue
+            leaks.append(f"{rel}:{i}")
 if leaks:
     problems += 1
     print(f"  {RED}✗{OFF} {len(leaks)} hard-coded English literal(s)")
@@ -153,6 +253,12 @@ if leaks:
         print(f"        {l}")
 else:
     print(f"  {GREEN}✓{OFF} no hard-coded English literals in components")
+
+if bad_markers:
+    problems += 1
+    print(f"  {RED}✗{OFF} {len(bad_markers)} i18n-exempt marker(s) without a meaningful reason")
+    for b in bad_markers[:10]:
+        print(f"        {b}")
 
 print()
 if problems:
