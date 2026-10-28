@@ -810,6 +810,23 @@ export const fr: MessageTable = {
     "srv.winnerNotPlayer":          "Le gagnant doit être l'un des joueurs du match.",
     "srv.winnerNotFound":           "Gagnant introuvable.",
 
+    // -- Server -- GDPR, API key, translation, rooms, lockout ------------
+    "srv.accountLocked":            "Compte temporairement verrouillé. Réessayez plus tard.",
+    "srv.importNotObject":          "Un objet JSON est attendu.",
+    "srv.deleteAccountFailed":      "Impossible de supprimer le compte.",
+    "srv.exportFailed":             "Impossible d'exporter les données.",
+    "srv.confirmEmailFailed":       "Impossible d'envoyer l'e-mail de confirmation.",
+    "srv.importTooLarge":           "Fichier trop volumineux (10 Mo max).",
+    "srv.importFailed":             "L'import a échoué.",
+    "srv.invalidJsonFile":          "Fichier JSON invalide.",
+    "srv.noApiKey":                 "Aucune clé API trouvée.",
+    "srv.translateNoText":          "Aucun texte fourni.",
+    "srv.translateNoLang":          "Aucune langue cible indiquée.",
+    "srv.translateFailed":          "La traduction a échoué.",
+    "srv.onlyCreatorDeleteRoom":    "Seul le créateur peut supprimer cette salle.",
+    "srv.exportFormat":             "Formats pris en charge : json, csv, xml.",
+    "srv.tokenUidRequired":         "Lien invalide ou incomplet.",
+
     // --- GDPR ---
     "gdpr.title":          "Vos données",
     "gdpr.exportDesc":     "Téléchargez une copie de toutes vos données.",

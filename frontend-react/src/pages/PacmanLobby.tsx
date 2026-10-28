@@ -183,7 +183,7 @@ export default function PacmanLobby() {
                 fetchAll()
             } else {
                 const data = await resp.json().catch(() => ({}))
-                setError(ts(data.error, "pacmanLobby.error.cancel").toUpperCase())
+                setError((ts(data.error) || t("pacmanLobby.error.cancel")).toUpperCase())
             }
         } catch {
             setError(t("common.error.network").toUpperCase())

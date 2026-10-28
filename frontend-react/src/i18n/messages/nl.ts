@@ -815,6 +815,23 @@ export const nl: MessageTable = {
     "srv.winnerNotPlayer":          "De winnaar moet een van de spelers zijn.",
     "srv.winnerNotFound":           "Winnaar niet gevonden.",
 
+    // -- Server -- GDPR, API key, translation, rooms, lockout ------------
+    "srv.accountLocked":            "Account tijdelijk geblokkeerd. Probeer het later opnieuw.",
+    "srv.importNotObject":          "JSON-object verwacht.",
+    "srv.deleteAccountFailed":      "Account verwijderen mislukt.",
+    "srv.exportFailed":             "Gegevens exporteren mislukt.",
+    "srv.confirmEmailFailed":       "Bevestigingsmail versturen mislukt.",
+    "srv.importTooLarge":           "Bestand te groot (max. 10 MB).",
+    "srv.importFailed":             "Importeren mislukt.",
+    "srv.invalidJsonFile":          "Ongeldig JSON-bestand.",
+    "srv.noApiKey":                 "Geen API-sleutel gevonden.",
+    "srv.translateNoText":          "Geen tekst opgegeven.",
+    "srv.translateNoLang":          "Geen doeltaal opgegeven.",
+    "srv.translateFailed":          "Vertalen mislukt.",
+    "srv.onlyCreatorDeleteRoom":    "Alleen de maker kan deze kamer verwijderen.",
+    "srv.exportFormat":             "Ondersteunde formaten: json, csv, xml.",
+    "srv.tokenUidRequired":         "Ongeldige of onvolledige link.",
+
     // --- GDPR ---
     "gdpr.title":          "Jouw gegevens",
     "gdpr.exportDesc":     "Download een kopie van al je gegevens.",

@@ -820,6 +820,23 @@ export const he: MessageTable = {
     "srv.winnerNotPlayer":          "המנצח חייב להיות אחד משחקני המשחק.",
     "srv.winnerNotFound":           "המנצח לא נמצא.",
 
+    // -- Server -- GDPR, API key, translation, rooms, lockout ------------
+    "srv.accountLocked":            "החשבון ננעל זמנית. נסה שוב מאוחר יותר.",
+    "srv.importNotObject":          "נדרש אובייקט JSON.",
+    "srv.deleteAccountFailed":      "מחיקת החשבון נכשלה.",
+    "srv.exportFailed":             "ייצוא הנתונים נכשל.",
+    "srv.confirmEmailFailed":       "שליחת אימייל האישור נכשלה.",
+    "srv.importTooLarge":           "הקובץ גדול מדי (מקסימום 10MB).",
+    "srv.importFailed":             "הייבוא נכשל.",
+    "srv.invalidJsonFile":          "קובץ JSON לא תקין.",
+    "srv.noApiKey":                 "לא נמצא מפתח API.",
+    "srv.translateNoText":          "לא סופק טקסט.",
+    "srv.translateNoLang":          "לא צוינה שפת יעד.",
+    "srv.translateFailed":          "התרגום נכשל.",
+    "srv.onlyCreatorDeleteRoom":    "רק היוצר יכול למחוק את החדר הזה.",
+    "srv.exportFormat":             "פורמטים נתמכים: json, csv, xml.",
+    "srv.tokenUidRequired":         "הקישור לא תקין או חסר.",
+
     // --- GDPR ---
     "gdpr.title":          "הנתונים שלך",
     "gdpr.exportDesc":     "הורד עותק של כל הנתונים שלך.",

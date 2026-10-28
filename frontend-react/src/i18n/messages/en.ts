@@ -820,6 +820,23 @@ export const en = {
     "srv.winnerNotPlayer":          "The winner must be one of the match players.",
     "srv.winnerNotFound":           "Winner not found.",
 
+    // -- Server -- GDPR, API key, translation, rooms, lockout ------------
+    "srv.accountLocked":            "Account temporarily locked. Try again later.",
+    "srv.importNotObject":          "Expected a JSON object.",
+    "srv.deleteAccountFailed":      "Failed to delete account.",
+    "srv.exportFailed":             "Failed to export data.",
+    "srv.confirmEmailFailed":       "Failed to send confirmation email.",
+    "srv.importTooLarge":           "File too large (max 10MB).",
+    "srv.importFailed":             "Import failed.",
+    "srv.invalidJsonFile":          "Invalid JSON file.",
+    "srv.noApiKey":                 "No API key found.",
+    "srv.translateNoText":          "No text provided.",
+    "srv.translateNoLang":          "No target language provided.",
+    "srv.translateFailed":          "Translation failed.",
+    "srv.onlyCreatorDeleteRoom":    "Only the creator can delete this room.",
+    "srv.exportFormat":             "Supported formats: json, csv, xml.",
+    "srv.tokenUidRequired":         "Invalid or incomplete link.",
+
 	// --- GDPR ---
 	"gdpr.title":           "Your Data",
 	"gdpr.exportDesc":      "Download a copy of all your data.",

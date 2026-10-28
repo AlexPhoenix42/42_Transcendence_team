@@ -82,7 +82,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 				const raw = extractError(data)
 				return {
 					success: false,
-					error: raw || t("login.error.failed"),   // unchanged: raw, as today
+					error: ts(raw) || t("login.error.failed"),   // translated for display; rawError below for needsResend
 					rawError: raw,
 				}
 			}

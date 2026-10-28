@@ -111,3 +111,64 @@ Re-check: backend/django/pacman_game/views.py parses; check_i18n.py reports only
 (sandbox artifact), 16/121 backend messages unmapped, 0 hard-coded literals.
 ### Chunk 2 committed — as "chore(i18n): mark intentional English with i18n-exempt markers" (stand-alone, not folded
 into the Phase 5 combined commit; Phase 5 will propose only the Phases 3+4 commit) — 2026-10-28
+
+### Starting chunk 3 — Phase 3: srv.* keys + serverErrors.ts mappings (table shown, awaiting approval) — 2026-10-28
+Approved by user: 15-key table as shown (friendlier English for srv.translateNoLang / srv.tokenUidRequired, matching the
+srv.invalidJson precedent). Expected-count correction accepted: 15 new keys (not 16) → 903.
+Phase 4 additions (user): AuthContext.login() !resp.ok branch → `error: ts(raw) || t("login.error.failed")`, rawError
+unchanged (needsResend uses rawError). Mark TODO.md §3.12 resolved when Phase 4 is applied.
+
+Finished chunk 3 — applied. Unmapped 16 -> 0; keys 888 -> 903 (nl/fr/ar/he), tlh 235; literals 0; tsc 22.
+Files touched:
+frontend-react/src/i18n/messages/en.ts
+frontend-react/src/i18n/messages/nl.ts
+frontend-react/src/i18n/messages/fr.ts
+frontend-react/src/i18n/messages/ar.ts
+frontend-react/src/i18n/messages/he.ts
+frontend-react/src/i18n/serverErrors.ts
+WORKLOG.md
+Verification:
+- check_i18n.py: 903 keys ✓ in nl/fr/ar/he; tlh 235/903 partial; all 121 backend messages mapped; no literals;
+  exit 1 only from config/vault.py PermissionError (SANDBOX ARTIFACT — passes on the user's machine)
+- placeholder mismatches between en and nl/fr/ar/he: 0
+- npx tsc --noEmit: 22 errors (unchanged)
+- git diff --stat: 5 locale files +17 lines each; serverErrors.ts +16/-1 (15 mappings + invalid-action replacement)
+Proposed commit: per plan Phase 5, Phases 3+4 ship as ONE commit ("fix(i18n): map remaining backend messages + call
+sites") after Phase 4 — chunk 3 is not committed on its own (mappings without call sites are partly dead).
+STATUS: waiting for user
+
+User local run: check_i18n.py exit 0 "✓ i18n is consistent" (903 keys, 121/121 mapped, 0 literals); tsc 22. vault.py sandbox artifact confirmed.
+
+### Starting chunk 4 — Phase 4: call-site ts() fixes + TODO §3.12 (diffs shown, awaiting approval) — 2026-10-28
+Approved by user: diffs 1–5, plus diff 6 (PacmanLobby.tsx:186) and the optional AuthContext comment.
+Deviation (agent, reported): PacmanLobby line kept its existing `.toUpperCase()` (lobby shows errors in caps):
+  setError((ts(data.error) || t("pacmanLobby.error.cancel")).toUpperCase())
+
+Finished chunk 4 — applied. tsc 22; check_i18n.py 903 keys, 121/121 mapped, 0 literals (exit 1 only vault.py sandbox artifact).
+Files touched:
+frontend-react/src/context/AuthContext.tsx
+frontend-react/src/pages/Profile.tsx
+frontend-react/src/pages/DeleteAccount.tsx
+frontend-react/src/pages/GooseLobby.tsx
+frontend-react/src/pages/PacmanLobby.tsx
+TODO.md
+WORKLOG.md
+Verification:
+- git diff --stat (these 6 files): 13 insertions, 17 deletions
+- npx tsc --noEmit: 22 errors (unchanged)
+- Manual UI test: NOT done by agent (no browser in this session) — user to trigger a mapped error (e.g. lock an
+  account with 5 failed logins) and confirm it renders in the current locale.
+Call sites enabled: srv.accountLocked (login), srv.importNotObject/invalidJsonFile/importTooLarge/importFailed (Profile
+import), srv.confirmEmailFailed (Profile delete request), srv.tokenUidRequired/deleteAccountFailed (DeleteAccount),
+srv.onlyCreatorDeleteRoom (GooseLobby, PacmanLobby).
+Mapped, not yet displayed (6 — kept on purpose; no UI path shows them today):
+- srv.exportFailed, srv.exportFormat — Profile export handler never reads the error body (always gdpr.exportError);
+  exportFormat is unreachable (UI only offers json/csv/xml)
+- srv.noApiKey — Profile revoke handler ignores non-OK responses
+- srv.translateNoText, srv.translateNoLang, srv.translateFailed — Chat translateMessage() ignores failures; the UI always
+  sends text + target_lang
+FINDING (not fixed, out of scope): 34 other call sites still use the two-argument ts(x, "fallback") form, which hides
+unmapped server text: TournamentDetail 7, AdminDashboard 5, ChessLobby 5, Login 3, Chat 2, GooseGame 2, PacmanLobby 2,
+Profile 2, Tournaments 2, ChessGame 1, ForgotPassword 1, Friends 1, PacmanGame 1. Candidate TODO entry.
+Proposed commit: Phases 3+4 combined — message drafted for user review (not run).
+STATUS: waiting for user

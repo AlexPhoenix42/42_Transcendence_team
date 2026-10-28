@@ -823,6 +823,23 @@ export const ar: MessageTable = {
     "srv.winnerNotPlayer":          "يجب أن يكون الفائز أحد لاعبي المباراة.",
     "srv.winnerNotFound":           "الفائز غير موجود.",
 
+    // -- Server -- GDPR, API key, translation, rooms, lockout ------------
+    "srv.accountLocked":            "الحساب مقفل مؤقتًا. حاول مرة أخرى لاحقًا.",
+    "srv.importNotObject":          "يُتوقَّع كائن JSON.",
+    "srv.deleteAccountFailed":      "فشل حذف الحساب.",
+    "srv.exportFailed":             "فشل تصدير البيانات.",
+    "srv.confirmEmailFailed":       "فشل إرسال بريد التأكيد.",
+    "srv.importTooLarge":           "الملف كبير جدًا (الحد الأقصى 10 ميغابايت).",
+    "srv.importFailed":             "فشل الاستيراد.",
+    "srv.invalidJsonFile":          "ملف JSON غير صالح.",
+    "srv.noApiKey":                 "لم يتم العثور على مفتاح API.",
+    "srv.translateNoText":          "لم يتم تقديم أي نص.",
+    "srv.translateNoLang":          "لم تُحدَّد اللغة الهدف.",
+    "srv.translateFailed":          "فشلت الترجمة.",
+    "srv.onlyCreatorDeleteRoom":    "يمكن للمنشئ فقط حذف هذه الغرفة.",
+    "srv.exportFormat":             "الصيغ المدعومة: json وcsv وxml.",
+    "srv.tokenUidRequired":         "الرابط غير صالح أو غير مكتمل.",
+
     // --- GDPR ---
     "gdpr.title":          "بياناتك",
     "gdpr.exportDesc":     "نزّل نسخة من جميع بياناتك.",

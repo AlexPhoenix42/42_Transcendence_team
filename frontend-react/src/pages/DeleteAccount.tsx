@@ -3,7 +3,7 @@ import { useSearchParams, useNavigate } from "react-router-dom"
 import { useI18n } from "../i18n/I18nProvider.tsx"
 
 export default function DeleteAccount() {
-    const { t } = useI18n()
+    const { t, ts } = useI18n()
     const [searchParams] = useSearchParams()
     const navigate = useNavigate()
     const [status, setStatus] = useState<"confirm" | "deleting" | "done" | "error">("confirm")
@@ -34,7 +34,7 @@ export default function DeleteAccount() {
                 setTimeout(() => navigate("/login"), 3000)
             } else {
                 const data = await resp.json()
-                setError(data.error || t("deleteAccount.error.failed"))
+                setError(ts(data.error) || t("deleteAccount.error.failed"))
                 setStatus("error")
             }
         } catch {

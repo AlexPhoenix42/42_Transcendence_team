@@ -576,7 +576,7 @@ export default function Profile() {
                                         setSuccess(parts.join(" | ") || t("gdpr.importSuccess"))
                                         fetchProfile()
                                     } else {
-                                        setError(data.error || t("gdpr.importError"))
+                                        setError(ts(data.error) || t("gdpr.importError"))
                                     }
                                 } catch {
                                     setError(t("common.error.network"))
@@ -600,7 +600,7 @@ export default function Profile() {
                                         setSuccess(t("gdpr.deleteSuccess"))
                                     } else {
                                         const data = await resp.json()
-                                        setError(data.error || t("gdpr.deleteError"))
+                                        setError(ts(data.error) || t("gdpr.deleteError"))
                                     }
                                 } catch {
                                     setError(t("common.error.network"))

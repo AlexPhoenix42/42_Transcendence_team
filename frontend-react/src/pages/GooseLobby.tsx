@@ -25,7 +25,7 @@ interface GooseGame {
 
 export default function GooseLobby() {
     const { user }	= useAuth()
-	const { t, tn }	= useI18n()
+	const { t, tn, ts }	= useI18n()
     const navigate	= useNavigate()
 
     const [games, setGames] = useState<GooseGame[]>([])
@@ -89,7 +89,7 @@ export default function GooseLobby() {
                 fetchGames()
             } else {
                 const data = await resp.json().catch(() => ({}))
-                setError(data.error || t("gooseLobby.error.cancel"))
+                setError(ts(data.error) || t("gooseLobby.error.cancel"))
             }
         } catch {
             setError(t("common.error.networkShort"))

@@ -373,15 +373,11 @@ behaviour first).
 
 Fixed in Part 1.3 via extractError() helper. Kept as placeholder.
 
-### 3.12 Auth error translation inconsistency
+### 3.12 Auth error translation inconsistency — DONE ✅
 
-`AuthContext.login` returns the raw English backend message;
-`exchangeOAuthToken` and `verify2FA` return `ts(raw)` (translated).
-Same backend error displays in English for password login and in the
-user's language for OAuth/2FA. Deliberate scope decision when fixing
-the resend-prompt bug; fixing means one line in `login()`
-(`error: ts(raw)`) but changes visible text for non-English password
-users. Do as a coherent auth-layer cleanup.
+Fixed in the i18n backend-message pass: `login()` now returns
+`ts(raw)` like `exchangeOAuthToken` / `verify2FA`; `rawError` keeps
+the untranslated text for `needsResend()`. Kept as placeholder.
 
 ### 3.13 Synthetic network errors indistinguishable from real 503s
 
