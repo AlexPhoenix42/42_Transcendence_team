@@ -172,3 +172,60 @@ unmapped server text: TournamentDetail 7, AdminDashboard 5, ChessLobby 5, Login 
 Profile 2, Tournaments 2, ChessGame 1, ForgotPassword 1, Friends 1, PacmanGame 1. Candidate TODO entry.
 Proposed commit: Phases 3+4 combined — message drafted for user review (not run).
 STATUS: waiting for user
+
+
+### Chunk 4 committed — Phases 3+4 shipped as one commit, 2026-10-28
+
+Message: "fix(i18n): map remaining backend messages and translate
+call sites". Files: 5 locale files + serverErrors.ts + AuthContext.tsx
++ Profile.tsx + DeleteAccount.tsx + GooseLobby.tsx + PacmanLobby.tsx
++ TODO.md (§3.12 marked DONE) + WORKLOG.md.
+
+Phase 3+4 shipped together (not Phase 3 alone) because mappings without
+call sites would be partly dead. 6 mappings (srv.exportFailed,
+srv.exportFormat, srv.noApiKey, srv.translateNoText, srv.translateNoLang,
+srv.translateFailed) are "mapped, not yet displayed" — kept on purpose,
+documented in the commit body.
+
+### Follow-up commit — SimpleJWT login error (separate, 2026-10-28)
+
+Commit: "fix(auth): project-owned login error message + i18n mapping".
+
+Problem: SimpleJWT raises "No active account found with the given
+credentials" for any failed login. Dependency message, invisible to
+check_i18n.py's AST scanner (logged as TODO §3.27). Users in every
+language saw this English technical message.
+
+Fix:
+- backend/django/local_auth/two_factor_serializer.py:
+  TwoFactorTokenObtainPairSerializer.default_error_messages
+  'no_active_account' -> "Invalid username or password."
+- frontend-react/src/i18n/serverErrors.ts: mapping
+  "invalid username or password" -> srv.invalidCredentials
+- frontend-react/src/i18n/messages/{en,nl,fr,ar,he}.ts:
+  srv.invalidCredentials key (tlh.ts unchanged)
+- TODO.md: §3.27 added
+
+Verified: curl -k -X POST https://localhost:4443/api/login/ with bad
+creds returns {"detail":"Invalid username or password."}.
+check_i18n.py exit 0. tsc 22.
+
+### Current state — i18n cleanup complete
+
+All work from this session shipped:
+- check_i18n.py: exit 0 on user's machine (vault.py sandbox artifact
+  only affects the agent's sandbox)
+- 903 keys in en/nl/fr/ar/he, tlh 235/903 partial by design
+- 121/121 backend messages mapped
+- 0 hard-coded literals
+- tsc: 22 pre-existing errors, unchanged
+
+No open i18n tasks. Remaining deferred work tracked in TODO.md:
+- §3.25: 34 call sites still use ts(x, "fallback") — latent, safe
+- §3.27: checker can't see third-party messages — manual fix only
+- §3.19: 22 pre-existing tsc errors
+- Part 2: backend canonicalization (shelved, deferred)
+
+If a fresh session picks this up: there is nothing left to do for
+the i18n cleanup. Do not re-run any phase. The worklog is closed.
+
