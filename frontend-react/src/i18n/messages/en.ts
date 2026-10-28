@@ -710,6 +710,7 @@ export const en = {
     "srv.noRefreshToken":       "No session found. Please log in.",
     "srv.missingHeader":        "Missing required header.",
     "srv.rateLimited":          "Rate limit exceeded. Please slow down.",
+	"srv.invalidCredentials":	"Invalid username or password.",
 
     // -- Server -- two-factor -------------------------------------------
     "srv.twofaAlreadyConfigured":  "A 2FA device is already configured.",

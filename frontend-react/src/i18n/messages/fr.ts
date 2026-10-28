@@ -700,6 +700,7 @@ export const fr: MessageTable = {
     "srv.noRefreshToken":       "Aucune session trouvée. Connectez-vous.",
     "srv.missingHeader":        "En-tête requis manquant.",
     "srv.rateLimited":          "Limite de requêtes dépassée. Ralentissez.",
+	"srv.invalidCredentials":	"Nom d'utilisateur ou mot de passe invalide.",
 
     // -- Server -- two-factor -------------------------------------------
     "srv.twofaAlreadyConfigured":  "Un appareil 2FA est déjà configuré.",

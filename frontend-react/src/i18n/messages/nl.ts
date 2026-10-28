@@ -705,6 +705,8 @@ export const nl: MessageTable = {
     "srv.noRefreshToken":       "Geen sessie gevonden. Log in.",
     "srv.missingHeader":        "Vereiste header ontbreekt.",
     "srv.rateLimited":          "Te veel verzoeken. Rustig aan.",
+	"srv.invalidCredentials":	"Ongeldige gebruikersnaam of wachtwoord.",
+
 
     // -- Server -- two-factor -------------------------------------------
     "srv.twofaAlreadyConfigured":  "Er is al een 2FA-apparaat ingesteld.",

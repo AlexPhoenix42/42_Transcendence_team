@@ -710,6 +710,8 @@ export const he: MessageTable = {
     "srv.noRefreshToken":       "לא נמצאה התחברות. אנא התחבר.",
     "srv.missingHeader":        "כותרת נדרשת חסרה.",
     "srv.rateLimited":          "חריגה ממגבלת הבקשות. האט מעט.",
+	"srv.invalidCredentials":	"שם משתמש או סיסמה שגויים.",
+
 
     // -- Server -- two-factor -------------------------------------------
     "srv.twofaAlreadyConfigured":  "כבר הוגדר מכשיר אימות דו-שלבי.",

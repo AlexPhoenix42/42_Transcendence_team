@@ -713,6 +713,7 @@ export const ar: MessageTable = {
     "srv.noRefreshToken":       "لم يتم العثور على جلسة. يُرجى تسجيل الدخول.",
     "srv.missingHeader":        "ترويسة مطلوبة مفقودة.",
     "srv.rateLimited":          "تم تجاوز حد الطلبات. يُرجى التمهّل.",
+	"srv.invalidCredentials":	"اسم المستخدم أو كلمة المرور غير صحيحة.",
 
     // -- Server -- two-factor -------------------------------------------
     "srv.twofaAlreadyConfigured":  "تم إعداد جهاز مصادقة ثنائية بالفعل.",

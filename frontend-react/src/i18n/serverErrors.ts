@@ -62,6 +62,7 @@ const RAW: Record<string, MessageKey> = {
     "rate limit exceeded. please slow down":      "srv.rateLimited",
     "account temporarily locked. try again later":"srv.accountLocked",
     "token and uid required":                     "srv.tokenUidRequired",
+	"invalid username or password":				  "srv.invalidCredentials",
 
     // -- two-factor ------------------------------------------------------
     "a 2fa device is already configured":         "srv.twofaAlreadyConfigured",
