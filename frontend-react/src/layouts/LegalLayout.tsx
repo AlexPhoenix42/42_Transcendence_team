@@ -2,16 +2,18 @@
 
 import { Outlet } from "react-router-dom"
 import { useAuth } from "../context/AuthContext.tsx"
+import { useT } from "../i18n/I18nProvider.tsx"
 import Navbar from "../components/Navbar"
 import Footer from "../components/Footer"
 
 export default function LegalLayout() {
 	const { user, loading } = useAuth()
+	const t = useT()
 	
 	if (loading) {
 		return (
 				<div className="min-h-screen bg-gray-900 flex items-center justify-center">
-					<p className="text-gray-400 text-xl">Loading...</p>
+					<p className="text-gray-400 text-xl">{t("common.loading")}</p>
 				</div>
 				)
 	}

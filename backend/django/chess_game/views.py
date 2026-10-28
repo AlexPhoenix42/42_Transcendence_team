@@ -4,7 +4,7 @@ from rest_framework.views                       import APIView
 from rest_framework.response                    import Response
 from rest_framework.request                     import Request
 
-from rest_framework                             import serializers, status
+from rest_framework                             import status
 
 from rest_framework                             import generics
 
@@ -50,20 +50,6 @@ class GameListCreateView(generics.ListCreateAPIView):
     authentication_classes  = [JWTAuthentication, SessionAuthentication]
     pagination_class        = GamePagination
 
-    #def get_queryset(self):
-    #    user    = self.request.user
-
-    #    qs      = Game.objects.filter(
-    #        Q(player1=user) | Q(player2=user) | Q(created_by=user)
-    #    ).select_related("player1", "player2", "winner", "crnt_turn", "created_by")
-
-    #    status_filter   = self.request.query_params.get("status")
-
-    #    if  status_filter:
-    #        qs = qs.filter(status=status_filter.upper())
-
-    #    return qs.order_by("-created_at")
-
     def get_queryset(self):
         user            = self.request.user
 
@@ -96,34 +82,6 @@ class GameListCreateView(generics.ListCreateAPIView):
         return qs.order_by("-created_at")
 
 
-    #def perform_create(self, serializer):
-    #    serializer.save(created_by=self.request.user, player1=self.request.user)
-
-        #def perform_create(self, serializer):
-        #def fen     = self.request.data.get("fen")
-        #def kwargs  = {"created_by": self.request.user, "player1": self.request.user}
-        #def if  fen:
-        #def     kwargs["board_state"] = fen
-
-        #def serializer.save(**kwargs)
-
-    #def perform_create(self, serializer):
-        #def fen = self.request.data.get("fen")
-        #def is_practice = bool(self.request.data.get("is_practice", False))
-        #def kwargs      = {"created_by": self.request.user, "player1": self.request.user}
-        #def if  fen:
-        #def     err = validate_fen(fen)
-        #def     if  err:
-        #def         raise serializers.ValidationError({"fen": f"Invalid FEN: {err}"})
-        #def     kwargs["board_state"] = fen
-
-        #def serializer.save(**kwargs)
-
-        #def #Store practice flag for later use by GameJoinView
-        #def if  is_practice:
-        #def     cache.set(f"practice_flag:{serializer.instance.pk}", True, timeout=86400)
-    
-
     def create(self, request, *args, **kwargs):
         # Validate FEN before DRF's create flow starts
         fen = request.data.get("fen")
@@ -135,6 +93,7 @@ class GameListCreateView(generics.ListCreateAPIView):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
         return super().create(request, *args, **kwargs)
+
 
     def perform_create(self, serializer):
         fen = self.request.data.get("fen")
@@ -204,9 +163,6 @@ class GameCreateAIView(APIView):
 
             game.player1_color  = random.choice([True, False])
 
-            # This is old before adding rewind move.
-            #game.crnt_turn      = game.player1 if game.player1_color else game.player2
-
             fen_turn = initial_fen.split(" ")[1] if " " in initial_fen else "w"
             if  fen_turn == "w":
                 white_player    = game.player1 if game.player1_color else game.player2
@@ -224,14 +180,12 @@ class GameCreateAIView(APIView):
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 )
 
-            #white_player    = game.player1 if game.player1_color else game.player2
             crnt_turn_pk = game.crnt_turn.pk if game.crnt_turn else None  # type: ignore[union-attr]
 
             is_practice     = bool(request.data.get("is_practice", False))
 
             game_key        = f"game:{game.pk}"
             state           = {
-                #"fen"           : Game.INITIAL_FEN,
                 "fen"           : initial_fen,
                 "crnt_turn"     : crnt_turn_pk,
                 "check"         : False,
@@ -264,8 +218,6 @@ class GameCreateAIView(APIView):
 
             cache.set(game_key, state, timeout=86400)
 
-            #redis_client    = get_redis_connection("default")
-            #redis_client.sadd("active_games", game.pk)
             active_games    = cache.get("active_games", set())
             active_games.add(str(game.pk))
             cache.set("active_games", active_games, timeout=None)
@@ -273,18 +225,6 @@ class GameCreateAIView(APIView):
             serializer      = GameSerializer(game)
 
             return Response(serializer.data, status=status.HTTP_201_CREATED)
-# ===========================================================================
-
-
-# ===========================================================================
-    #class GameCreateView(generics.CreateAPIView):
-    #    serializer_class        = GameSerializer
-    #    permission_classes      = [IsAuthenticated]
-    #    authentication_classes  = [SessionAuthentication, JWTAuthentication]
-    #
-    #
-    #    def perform_create(self, serializer):
-    #        serializer.save(created_by=self.request.user, player1=self.request.user)
 # ===========================================================================
 
 
@@ -317,8 +257,6 @@ class GameJoinView(APIView):
             # Randomly assign who is white
             game.player1_color  = random.choice([True, False])
 
-            #game.crnt_turn      = game.player1 if game.player1_color else game.player2
-
             board_state         = game.board_state
 
             fen_turn = board_state.split(" ")[1] if " " in board_state else "w"
@@ -337,15 +275,10 @@ class GameJoinView(APIView):
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 )
 
-            # Determine white player (player with first move)
-            #white_player        = game.player1 if game.player1_color else game.player2
-
-            #assert white_player is not None # both players exist at this point
-
-
             crnt_turn_pk = game.crnt_turn.pk if game.crnt_turn else None  # type: ignore[union-attr]
 
             is_practice         = bool(cache.get(f"practice_flag:{game.pk}"))
+
 
             # Initialize live game state in Redis
             game_key            = f"game:{game.pk}"
@@ -359,8 +292,8 @@ class GameJoinView(APIView):
                 "is_practice"   : is_practice,
                 "moves"         : [],
                 "disconnected"  : {},
-                "player1_id"    : game.player1_id,
-                "player2_id"    : game.player2_id,
+                "player1_id"    : game.player1_id,      # type: ignore[attr-defined]
+                "player2_id"    : game.player2_id,      # type: ignore[attr-defined]
             }, timeout=86400)
 
 
@@ -376,8 +309,8 @@ class GameJoinView(APIView):
                     init_sec    = init_min * 60
                     state       = cache.get(game_key) or {}
                     state["clocks"] = {
-                        str(game.player1_id): init_sec,
-                        str(game.player2_id): init_sec,
+                        str(game.player1_id): init_sec, # type: ignore[attr-defined]
+                        str(game.player2_id): init_sec, # type: ignore[attr-defined]
                     }
                     state["last_tick"]  = time.time()
                     state["timer"]      = {
@@ -388,8 +321,6 @@ class GameJoinView(APIView):
 
 
             # Add to active games set so the timeout checker can find it
-            #redis_client = get_redis_connection("default")
-            #redis_client.sadd("active_games", game.pk)
             active_games    = cache.get("active_games", set())
             active_games.add(str(game.pk))
             cache.set("active_games", active_games, timeout=None)
@@ -459,9 +390,6 @@ class GameLeaveView(APIView):
             game.result_reason  = GameResultReason.RESIGNATION
             game.status         = GameStatus.FINISHED
 
-            # TODO: persist board_state and moves from Redis (when integration is added)
-            # TODO IS DONE!
-
             # Flush Redis state to DB before finalizing
             game_key    = f"game:{game.pk}"
             live_state  = cache.get(game_key) or {}
@@ -475,8 +403,6 @@ class GameLeaveView(APIView):
             cache.set(game_key, live_state, timeout=86400)
 
             # Remove from active set so the checker stops monitoring
-            #redis_client = get_redis_connection("default")
-            #redis_client.srem("active_games", game.pk)
             active_games    = cache.get("active_games", set())
             active_games.discard(str(game.pk))
             cache.set("active_games", active_games, timeout=None)
@@ -590,8 +516,8 @@ class GameAcceptInviteView(APIView):
                 "status": GameStatus.IN_PROGRESS,
                 "moves": [],
                 "disconnected": {},
-                "player1_id": game.player1_id,
-                "player2_id": game.player2_id,
+                "player1_id": game.player1_id,  # type: ignore[attr-defined]
+                "player2_id": game.player2_id,  # type: ignore[attr-defined]
             }
 
             cache.set(game_key, state, timeout=86400)

@@ -13,6 +13,7 @@ export function getAccessToken(): string | null {
 
 export function clearAccessToken(): void {
     accessToken = null
+	localStorage.removeItem("has_session")
 }
 
 function isTokenExpiringSoon(): boolean {
@@ -30,20 +31,6 @@ function isTokenExpiringSoon(): boolean {
 interface ApiOptions extends RequestInit {
     headers?: Record<string, string>
 }
-
-//export function mediaUrl(url: string | null | undefined): string | null {
-//    if (!url) return null
-//    try {
-//        const parsed = new URL(url)
-//        return `${window.location.protocol}//${window.location.hostname}:9000${parsed.pathname}`
-//    } catch {
-//        // Already a relative path
-//        if (url.startsWith("/")) {
-//            return `${window.location.protocol}//${window.location.hostname}:9000${url}`
-//        }
-//        return url
-//    }
-//}
 
 export function mediaUrl(url: string | null | undefined): string | null {
     if (!url) return null
@@ -77,24 +64,37 @@ export async function api(url: string, options: ApiOptions = {}): Promise<Respon
     try {
         let resp = await fetch(url, { ...options, headers, credentials: "include" })
 
-        if (resp.status === 401 && accessToken) {
-            const refreshed = await refreshAccessToken()
-            if (refreshed) {
-                headers["Authorization"] = `Bearer ${accessToken}`
-                resp = await fetch(url, { ...options, headers, credentials: "include" })
-            }
-        }
+		if (resp.status === 401 && accessToken) {
+			const refreshed = await refreshAccessToken()
+			if (refreshed) {
+				headers["Authorization"] = `Bearer ${accessToken}`
+				resp = await fetch(url, { ...options, headers, credentials: "include" })
+			} else {
+				if (!window.location.pathname.startsWith("/delete-account")) {
+					window.location.href = "/login"
+				}
+				return resp
+			}
+		}
 
         return resp
-    } catch {
+	} catch {
+        // `new Response` rejects any status outside 200-599, so 0 (the
+        // classic "network failure" sentinel) throws RangeError before this
+        // return statement even completes. 503 is a valid code and makes
+        // `resp.ok` false, so callers handle it via their normal !resp.ok
+        // path. The header lets future code distinguish a synthetic
+        // network-failure response from a real backend 503.
         return new Response(JSON.stringify({ error: "Network error" }), {
-            status: 0,
+            status: 503,
             statusText: "Network Error",
+            headers: { "X-Synthetic-Network": "true" },
         })
     }
 }
 
 export async function refreshAccessToken(): Promise<boolean> {
+	if (!localStorage.getItem("has_session")) return false
     // Prevent multiple simultaneous refresh attempts
     if (refreshPromise) return refreshPromise
 
@@ -109,13 +109,19 @@ export async function refreshAccessToken(): Promise<boolean> {
                 credentials: "include",
             })
 
+			if (resp.status == 401) {
+				clearAccessToken()
+				return false
+			}
             if (!resp.ok) {
-                clearAccessToken()
+                //clearAccessToken()
+				// Transient error (503 rate limit, network), dont logout
                 return false
             }
 
             const data = await resp.json()
             accessToken = data.access
+			localStorage.setItem("has_session", "1")
             return true
         } catch {
             clearAccessToken()

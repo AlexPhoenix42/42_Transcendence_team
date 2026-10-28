@@ -9,6 +9,8 @@ import AppLayout from "./layouts/AppLayout.tsx"
 import LegalLayout from "./layouts/LegalLayout.tsx"
 import ProtectedRoute from "./components/ProtectedRoute.tsx"
 
+import Docs from "./pages/Docs.tsx"
+
 import Login from "./pages/Login.tsx"
 import Register from "./pages/Register.tsx"
 import Dashboard from "./pages/Dashboard.tsx"
@@ -27,8 +29,15 @@ import Leaderboard from "./pages/Leaderboard.tsx"
 import MatchHistory from "./pages/MatchHistory.tsx"
 import Analytics from "./pages/Analytics.tsx"
 
+import PacmanLobby from "./pages/PacmanLobby.tsx"
+import PacmanGame from "./pages/PacmanGame.tsx"
+
 import GooseLobby from "./pages/GooseLobby.tsx"
 import GooseGame from "./pages/GooseGame.tsx"
+
+import Pacman3D from "./pages/Pacman3D.tsx"
+
+import DeleteAccount from "./pages/DeleteAccount.tsx"
 
 import PrivacyPolicy from "./pages/PrivacyPolicy"
 import TermsOfService from "./pages/TermsOfService"
@@ -38,6 +47,9 @@ import ResetPassword from "./pages/ResetPassword.tsx"
 
 import Verify2FA from "./pages/Verify2FA.tsx"
 
+import NotFound from "./pages/NotFound.tsx"
+
+
 export const router = createBrowserRouter([
     {
         element: <AuthLayout />,
@@ -45,6 +57,7 @@ export const router = createBrowserRouter([
             { path: "/login", element: <Login /> },
             { path: "/register", element: <Register /> },
 			{ path: "/forgot-password", element: <ForgotPassword /> },
+			{ path: "/delete-account", element: <DeleteAccount /> },
 			{ path: "/reset", element: <ResetPassword /> },
 			{ path: "/2fa", element: <Verify2FA /> },
 
@@ -52,6 +65,7 @@ export const router = createBrowserRouter([
     },
 
 	{ path: "/status", element: <Status /> },
+	{ path: "/docs", element: <Docs /> },
 
 	{
 		element: <LegalLayout />,
@@ -83,13 +97,15 @@ export const router = createBrowserRouter([
 					{ path: "/history", element: <MatchHistory /> },
 					{ path: "/history/:username", element: <MatchHistory /> },
 					{ path: "/analytics", element: <Analytics /> },
-
+					{ path: "/pacman", element: <PacmanLobby /> },
+					{ path: "/pacman/:roomName", element: <PacmanGame /> },
 					{ path: "/goose", element: <GooseLobby /> },
                     { path: "/goose/:id", element: <GooseGame /> },
-
+					{ path: "/pacman3d", element: <Pacman3D /> },
                 ],
             },
         ],
     },
+	{ path: "*", element: <NotFound /> },
 ])
 

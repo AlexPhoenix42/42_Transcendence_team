@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@plugin "@tailwindcss/typography";
 
 /* Tell browsers this is a dark site -- don't apply forced dark mode */
 :root {

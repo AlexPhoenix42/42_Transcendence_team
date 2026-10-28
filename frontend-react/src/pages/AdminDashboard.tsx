@@ -1,6 +1,6 @@
 // frontend-react/src/pages/AdminDashboard.tsx
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useNavigate } from "react-router-dom"
 import { api, mediaUrl } from "../api/client.ts"
 import { useAuth } from "../context/AuthContext.tsx"
@@ -23,8 +23,19 @@ interface UserEntry {
     avatar: string | null
 }
 
+interface AuditEntry {
+    id: number
+    event_type: string
+    username: string
+    ip_address: string | null
+    user_agent: string
+    success: boolean
+    metadata: Record<string, string>
+    timestamp: string
+}
+
 export default function AdminDashboard() {
-    const { t, n, ts } = useI18n()
+    const { t, n, tn, ts } = useI18n()
     const { user } = useAuth()
     const navigate = useNavigate()
 
@@ -40,25 +51,31 @@ export default function AdminDashboard() {
     const [loading, setLoading] = useState(false)
 
     // User management
-	const [tab, setTab] = useState<"tournament" | "users" | "status">("tournament")
+	const [tab, setTab] = useState<"tournament" | "users" | "status" | "security">("tournament")
     const [users, setUsers] = useState<UserEntry[]>([])
     const [search, setSearch] = useState("")
     const [userError, setUserError] = useState("")
     const [userSuccess, setUserSuccess] = useState("")
 
-	if (!user?.is_staff && user?.role !== "admin" && user?.role !== "moderator") {
-        return (
-            <div className="max-w-4xl mx-auto">
-                <p className="text-red-400 text-center mt-10">{t("admin.denied")}</p>
-            </div>
-        )
-    }
+	// Security audit log
+    const [auditLogs, setAuditLogs] = useState<AuditEntry[]>([])
+    const [auditPage, setAuditPage] = useState(1)
+    const [auditTotal, setAuditTotal] = useState(0)
+    const [auditTotalPages, setAuditTotalPages] = useState(0)
+    const [auditEventFilter, setAuditEventFilter] = useState("")
+    const [auditUserFilter, setAuditUserFilter] = useState("")
+    const [auditLoading, setAuditLoading] = useState(false)
+    const [auditError, setAuditError] = useState("")
+    const [unlockSuccess, setUnlockSuccess] = useState("")
 
-    useEffect(() => {
-        if (tab === "users") fetchUsers()
-    }, [tab, search])
 
-    async function fetchUsers() {
+	// Hooks must run in the same order on every render, so the
+    // useCallbacks + useEffects come BEFORE the permission check below.
+    // Otherwise: on first render `user` is still loading → the early
+    // return fires → these hooks are skipped. When `user` resolves, the
+    // return stops firing and the hooks run — React throws
+    // "Rendered more hooks than during the previous render".
+    const fetchUsers = useCallback(async () => {
         try {
             const url = search
                 ? `/api/users/?search=${encodeURIComponent(search)}`
@@ -72,6 +89,46 @@ export default function AdminDashboard() {
         } catch {
             setUserError(t("common.error.networkShort"))
         }
+    }, [search, t])
+
+    const fetchAuditLogs = useCallback(async () => {
+        setAuditLoading(true)
+        setAuditError("")
+        try {
+            const params = new URLSearchParams({ page: String(auditPage) })
+            if (auditEventFilter) params.set("event_type", auditEventFilter)
+            if (auditUserFilter) params.set("username", auditUserFilter)
+
+            const resp = await api(`/api/audit/logs/?${params}`)
+            if (resp.ok) {
+                const data = await resp.json()
+                setAuditLogs(data.results)
+                setAuditTotal(data.total)
+                setAuditTotalPages(data.total_pages)
+            } else {
+                setAuditError(t("audit.error.load"))
+            }
+        } catch {
+            setAuditError(t("common.error.networkShort"))
+        } finally {
+            setAuditLoading(false)
+        }
+    }, [auditPage, auditEventFilter, auditUserFilter, t])
+
+    useEffect(() => {
+        if (tab === "users") fetchUsers()
+    }, [tab, fetchUsers])
+
+    useEffect(() => {
+        if (tab === "security") fetchAuditLogs()
+    }, [tab, fetchAuditLogs])
+
+	if (!user?.is_staff && user?.role !== "admin" && user?.role !== "moderator") {
+        return (
+            <div className="max-w-4xl mx-auto">
+                <p className="text-red-400 text-center mt-10">{t("admin.denied")}</p>
+            </div>
+        )
     }
 
     async function updateUserRole(userId: number, role: string) {
@@ -115,7 +172,7 @@ export default function AdminDashboard() {
     }
 
     async function deleteUser(userId: number, username: string) {
-        if (!confirm(`Are you sure you want to delete user "${username}"? This cannot be undone.`)) return
+        if (!confirm(t("admin.confirmDeleteUser", { name: username }))) return
 
         setUserError("")
         setUserSuccess("")
@@ -124,7 +181,7 @@ export default function AdminDashboard() {
                 method: "DELETE",
             })
             if (resp.ok) {
-                setUserSuccess(`User "${username}" deleted`)
+                setUserSuccess(t("admin.msg.userDeleted", { name: username }))
                 fetchUsers()
             } else {
                 const data = await resp.json()
@@ -135,6 +192,26 @@ export default function AdminDashboard() {
         }
     }
 
+    async function unlockAccount(username: string) {
+        setAuditError("")
+        setUnlockSuccess("")
+        try {
+            const resp = await api("/api/audit/unlock/", {
+                method: "POST",
+                body: JSON.stringify({ username }),
+            })
+            if (resp.ok) {
+                setUnlockSuccess(t("audit.msg.unlocked", { name: username }))
+                fetchAuditLogs()
+            } else {
+                const data = await resp.json()
+                setAuditError(data.error || t("audit.error.unlock"))
+            }
+        } catch {
+            setAuditError(t("common.error.networkShort"))
+        }
+    }
+
     async function createTournament(e: React.FormEvent) {
         e.preventDefault()
         setError("")
@@ -142,12 +219,12 @@ export default function AdminDashboard() {
         setLoading(true)
 
 		if (!name.trim()) {
-            setError("Tournament name is required")
+            setError(t("admin.error.nameRequired"))
             setLoading(false)
             return
         }
         if (name.trim().length > 50) {
-            setError("Tournament name must be under 50 characters")
+            setError(t("admin.error.nameTooLong"))
             setLoading(false)
             return
         }
@@ -209,7 +286,7 @@ export default function AdminDashboard() {
                 }
             }
 
-            setSuccess(`Tournament "${name}" created`)
+            setSuccess(t("admin.msg.tournamentCreated", { name }))
             setName("")
             setMaxPlayers("4")
             setAiCount("0")
@@ -256,6 +333,12 @@ export default function AdminDashboard() {
                         >
                             {t("admin.tab.systemStatus")}
                         </button>
+						<button
+                            onClick={() => setTab("security")}
+                            className={`px-4 py-2 rounded ${tab === "security" ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-300 hover:bg-gray-600"}`}
+                        >
+                            {t("admin.tab.security")}
+                        </button>
                     </>
                 )}
             </div>
@@ -276,7 +359,7 @@ export default function AdminDashboard() {
                         </div>
                     )}
 
-                    <form onSubmit={createTournament} className="space-y-4">
+                    <form onSubmit={createTournament} noValidate className="space-y-4">
                         <div>
                             <label className="text-gray-400 text-sm block mb-1">{t("admin.form.name")}</label>
                             <input
@@ -303,7 +386,7 @@ export default function AdminDashboard() {
                                     className="w-full px-4 py-2 bg-gray-900 text-white border border-gray-700 rounded focus:outline-none focus:border-blue-500"
                                 >
                                     {[2, 3, 4, 5, 6, 7, 8, 16].map((n) => (
-                                        <option key={n} value={n}>{n} players</option>
+                                        <option key={n} value={n}>{tn("common.players", n, { count: n })}</option>
                                     ))}
                                 </select>
                             </div>
@@ -316,7 +399,7 @@ export default function AdminDashboard() {
                                     className="w-full px-4 py-2 bg-gray-900 text-white border border-gray-700 rounded focus:outline-none focus:border-blue-500"
                                 >
                                     {Array.from({ length: parseInt(maxPlayers) }, (_, i) => (
-                                        <option key={i} value={i}>{i === 0 ? "None" : `${i} AI`}</option>
+                                        <option key={i} value={i}>{i === 0 ? t("admin.aiNone") : t("admin.aiCount", { n: i })}</option>
                                     ))}
                                 </select>
                             </div>
@@ -330,9 +413,9 @@ export default function AdminDashboard() {
                                 className="w-full px-4 py-2 bg-gray-900 text-white border border-gray-700 rounded focus:outline-none focus:border-blue-500"
                             >
                                 <option value="">{t("admin.form.unlimited")}</option>
-                                <option value="3+2">3 min + 2 sec</option>
-                                <option value="5+0">5 min</option>
-                                <option value="10+5">10 min + 5 sec</option>
+                                <option value="3+2">{t("common.timeControl", { min: 3, sec: 2 })}</option>
+                                <option value="5+0">{t("common.timeMinutes", { min: 5 })}</option>
+                                <option value="10+5">{t("common.timeControl", { min: 10, sec: 5 })}</option>
                             </select>
                         </div>
 
@@ -351,7 +434,7 @@ export default function AdminDashboard() {
                             disabled={loading}
                             className="w-full py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 font-semibold"
                         >
-                            {loading ? "Creating..." : "Create Tournament"}
+                            {loading ? t("admin.creating") : t("admin.tab.createTournament")}
                         </button>
                     </form>
                 </div>
@@ -413,7 +496,7 @@ export default function AdminDashboard() {
                                         </span>
                                         {roleBadge(u.role)}
                                         <span className={`w-2 h-2 rounded-full ${u.is_online ? "bg-green-500" : "bg-gray-500"}`}></span>
-                                        {!u.is_active && <span className="text-xs text-red-400">(disabled)</span>}
+                                        {!u.is_active && <span className="text-xs text-red-400">{t("admin.users.disabled")}</span>}
                                     </div>
                                     <p className="text-gray-500 text-xs truncate">{u.email}</p>
                                 </div>
@@ -445,7 +528,7 @@ export default function AdminDashboard() {
                                                     : "bg-green-800 text-green-300 hover:bg-green-700"
                                             }`}
                                         >
-                                            {u.is_active ? "Disable" : "Enable"}
+                                            {u.is_active ? t("admin.disable") : t("admin.enable")}
                                         </button>
 
                                         <button
@@ -465,6 +548,148 @@ export default function AdminDashboard() {
 			{/* Status tab */}
             {tab === "status" && (
                 <Status />
+            )}
+
+			{/* Security audit tab */}
+            {tab === "security" && (
+                <div className="bg-gray-800 rounded-lg border border-gray-700 p-6">
+                    <h2 className="text-xl font-semibold text-white mb-4">{t("audit.title")}</h2>
+
+                    {auditError && (
+                        <div className="bg-red-900/50 border border-red-500 text-red-300 px-4 py-2 rounded mb-4">
+                            {auditError}
+                        </div>
+                    )}
+                    {unlockSuccess && (
+                        <div className="bg-green-900/50 border border-green-500 text-green-300 px-4 py-2 rounded mb-4">
+                            {unlockSuccess}
+                        </div>
+                    )}
+
+                    {/* Filters */}
+                    <div className="flex flex-col md:flex-row gap-3 mb-4">
+                        <select
+                            value={auditEventFilter}
+                            onChange={(e) => { setAuditEventFilter(e.target.value); setAuditPage(1) }}
+                            className="px-3 py-2 bg-gray-900 text-white border border-gray-700 rounded text-sm"
+                        >
+                            <option value="">{t("audit.filter.allEvents")}</option>
+                            <option value="login_success">{t("audit.event.loginSuccess")}</option>
+                            <option value="login_failed">{t("audit.event.loginFailed")}</option>
+                            <option value="password_reset">{t("audit.event.passwordReset")}</option>
+                            <option value="2fa_enabled">{t("audit.event.2faEnabled")}</option>
+                            <option value="2fa_disabled">{t("audit.event.2faDisabled")}</option>
+                            <option value="account_locked">{t("audit.event.accountLocked")}</option>
+                            <option value="account_unlocked">{t("audit.event.accountUnlocked")}</option>
+                        </select>
+
+                        <input
+                            type="text"
+                            value={auditUserFilter}
+                            onChange={(e) => { setAuditUserFilter(e.target.value); setAuditPage(1) }}
+                            placeholder={t("audit.filter.username")}
+                            className="px-3 py-2 bg-gray-900 text-white border border-gray-700 rounded text-sm flex-1"
+                        />
+
+                        <button
+                            onClick={() => { setAuditEventFilter(""); setAuditUserFilter(""); setAuditPage(1) }}
+                            className="px-3 py-2 bg-gray-700 text-gray-300 rounded text-sm hover:bg-gray-600"
+                        >
+                            {t("audit.clear")}
+                        </button>
+                    </div>
+
+                    {/* Results count */}
+                    <p className="text-gray-500 text-sm mb-3">{tn("audit.events", auditTotal)}</p>
+
+                    {/* Log table */}
+                    {auditLoading ? (
+                        <p className="text-gray-400 text-center py-4">{t("common.loading")}</p>
+                    ) : auditLogs.length === 0 ? (
+                        <p className="text-gray-400 text-center py-4">{t("audit.empty")}</p>
+                    ) : (
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-sm">
+                                <thead>
+                                    <tr className="text-gray-400 border-b border-gray-700">
+                                        <th className="text-left py-2 pr-3">{t("audit.col.time")}</th>
+                                        <th className="text-left py-2 pr-3">{t("audit.col.event")}</th>
+                                        <th className="text-left py-2 pr-3">{t("audit.col.user")}</th>
+                                        <th className="text-left py-2 pr-3">{t("audit.col.ip")}</th>
+                                        <th className="text-left py-2 pr-3">{t("audit.col.status")}</th>
+                                        <th className="text-left py-2">{t("audit.col.actions")}</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {auditLogs.map((log) => (
+                                        <tr
+                                            key={log.id}
+                                            className={`border-b border-gray-700/50 ${
+                                                !log.success ? "bg-red-900/10" :
+                                                log.event_type === "account_locked" ? "bg-yellow-900/10" : ""
+                                            }`}
+                                        >
+                                            <td className="py-2 pr-3 text-gray-300 whitespace-nowrap">
+                                                {new Date(log.timestamp).toLocaleString()}
+                                            </td>
+                                            <td className="py-2 pr-3">
+                                                <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                                                    log.event_type === "login_failed" ? "bg-red-900/50 text-red-400" :
+                                                    log.event_type === "account_locked" ? "bg-yellow-900/50 text-yellow-400" :
+                                                    log.event_type === "login_success" ? "bg-green-900/50 text-green-400" :
+                                                    "bg-blue-900/50 text-blue-400"
+                                                }`}>
+                                                    {log.event_type.replace(/_/g, " ")}
+                                                </span>
+                                            </td>
+                                            <td className="py-2 pr-3 text-white">{log.username}</td>
+                                            <td className="py-2 pr-3 text-gray-400 font-mono text-xs">{log.ip_address || "—"}</td>
+                                            <td className="py-2 pr-3">
+                                                {log.success
+                                                    ? <span className="text-green-400 text-xs">{t("audit.ok")}</span>
+                                                    : <span className="text-red-400 text-xs">{t("audit.fail")}</span>
+                                                }
+                                            </td>
+                                            <td className="py-2">
+                                                {log.event_type === "account_locked" && (
+                                                    <button
+                                                        onClick={() => unlockAccount(log.username)}
+                                                        className="px-2 py-0.5 bg-green-800 text-green-300 rounded text-xs hover:bg-green-700"
+                                                    >
+                                                        {t("audit.unlock")}
+                                                    </button>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+
+                    {/* Pagination */}
+                    {auditTotalPages > 1 && (
+                        <div className="flex items-center justify-center gap-3 mt-4">
+                            <button
+                                onClick={() => setAuditPage(p => Math.max(1, p - 1))}
+                                disabled={auditPage <= 1}
+                                className="px-3 py-1 bg-gray-700 text-gray-300 rounded text-sm hover:bg-gray-600 disabled:opacity-50"
+                            >
+                                {t("audit.prev")}
+                            </button>
+                            <span className="text-gray-400 text-sm">
+                                {t("audit.page", { page: auditPage, total: auditTotalPages })}
+                            </span>
+                            <button
+                                onClick={() => setAuditPage(p => Math.min(auditTotalPages, p + 1))}
+                                disabled={auditPage >= auditTotalPages}
+                                className="px-3 py-1 bg-gray-700 text-gray-300 rounded text-sm hover:bg-gray-600 disabled:opacity-50"
+                            >
+                                {t("audit.next")}
+                            </button>
+                        </div>
+                    )}
+                </div>
             )}
         </div>
     )

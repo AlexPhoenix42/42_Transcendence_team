@@ -51,7 +51,7 @@ export default function Navbar() {
         const interval = setInterval(() => {
             fetchRequestCount()
             fetchUnreadChats()
-        }, 5000)
+        }, 30000)
 
         function handleChatRead() {
             fetchUnreadChats()
@@ -110,7 +110,11 @@ export default function Navbar() {
         <nav className="bg-gray-800">
             <div className="p-4 flex items-center justify-between">
                 {/* Logo */}
-                <Link to="/" className="text-white font-bold text-xl">♟ Transcendence</Link>
+				{/*}<Link to="/" className="text-white font-bold text-xl">♟ Transcendence</Link>*/}
+				<Link to="/" className="text-white font-bold text-xl flex items-center gap-2">
+                    <img src="/angry_unicorn.png" alt="" className="w-8 h-8" />
+                    Transcendence
+                </Link>
 
                 {/* Desktop links */}
                 <div className="hidden md:flex gap-6 items-center">

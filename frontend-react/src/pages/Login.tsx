@@ -4,7 +4,20 @@ import { useState, useEffect, useRef } from "react"
 import { useNavigate, Link, useSearchParams } from "react-router-dom"
 import { useAuth } from "../context/AuthContext.tsx"
 import { useI18n } from "../i18n/I18nProvider.tsx"
-import { validateRequired } from '../utils/validate'
+import { serverMessageKey } from "../i18n/serverErrors.ts"
+import { validateRequired, validateUsername } from '../utils/validate'
+
+
+// Decides whether to show the resend-verification prompt.
+// Checks the RAW server message (English, pre-translation) so it works
+// identically in every UI language. Falls back to an English substring
+// check for any backend message not yet mapped in serverErrors.ts.
+function needsResend(rawError: string | undefined): boolean {
+    if (!rawError) return false
+    if (serverMessageKey(rawError) === "srv.accountFrozen") return true
+    const lower = rawError.toLowerCase()
+    return lower.includes("frozen") || lower.includes("verify")
+}
 
 export default function Login() {
     const { login, exchangeOAuthToken } = useAuth()
@@ -81,9 +94,9 @@ export default function Login() {
             } else if (result.requires2FA) {
                 navigate(`/2fa?token=${result.tmpToken}`)
             } else {
-                const errMsg = result.error || t("login.error.oauth")
+				const errMsg = result.error || t("login.error.oauth")
                 setError(errMsg)
-                if (errMsg.toLowerCase().includes("frozen") || errMsg.toLowerCase().includes("verify")) {
+                if (needsResend(result.rawError)) {
                     setShowResend(true)
                 }
             }
@@ -101,7 +114,7 @@ export default function Login() {
 		const err = validateRequired(username, "Username")
             || validateRequired(password, "Password")
         if (err) {
-            setError(err)
+            setError(t(err))
             return
         }
 
@@ -120,9 +133,9 @@ export default function Login() {
             } else if (result.requires2FA) {
                 navigate(`/2fa?token=${result.tmpToken}`)
             } else {
-                const errMsg = result.error || t("login.error.failed")
+				const errMsg = result.error || t("login.error.failed")
                 setError(errMsg)
-                if (errMsg.toLowerCase().includes("frozen") || errMsg.toLowerCase().includes("verify")) {
+                if (needsResend(result.rawError)) {
                     setShowResend(true)
                 }
             }
@@ -163,7 +176,7 @@ export default function Login() {
 
 		const err = validateUsername(newUsername)
         if (err) {
-            setError(err)
+            setError(t(err))
             return
         }
 
@@ -226,10 +239,30 @@ export default function Login() {
 
     return (
         <div className="w-full max-w-sm">
+			{/*
             <h1 className="text-3xl font-bold text-white text-center mb-8">
                 ♟ Born2Transcend ♟ 
             </h1>
-
+		   */}
+			<div className="text-center mb-8">
+                <img
+                    src="/angry_unicorn.png"
+                    alt=""
+                    onClick={() => {
+                        setUsername("")
+                        setPassword("")
+                        setError("")
+                        setSuccess("")
+                        setShowResend(false)
+                        setResendEmail("")
+                    }}
+                    className="w-20 h-20 mx-auto mb-4 cursor-pointer"
+                />
+                <h1 className="text-3xl font-bold text-white">
+                    ♟ Born2Transcend ♟
+                </h1>
+            </div>
+			
             {/* Username Conflict Dialog */}
             {showUsernameConflict && (
                 <div className="bg-yellow-900/30 border border-yellow-600 rounded p-4 mb-4 space-y-3">
@@ -253,7 +286,7 @@ export default function Login() {
                     </div>
 
                     {showNewUsernameInput && (
-                        <form onSubmit={handleResolveUsername} className="space-y-2">
+                        <form onSubmit={handleResolveUsername} noValidate className="space-y-2">
                             <input
                                 type="text"
                                 placeholder={t("login.conflict.newPlaceholder")}
@@ -280,7 +313,7 @@ export default function Login() {
                 </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} noValidate className="space-y-4">
                 {error && (
                     <div className="bg-red-900/50 border border-red-500 text-red-300 px-4 py-2 rounded">
                         {error}

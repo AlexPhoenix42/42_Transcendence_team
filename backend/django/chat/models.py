@@ -50,13 +50,6 @@ class ChatRoomManager(models.Manager["ChatRoom"]):
             if  existing:
                 return existing
 
-            #room = self.create(room_type=RoomType.DM)
-
-            #room = self.create(
-            #    room_type=RoomType.DM,
-            #    dm_hash=f"{a}_{b}"
-            #)
-
             try:
                 room = self.create(
                     room_type=RoomType.DM,
@@ -102,24 +95,6 @@ class ChatRoom(models.Model):
         null=True, blank=True, db_index=True,
     )
 
-    # --- Future ForeignKey replacements ---
-    #tournament      = models.ForeignKey(
-    #    "tournament.Tournament",
-    #    null=True, blank=True,
-    #    on_delete=models.SET_NULL,
-    #    db_index=True,
-    #    db_column="tournament_id",
-    #)
-
-    #game            = models.ForeignKey(
-    #    "game.Game",
-    #    null=True, blank=True,
-    #    on_delete=models.SET_NULL,
-    #    db_index=True,
-    #    db_column="game_id",
-    #)
-    # --------------------------------------
-
     members: ManyToManyField    = models.ManyToManyField(
         settings.AUTH_USER_MODEL,
         through="RoomMembership",
@@ -162,8 +137,6 @@ class Message(models.Model):
         on_delete=models.CASCADE,
         related_name="messages",
     )
-
-    #sender      = models.TextField(max_length=2000)
 
     sender      = models.ForeignKey(
         settings.AUTH_USER_MODEL,

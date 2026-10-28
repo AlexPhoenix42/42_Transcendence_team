@@ -38,6 +38,21 @@ class GooseGame(models.Model):
     created_at  = models.DateTimeField(auto_now_add=True)
     updated_at  = models.DateTimeField(auto_now=True)
 
+    wizard_position         = models.PositiveIntegerField(default=0)
+    wizard_questions_asked  = models.JSONField(default=list, blank=True)
+    wizard_target           = models.ForeignKey(
+                                "GoosePlayer",
+                                on_delete=models.SET_NULL,
+                                null=True,
+                                blank=True,
+                                related_name="+",
+                            )
+    # How many wizard encounters are currently pending against an ACTIVE
+    # player. While > 0, dice rolls are paused for everyone so the table can
+    # watch the encounter play out. Encounters against an eliminated player
+    # (prison revival attempts) never touch this — they never block anyone.
+    wizard_pending_count    = models.PositiveIntegerField(default=0)
+
     TOTAL_SQUARES = 63
 
     # Special squares
@@ -73,6 +88,9 @@ class GoosePlayer(models.Model):
     skip_turns  = models.PositiveIntegerField(default=0)  # turns to skip
     is_active   = models.BooleanField(default=True)  # still in the game
     joined_at   = models.DateTimeField(auto_now_add=True)
+
+    wizard_strikes = models.PositiveIntegerField(default=0)
+    wizard_revive_progress = models.PositiveIntegerField(default=0)  # correct answers while eliminated
 
     class Meta:
         unique_together = [["game", "user"]]

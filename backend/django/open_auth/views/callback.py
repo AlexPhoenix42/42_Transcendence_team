@@ -82,12 +82,6 @@ class OAuthCallbackView(APIView):
                 f"&link_token={link_token}"
             )
 
-        #elif isinstance(result, UsernameConflict):
-        #    frontend_url = oauth_config['FRONTEND_URL']
-        #    return  redirect(
-        #        f"{frontend_url}?status=username_conflict&username={result.username}"
-        #    )
-
         elif isinstance(result, UsernameConflict):
             import uuid
             resolve_token = str(uuid.uuid4())

@@ -15,17 +15,17 @@ all: $(TARGET)
 # Compile .cpp -> auto-generating dependency files
 objs/%.o: srcs/%.cpp
 	@mkdir -p objs
-	$(CXX) $(CXXFLAGS) -c $< -o $@
+	@$(CXX) $(CXXFLAGS) -c $< -o $@
 
 # Link
 $(TARGET): $(OBJECTS)
 	@mkdir -p bin
-	$(CXX) $(OBJECTS) -o $(TARGET) $(LDFLAGS)
+	@$(CXX) $(OBJECTS) -o $(TARGET) $(LDFLAGS)
 
 # Include generated dependency files (silently ignore if missing)
 -include $(DEPS)
 
 clean:
-	rm -rf objs 
-	-rm -rf bin/*
+	@rm -rf objs 
+	@-rm -rf bin/*
 

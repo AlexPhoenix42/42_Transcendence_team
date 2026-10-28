@@ -6,6 +6,7 @@
 export const LOCALES = {
     en:  { label: "English",       flag: "🇬🇧", dir: "ltr", intl: "en-GB",        complete: true  },
     nl:  { label: "Nederlands",    flag: "🇳🇱", dir: "ltr", intl: "nl-BE",        complete: true  },
+	fr:  { label: "Français", flag: "🇫🇷", dir: "ltr", intl: "fr-FR", complete: true },
     ar:  { label: "العربية",         flag: "🇸🇦", dir: "rtl", intl: "ar-u-nu-latn", complete: true  },
     he:  { label: "עברית",          flag: "🇮🇱", dir: "rtl", intl: "he-IL",        complete: true  },
     tlh: { label: "tlhIngan Hol",  flag: "🚀", dir: "ltr", intl: "en-GB",        complete: false },

@@ -28,6 +28,13 @@ else:
 
 
 class TwoFactorTokenObtainPairSerializer(TokenObtainPairSerializer):
+    # SimpleJWT's default "No active account found with the given
+    # credentials" is technical and reveals whether an account exists
+    # but is inactive. Replace with standard login-error wording.
+    default_error_messages = {
+        'no_active_account': 'Invalid username or password.',
+    }
+
     def validate(self, attrs):
         # Run the default validation (checks username/password)
         data = super().validate(attrs)

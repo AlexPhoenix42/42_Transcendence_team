@@ -61,22 +61,13 @@ class GameConsumer(AsyncWebsocketConsumer):
             self.is_spectator   = user not in [game.player1, game.player2]
 
             self.game_group_name   = f"game_{self.game_id}"
-            await self.channel_layer.group_add(
+            await self._group_add_safe(
                 self.game_group_name,
                 self.channel_name,
             )
 
             await self.accept()
             await self._send_game_state()
-
-            # If it's AI's turn (AI is white, player is black), trigger AI first move
-            #if  not self.is_spectator:
-            #    game_key        = f"game:{self.game_id}"
-            #    state           = await self._get_redis_hash(game_key)
-            #    if  state and state.get("status") == GameStatus.IN_PROGRESS:
-            #        ai_user_id  = await self._get_ai_user_id()
-            #        if  ai_user_id is not None and str(state.get("crnt_turn") == str(ai_user_id)):
-            #            await self._process_ai_turn(state)
 
             # If it's AI's turn (AI is white, player is black), trigger AI first move
             if  not self.is_spectator:
@@ -91,14 +82,6 @@ class GameConsumer(AsyncWebsocketConsumer):
                         ai_user_id = await self._get_ai_user_id()
                         if  ai_user_id is not None and str(state.get("crnt_turn")) == str(ai_user_id):
                             await self._process_ai_turn(state)
-
-                    #ai_user_id = await self._get_ai_user_id()
-                    #logger.info(
-                    #    "Game %s connect: crnt_turn=%s, ai_user_id=%s, user=%s, p1_color=%s",
-                    #    self.game_id, state.get("crnt_turn"), ai_user_id, self.user.pk, self.game.player1_color
-                    #)
-                    #if  ai_user_id is not None and str(state.get("crnt_turn")) == str(ai_user_id):
-                    #    await self._process_ai_turn(state)
 
             # Clear disconnect timestamp for this player (reconnection)
             game_key    = f"game:{self.game_id}"
@@ -121,10 +104,6 @@ class GameConsumer(AsyncWebsocketConsumer):
 
         if  game.status != GameStatus.IN_PROGRESS:
             return None
-
-        # this is removed to allowe spectators.
-        #if  user not in [game.player1, game.player2]:
-        #    return None
 
         return game
 
@@ -153,9 +132,6 @@ class GameConsumer(AsyncWebsocketConsumer):
             "status"    : state.get("status", self.game.status),
         }
 
-        #if  state.get("clocks"):
-        #    payload["clocks"] = state["clocks"]
-
         if  state.get("clocks"):
             import time as _time
             clocks = dict(state["clocks"])  # copy
@@ -176,14 +152,6 @@ class GameConsumer(AsyncWebsocketConsumer):
             payload["last_move"] = state["last_move"]
 
         await self.send(text_data=json.dumps(payload))
-        #await self.send(text_data=json.dumps({
-        #    "type"      : "game_state",
-        #    "fen"       : state.get("fen", self.game.board_state),
-        #    "crnt_turn" : state.get("crnt_turn", getattr(self.game.crnt_turn, "pk", None)),
-        #    "check"     : state.get("check", False),
-        #    "checkmate" : state.get("checkmate", False),
-        #    "status"    : state.get("status", self.game.status),
-        #}))
 
 
     async def _get_redis_hash(self, key: str) -> dict:
@@ -191,13 +159,15 @@ class GameConsumer(AsyncWebsocketConsumer):
         try:
             data = await sync_to_async(cache.get)(key)
             if  data:
-                # Refresh TTL to keep the key alive while game is active
-                await sync_to_async(cache.set)(key, data, timeout=86400)
+                # Refresh TTL without overwriting — avoids race with concurrent writes
+                try:
+                    await sync_to_async(cache.touch)(key, 86400)
+                except Exception:
+                    pass
             return data if data else {}
         except Exception:
             logger.exception("Redis read failed for key %s", key)
             return {}
-
 
     @database_sync_to_async
     def _get_db_game_state(self) -> dict:
@@ -255,13 +225,23 @@ class GameConsumer(AsyncWebsocketConsumer):
 
 
     async def receive(self, text_data=None, bytes_data=None):
-        # ── 0. Handle spectators ──────────────────────────────────────
+        # ── 0. Allow state resync for everyone (including spectators) ──
+        if text_data:
+            try:
+                peek = json.loads(text_data)
+            except json.JSONDecodeError:
+                peek = {}
+            if peek.get("type") == "get_state":
+                await self._send_game_state()
+                return
+
+        # ── 1. Handle spectators ──────────────────────────────────────
         if  self.is_spectator:
             await self._send_error("SPECTATOR_READONLY")
             return
 
 
-        # ── 1. Parse JSON ─────────────────────────────────────────────
+        # ── 2. Parse JSON ─────────────────────────────────────────────
         if  text_data is None:
             await self._send_error("EMPTY_MESSAGE")
             return
@@ -272,7 +252,7 @@ class GameConsumer(AsyncWebsocketConsumer):
             await self._send_error("INVALID_JSON")
             return
 
-        # ── Handle undo request ────────────────────────────────────────
+        # ── 3. Handle undo request ────────────────────────────────────────
         if  data.get("type") == "undo":
             await self._handle_undo()
             return
@@ -282,7 +262,7 @@ class GameConsumer(AsyncWebsocketConsumer):
             await self._handle_set_fen(data.get("fen", ""))
             return
 
-        # ── 2. Validate required fields ─────────────────────────────────
+        # ── 4. Validate required fields ─────────────────────────────────
         move_from   = data.get("from")
         move_to     = data.get("to")
 
@@ -291,14 +271,14 @@ class GameConsumer(AsyncWebsocketConsumer):
             return
 
 
-        # ── 3. Promotion ─────────────────────────────────────────────────
+        # ── 5. Promotion ─────────────────────────────────────────────────
         promotion   = data.get("promotion")
         move_str    = f"{move_from}{move_to}"
         if  promotion in ("q", "r", "b", "n"):
             move_str += promotion
 
 
-        # ── 4. Read live state from Redis ─────────────────────────────────
+        # ── 6. Read live state from Redis ─────────────────────────────────
         game_key    = f"game:{self.game_id}"
         state       = await self._get_redis_hash(game_key)
 
@@ -319,14 +299,14 @@ class GameConsumer(AsyncWebsocketConsumer):
             return
 
 
-        # ── 5. Turn validation ────────────────────────────────────────────
+        # ── 7. Turn validation ────────────────────────────────────────────
         # only the player whose turn it is can move
         if  str(state.get("crnt_turn")) != str(self.user.pk):
             await self._send_error("NOT_YOUR_TURN")
             return
 
 
-        # ── 6. Call the external chess engine ─────────────────────────────
+        # ── 8. Call the external chess engine ─────────────────────────────
         # Call the external chess engine
         try:
             async with httpx.AsyncClient() as client:
@@ -359,25 +339,21 @@ class GameConsumer(AsyncWebsocketConsumer):
             return
 
 
-        # ── 7. Process engine response ──────────────────────────────────
+        # ── 9. Process engine response ──────────────────────────────────
         # If the move is illegal, reject it
         if  not engine_data.get("legal"):
             await self._send_error("ILLEGAL_MOVE")
             return
 
 
-        # ── 8. Re‑read status to avoid race with concurrent resignation ──
-        #current_state = await self._get_redis_hash(game_key)
-        #if  current_state.get("status") != GameStatus.IN_PROGRESS:
-        #    await self._send_error("GAME_OVER")
-        #    return
+        # ── 10. Re‑read status to avoid race with concurrent resignation ──
         state   = await self._get_redis_hash(game_key)
         if  not state or state.get("status") != GameStatus.IN_PROGRESS:
             await self._send_error("GAME_OVER")
             return
 
 
-        # ── INSERT CLOCK UPDATE HERE ─────────────────────────────────────
+        # ── 11. INSERT CLOCK UPDATE HERE ─────────────────────────────────────
         now = time.time()
         if  state.get("timer"):
             timer   = state["timer"]
@@ -387,11 +363,6 @@ class GameConsumer(AsyncWebsocketConsumer):
             })
             last_tick   = state.get("last_tick", now)
             elapsed     = now - last_tick
-
-            #mover_key   = str(self.user.pk)
-            #if  mover_key in clocks:
-            #    clocks[mover_key] -= elapsed
-            #    clocks[mover_key] += timer["inc"]
 
             mover_key   = str(self.user.pk)
             if  mover_key in clocks:
@@ -403,10 +374,9 @@ class GameConsumer(AsyncWebsocketConsumer):
                     await sync_to_async(cache.set)(game_key, state, timeout=86400)
                     opponent_id = self.game.player2_id if self.user == self.game.player1 else self.game.player1_id
                     await self._finish_game(opponent_id, GameResultReason.TIMEOUT)
-                    await self.channel_layer.group_send(
-                        self.game_group_name,
-                        {"type": "game_over", "winner": opponent_id, "reason": GameResultReason.TIMEOUT},
-                    )
+                    await self._group_send_safe(
+                            self.game_group_name,
+                            {"type": "game_over", "winner": opponent_id, "reason": GameResultReason.TIMEOUT},)
                     return
                 clocks[mover_key] += timer["inc"]
 
@@ -414,25 +384,25 @@ class GameConsumer(AsyncWebsocketConsumer):
             state["last_tick"]  = now
 
 
-        # ── 9. Update game state in Redis ─────────────────────────────────
+        # ── 12. Update game state in Redis ─────────────────────────────────
         # Move is legal, update game state
         opponent    = self.game.player2 if self.user == self.game.player1 else self.game.player1
         opponent_id = opponent.pk
 
-        # Update the in-memory state dict
+        #  ── 13. Update the in-memory state dict ───────────────────────────
         new_fen             = engine_data.get("new_fen")
         if  new_fen is None:
             await self._send_error("ENGINE_ERROR", detail="Engine response missing new_fen")
             return
 
-                # ── Draw rule checks ─────────────────────────────────────────────
+        # ── 14. Draw rule checks ───────────────────────────────────────────
         fen_parts = new_fen.split(" ")
         position_key = " ".join(fen_parts[:4])
 
         pos_counts: dict[str, int] = state.setdefault("position_counts", {})
         pos_counts[position_key] = pos_counts.get(position_key, 0) + 1
 
-        # Threefold repetition
+        # ── 15. Threefold repetition ───────────────────────────────────────
         if pos_counts[position_key] >= 3:
             ai_user_id = await self._get_ai_user_id()
             if ai_user_id is not None:
@@ -441,7 +411,7 @@ class GameConsumer(AsyncWebsocketConsumer):
                 state["fen"] = new_fen
                 await sync_to_async(cache.set)(game_key, state, timeout=86400)
                 await self._finish_game(ai_user_id, "REPETITION")
-                await self.channel_layer.group_send(
+                await self._group_send_safe(
                     self.game_group_name,
                     {"type": "game_over", "winner": ai_user_id, "reason": "REPETITION"},
                 )
@@ -452,7 +422,7 @@ class GameConsumer(AsyncWebsocketConsumer):
                 state["fen"] = new_fen
                 await sync_to_async(cache.set)(game_key, state, timeout=86400)
                 await self._finish_game_draw()
-                await self.channel_layer.group_send(
+                await self._group_send_safe(
                     self.game_group_name,
                     {"type": "game_over", "winner": 0, "reason": "DRAW_REPETITION"},
                 )
@@ -467,7 +437,7 @@ class GameConsumer(AsyncWebsocketConsumer):
                 state["fen"] = new_fen
                 await sync_to_async(cache.set)(game_key, state, timeout=86400)
                 await self._finish_game(ai_user_id, "50_MOVES")
-                await self.channel_layer.group_send(
+                await self._group_send_safe(
                     self.game_group_name,
                     {"type": "game_over", "winner": ai_user_id, "reason": "50_MOVES"},
                 )
@@ -477,7 +447,7 @@ class GameConsumer(AsyncWebsocketConsumer):
                 state["fen"] = new_fen
                 await sync_to_async(cache.set)(game_key, state, timeout=86400)
                 await self._finish_game_draw()
-                await self.channel_layer.group_send(
+                await self._group_send_safe(
                     self.game_group_name,
                     {"type": "game_over", "winner": 0, "reason": "DRAW_50_MOVES"},
                 )
@@ -492,7 +462,7 @@ class GameConsumer(AsyncWebsocketConsumer):
                 state["fen"] = new_fen
                 await sync_to_async(cache.set)(game_key, state, timeout=86400)
                 await self._finish_game(ai_user_id, "INSUFFICIENT_MATERIAL")
-                await self.channel_layer.group_send(
+                await self._group_send_safe(
                     self.game_group_name,
                     {"type": "game_over", "winner": ai_user_id, "reason": "INSUFFICIENT_MATERIAL"},
                 )
@@ -502,7 +472,7 @@ class GameConsumer(AsyncWebsocketConsumer):
                 state["fen"] = new_fen
                 await sync_to_async(cache.set)(game_key, state, timeout=86400)
                 await self._finish_game_draw()
-                await self.channel_layer.group_send(
+                await self._group_send_safe(
                     self.game_group_name,
                     {"type": "game_over", "winner": 0, "reason": "DRAW_INSUFFICIENT"},
                 )
@@ -539,7 +509,7 @@ class GameConsumer(AsyncWebsocketConsumer):
 
         # ── 10. Broadcast new state ─────────────────────────────────────
         # Broadcast new state to both players
-        await self.channel_layer.group_send(
+        await self._group_send_safe(
             self.game_group_name,
             {
                 "type"      : "game_state_update",
@@ -553,7 +523,7 @@ class GameConsumer(AsyncWebsocketConsumer):
         if  engine_data.get("checkmate"):
             await self._finish_game(self.user.pk, GameResultReason.CHECKMATE)
 
-            await self.channel_layer.group_send(
+            await self._group_send_safe(
                 self.game_group_name,
                 {
                     "type"      : "game_over",
@@ -562,6 +532,7 @@ class GameConsumer(AsyncWebsocketConsumer):
                 },
             )
 
+
         # ── 12. AI turn ────────────────────────────────────────────────
         # If the next player is the AI, automatically request a move
         ai_user_id  = await self._get_ai_user_id()
@@ -569,6 +540,7 @@ class GameConsumer(AsyncWebsocketConsumer):
             and str(state["crnt_turn"]) == str(ai_user_id) \
             and state.get("status")     == GameStatus.IN_PROGRESS :
             await self._process_ai_turn(state)
+
 
     async def _handle_undo(self):
         game_key    = f"game:{self.game_id}"
@@ -615,7 +587,7 @@ class GameConsumer(AsyncWebsocketConsumer):
 
         await sync_to_async(cache.set)(game_key, state, timeout=86400)
 
-        await self.channel_layer.group_send(
+        await self._group_send_safe(
             self.game_group_name,
             {"type": "game_state_update", "state": state},
         )
@@ -658,11 +630,10 @@ class GameConsumer(AsyncWebsocketConsumer):
 
         await sync_to_async(cache.set)(game_key, state, timeout=86400)
 
-        await self.channel_layer.group_send(
+        await self._group_send_safe(
             self.game_group_name,
             {"type": "game_state_update", "state": state},
         )
-
 
 
     async def _send_error(self, code: str, detail: str | None = None) -> None:
@@ -672,20 +643,37 @@ class GameConsumer(AsyncWebsocketConsumer):
             payload["detail"] = detail
         await self.send(text_data=json.dumps(payload))
 
-    #async def _get_ai_user_id(self) -> int | None:
-    #    """Return the PK of the stockfish_ai user, or None if not found."""
-    #    cache_key   = "_ai_user_id"
-    #    ai_id      = await sync_to_async(cache.get)(cache_key)
-    #    if  ai_id is None:
-    #        ai_user = await database_sync_to_async(
-    #            get_user_model().objects.filter(username="stockfish_ai").first
-    #        )()
 
-    #        if  ai_user:
-    #            ai_id   = ai_user.pk
-    #            await sync_to_async(cache.set)(cache_key, ai_id, timeout=3600)
+    async def _group_send_safe(self, group, message):
+        """group_send that logs instead of crashing Daphne."""
+        try:
+            await self.channel_layer.group_send(group, message)
+        except Exception:
+            logger.exception(
+                "group_send failed for game %s (type=%s)",
+                self.game_id, message.get("type", "?"),
+            )
 
-    #    return ai_id
+
+    async def _group_discard_safe(self, group, channel):
+        """group_discard that logs instead of crashing Daphne."""
+        try:
+            await self.channel_layer.group_discard(group, channel)
+        except Exception:
+            logger.exception(
+                "group_discard failed for game %s", self.game_id,
+            )
+
+
+    async def _group_add_safe(self, group, channel):
+        """group_add that logs instead of crashing Daphne."""
+        try:
+            await self.channel_layer.group_add(group, channel)
+        except Exception:
+            logger.exception(
+                "group_add failed for game %s", self.game_id,
+            )
+
 
     async def _get_ai_user_id(self) -> int | None:
         """Return the PK of the AI player in this game, or None."""
@@ -734,7 +722,7 @@ class GameConsumer(AsyncWebsocketConsumer):
             state["fen"] = state["fen"]
             await sync_to_async(cache.set)(game_key, state, timeout=86400)
             await self._finish_game(self.user.pk, "STALEMATE")
-            await self.channel_layer.group_send(
+            await self._group_send_safe(
                 self.game_group_name,
                 {"type": "game_over", "winner": self.user.pk, "reason": "STALEMATE"},
             )
@@ -785,7 +773,7 @@ class GameConsumer(AsyncWebsocketConsumer):
             state["fen"] = new_fen
             await sync_to_async(cache.set)(game_key, state, timeout=86400)
             await self._finish_game(ai_user_id, "REPETITION")
-            await self.channel_layer.group_send(
+            await self._group_send_safe(
                 self.game_group_name,
                 {"type": "game_over", "winner": ai_user_id, "reason": "REPETITION"},
             )
@@ -797,7 +785,7 @@ class GameConsumer(AsyncWebsocketConsumer):
             state["fen"] = new_fen
             await sync_to_async(cache.set)(game_key, state, timeout=86400)
             await self._finish_game(ai_user_id, "50_MOVES")
-            await self.channel_layer.group_send(
+            await self._group_send_safe(
                 self.game_group_name,
                 {"type": "game_over", "winner": ai_user_id, "reason": "50_MOVES"},
             )
@@ -809,7 +797,7 @@ class GameConsumer(AsyncWebsocketConsumer):
             state["fen"] = new_fen
             await sync_to_async(cache.set)(game_key, state, timeout=86400)
             await self._finish_game(ai_user_id, "INSUFFICIENT_MATERIAL")
-            await self.channel_layer.group_send(
+            await self._group_send_safe(
                 self.game_group_name,
                 {"type": "game_over", "winner": ai_user_id, "reason": "INSUFFICIENT_MATERIAL"},
             )
@@ -851,11 +839,6 @@ class GameConsumer(AsyncWebsocketConsumer):
             last_tick   = state.get("last_tick", now)
             elapsed     = now - last_tick
 
-            #mover_key   = str(ai_user_id)
-            #if  mover_key in clocks:
-            #    clocks[mover_key] -= elapsed
-            #    clocks[mover_key] += timer["inc"]
-
             mover_key   = str(ai_user_id)
             if  mover_key in clocks:
                 clocks[mover_key] -= elapsed
@@ -866,7 +849,7 @@ class GameConsumer(AsyncWebsocketConsumer):
                     await sync_to_async(cache.set)(game_key, state, timeout=86400)
                     human_id = self.game.player1_id if str(self.game.player2_id) == mover_key else self.game.player2_id
                     await self._finish_game(human_id, GameResultReason.TIMEOUT)
-                    await self.channel_layer.group_send(
+                    await self._group_send_safe(
                         self.game_group_name,
                         {"type": "game_over", "winner": human_id, "reason": GameResultReason.TIMEOUT},
                     )
@@ -885,7 +868,7 @@ class GameConsumer(AsyncWebsocketConsumer):
             return
 
         # Broadcast
-        await self.channel_layer.group_send(
+        await self._group_send_safe(
             self.game_group_name,
             {"type": "game_state_update", "state": state},
         )
@@ -893,7 +876,7 @@ class GameConsumer(AsyncWebsocketConsumer):
         # Checkmate finalization
         if  engine_data.get("checkmate"):
             await self._finish_game(ai_user_id, GameResultReason.CHECKMATE)
-            await self.channel_layer.group_send(
+            await self._group_send_safe(
                 self.game_group_name,
                 {"type": "game_over", "winner": ai_user_id, "reason": GameResultReason.CHECKMATE},
             )
@@ -910,8 +893,16 @@ class GameConsumer(AsyncWebsocketConsumer):
             "checkmate" : state.get("checkmate", False),
             "status"    : state.get("status", GameStatus.IN_PROGRESS),
         }
+
         if  state.get("clocks"):
-            payload["clocks"] = state["clocks"]
+            import time as _time
+            clocks      = dict(state["clocks"])     # copy
+            last_tick   = state.get("last_tick")
+            crnt        = str(state.get("crnt_turn"))
+            if  last_tick and crnt in clocks:
+                elapsed         = _time.time() - last_tick
+                clocks[crnt]    = max(0, clocks[crnt] - elapsed)
+            payload["clocks"] = clocks
 
         if  state.get("timer"):
             payload["timer"] = state["timer"]
@@ -924,15 +915,6 @@ class GameConsumer(AsyncWebsocketConsumer):
 
         await self.send(text_data=json.dumps(payload))
 
-        #await self.send(text_data=json.dumps({
-        #    "type"      : "game_state",
-        #    "fen"       : event["state"]["fen"],
-        #    "crnt_turn" : event["state"]["crnt_turn"],
-        #    "check"     : event["state"].get("check", False),
-        #    "checkmate" : event["state"].get("checkmate", False),
-        #    "status"    : event["state"].get("status", GameStatus.IN_PROGRESS),
-        #}))
-
 
     async def game_over(self, event):
         """Forward game‑over event to WebSocket client."""
@@ -942,40 +924,6 @@ class GameConsumer(AsyncWebsocketConsumer):
             "reason"    : event["reason"],
         }))
 
-
-    #@database_sync_to_async
-    #def _finish_game(self, winner_id: int, reason: str) -> None:
-    #    """Persist final state to the database."""
-    #    redis_state = cache.get(f"game:{self.game_id}") or {}
-
-    #    Game.objects.filter(pk=self.game_id).update(
-    #        winner_id=winner_id,
-    #        result_reason=reason,
-    #        status=GameStatus.FINISHED,
-    #        board_state=redis_state.get("fen", self.game.board_state),
-    #        moves=redis_state.get("moves", []),
-    #    )
-
-    #    # Clear up Redis (without waiting for the 24h TTL)
-    #    cache.delete(f"game:{self.game_id}")
-
-    #    # Remove from active games set
-    #    #redis_client = get_redis_connection("default")
-    #    #redis_client.srem("active_games", self.game_id)
-    #    active_games    = cache.get("active_games", set())
-    #    active_games.discard(str(self.game_id))
-    #    cache.set("active_games", active_games, timeout=None)
-
-    #    #game                = self.game
-    #    #game.winner_id      =  winner_id
-    #    #game.result_reason  = reason
-    #    #game.status         = GameStatus.FINISHED
-
-    #    #redis_state         = cache.get(f"game:{self.game_id}") or {}
-    #    #game.board_state    = redis_state.get("fen", game.board_state)
-
-    #    #game.moves          = redis_state.get("moves", [])
-    #    #game.save()
 
     @database_sync_to_async
     def _finish_game_draw(self) -> None:
@@ -1008,6 +956,7 @@ class GameConsumer(AsyncWebsocketConsumer):
         active_games = cache.get("active_games", set())
         active_games.discard(str(self.game_id))
         cache.set("active_games", active_games, timeout=None)
+
 
     @database_sync_to_async
     def _finish_game(self, winner_id: int, reason: str) -> None:
@@ -1047,13 +996,6 @@ class GameConsumer(AsyncWebsocketConsumer):
         active_games.discard(str(self.game_id))
         cache.set("active_games", active_games, timeout=None)
 
-    #async def disconnect(self, code):
-    #    if  hasattr(self, "game_group_name"):
-    #        await self.channel_layer.group_discard(
-    #            self.game_group_name,
-    #            self.channel_name,
-    #        )
-
 
     async def disconnect(self, code):
         if  hasattr(self, "game_group_name"):
@@ -1067,7 +1009,7 @@ class GameConsumer(AsyncWebsocketConsumer):
                     await sync_to_async(cache.set)(game_key, state, timeout=86400)
 
             # Still leave the channel group
-            await self.channel_layer.group_discard(
+            await self._group_discard_safe(
                 self.game_group_name,
                 self.channel_name,
             )

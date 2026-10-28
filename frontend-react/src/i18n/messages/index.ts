@@ -6,14 +6,16 @@ import type { Locale } from "../config.ts"
 import type { MessageTable } from "./en.ts"
 import { en } from "./en.ts"
 import { nl } from "./nl.ts"
+import { fr } from "./fr.ts"
 import { ar } from "./ar.ts"
 import { he } from "./he.ts"
 import { tlh } from "./tlh.ts"
 
 // `en` is complete by definition; the others may be partial.
-export const MESSAGES: Record<Locale, MessageTable> = { en, nl, ar, he, tlh }
+export const MESSAGES: Record<Locale, MessageTable> = { en, nl, ar, he, tlh, fr }
 
 // Exported separately because the fallback chain always needs the full
 // English table, not the partial view.
 export { en }
 export type { MessageKey, MessageTable } from "./en.ts"
+

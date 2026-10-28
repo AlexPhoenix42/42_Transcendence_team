@@ -23,7 +23,7 @@ interface PublicProfileData {
 }
 
 export default function PublicProfile() {
-    const { t, n } = useI18n()
+    const { t, n, tn } = useI18n()
     const { username } = useParams()
     const navigate = useNavigate()
     const [profile, setProfile] = useState<PublicProfileData | null>(null)
@@ -134,7 +134,7 @@ export default function PublicProfile() {
                 </div>
 
                 <div className="text-gray-400 text-sm">
-                    {profile.friends_cnt} friend{profile.friends_cnt !== 1 ? "s" : ""}
+                    {tn("publicProfile.friends", profile.friends_cnt)}
                 </div>
 
                 <button

@@ -48,6 +48,25 @@ class ThrottledTokenObtainPairView(BaseTokenObtainPairView):
     serializer_class = TwoFactorTokenObtainPairSerializer
 
     def post(self, request, *args, **kwargs):
+        # ── account lockout check ─────────────────────────────
+        from django.utils import timezone as tz
+        _uname = request.data.get("username", "")
+        if  _uname:
+            from django.contrib.auth import get_user_model
+            _U = get_user_model()
+            try:
+                _target = _U.objects.get(username=_uname)
+                if  _target.locked_until and _target.locked_until > tz.now():
+                    from rest_framework.response import Response
+                    from rest_framework import status
+                    return Response(
+                        {"detail": "Account temporarily locked. Try again later."},
+                        status=status.HTTP_403_FORBIDDEN,
+                    )
+            except _U.DoesNotExist:
+                pass
+        # ──────────────────────────────────────────────────────
+
         resp = super().post(request, *args, **kwargs)
 
         # If 2FA is required, dont touch cookies, just pass through
@@ -245,31 +264,12 @@ class PasswordResetRequestConfirmView(APIView):
         user.set_password(new_password)
         user.save(update_fields=["password"])
 
+        # ── audit log ──
+        from audit.utils import log_event
+        log_event("password_reset", request, user=user)
+        # ────────────────
+
         return Response({"status": "Password has been reset."})
-
-        #token           = request.data.get("token")
-        #uid             = request.data.get("uid")
-        #new_password    = request.data.get("new_password")
-
-        #if  not token or not uid or not new_password:
-        #    return Response(
-        #        {"error": "token, uid, and new_password, are required."},
-        #        status=400,
-        #    )
-
-        #try:
-        #    user = User.objects.get(pk=uid)
-        #except User.DoesNotExist:
-        #    return Response({"error": "Invalid or expired token."}, status=400)
-
-        #if  not verify_reset_token(user, "password", token):
-        #    return Response({"error": "Invalid or expired token."}, status=400)
-
-        ## Apply the new password
-        #user.set_password(new_password)
-        #user.save(update_fields=["password"])
-
-        #return Response({"status": "Password has been reset."})
 # ===========================================================================
 
 

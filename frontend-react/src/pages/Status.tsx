@@ -32,6 +32,7 @@ const KIND_ICONS: Record<string, string> = {
     secrets:  "🔐",
     proxy:    "🌐",
     service:  "♟️",
+	whiteboard: "🎨",
     email:    "📧",
 }
 
@@ -84,7 +85,7 @@ export default function Status() {
 				<h1 className="text-2xl font-bold text-white mb-1">{t("status.title")}</h1>
 				<p className="text-sm text-gray-500 mb-8">
 					{data
-						? `${Object.keys(data.services).length} services monitored · checked in ${data.total_time_ms} ms`
+						? t("status.summary", { count: Object.keys(data.services).length, ms: data.total_time_ms })
 						: t("status.checking")}
 				</p>
 
@@ -127,7 +128,7 @@ export default function Status() {
 										{KIND_ICONS[svc.kind] ?? "📦"} {name}
 									</div>
 									<div className="text-xs text-gray-500">
-										{svc.kind}{svc.critical ? " · critical" : ""}
+										{svc.kind}{svc.critical ? ` · ${t("status.critical")}` : ""}
 										{svc.error ? ` · ${svc.error}` : ""}
 									</div>
 								</div>
@@ -146,7 +147,7 @@ export default function Status() {
 				{history.length > 1 && (
 					<div className="mt-8">
 						<p className="text-xs text-gray-500 mb-2">
-							Last {t("status.checks", { count: n(history.length) })}
+							{t("status.last", { checks: t("status.checks", { count: n(history.length) }) })}
 						</p>
 						<div className="flex gap-0.5 items-end">
 							{history.map((s, i) => (
@@ -163,6 +164,42 @@ export default function Status() {
 					</div>
 				)}
 
+				{/* Quick links */}
+				<div className="mt-8">
+					<h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">{t("status.quickLinks")}</h2>
+					<div className="grid grid-cols-3 gap-3">
+						<a
+							href="/grafana"
+							target="_blank"
+							rel="noopener noreferrer"
+							className="flex items-center gap-2 px-4 py-3 rounded-lg border border-gray-700 bg-gray-800 hover:border-blue-500/50 hover:bg-gray-750 transition"
+						>
+							<span>📊</span>
+							{/* i18n-exempt: product name */}
+							<span className="text-sm text-white font-medium">Grafana</span>
+						</a>
+						<a
+							href="/mailpit"
+							target="_blank"
+							rel="noopener noreferrer"
+							className="flex items-center gap-2 px-4 py-3 rounded-lg border border-gray-700 bg-gray-800 hover:border-blue-500/50 hover:bg-gray-750 transition"
+						>
+							<span>📧</span>
+							{/* i18n-exempt: product name */}
+							<span className="text-sm text-white font-medium">Mailpit</span>
+						</a>
+						<a
+							href="/docs"
+							target="_blank"
+							rel="noopener noreferrer"
+							className="flex items-center gap-2 px-4 py-3 rounded-lg border border-gray-700 bg-gray-800 hover:border-blue-500/50 hover:bg-gray-750 transition"
+						>
+							<span>📚</span>
+							<span className="text-sm text-white font-medium">{t("status.link.apiDocs")}</span>
+						</a>
+					</div>
+				</div>
+
 				{/* Footer */}
 				<div className="mt-8 pt-4 border-t border-gray-700 flex justify-between items-center">
 					<span className="text-xs text-gray-500">
@@ -174,7 +211,7 @@ export default function Status() {
 						onClick={() => { setLoading(true); fetchHealth() }}
 						className="text-xs text-gray-400 border border-gray-700 px-3 py-1 rounded hover:text-white hover:border-gray-500 transition"
 					>
-						Refresh now
+						{t("status.refresh")}
 					</button>
 				</div>
 			</div>

@@ -53,10 +53,6 @@ class FriendListView(APIView):
         ]
 
         return paginator.get_paginated_response(data)
-        #return  Response({
-        #            "count"     : len(data),
-        #            "friends"   : data,
-        #        })
 # ===========================================================================
 
 
@@ -86,7 +82,6 @@ class FriendRequestListView(APIView):
         serializer  = FriendRequestSerializer(page, many=True)
 
         return paginator.get_paginated_response(serializer.data)
-        #return Response(serializer.data)
 # ===========================================================================
 
 
@@ -209,12 +204,6 @@ class SendFriendRequestView(APIView):
                         status=status.HTTP_409_CONFLICT,
                     )
 
-                # safe to create
-                #friend_request = FriendRequest.objects.create(
-                #    from_user=request.user,
-                #    to_user=to_user,
-                #    status=FriendRequest.Status.PENDING,
-                #)
                 if  request.user.pk > to_user.pk:
                     from_user, to_user = to_user, request.user
                 else:
@@ -233,54 +222,6 @@ class SendFriendRequestView(APIView):
                 {"error": "A pending request already pending."},
                 status=status.HTTP_409_CONFLICT,
             )
-
-        # create the friend request (DB constraint catches duplicates)
-            #        try:
-            #            with transaction.atomic():
-            #                # Lock existing pending requests between these two users
-            #                friend_request = FriendRequest.objects.create(
-            #                    from_user=request.user,
-            #                    to_user=to_user,
-            #                    status=FriendRequest.Status.PENDING,
-            #                )
-            #
-            #                # Lock existing pending requests between these two users
-            #                #existing = FriendRequest.objects.select_for_update().filter(
-            #                #    models.Q(from_user=request.user, to_user=to_user) |
-            #                #    models.Q(from_user=to_user, to_user=request.user),
-            #                #    status=FriendRequest.Status.PENDING,
-            #                #).exists()
-            #                #if  existing:
-            #                #    return Response(
-            #                #        {"error": "A pending request already exists between these users."},
-            #                #        status=status.HTTP_409_CONFLICT,
-            #                #    )
-            #
-            #                #friend_request = FriendRequest.objects.create(
-            #                #    from_user=request.user,
-            #                #    to_user=to_user,
-            #                #    status=FriendRequest.Status.PENDING,
-            #                #)
-            #        except IntegrityError:
-            #            # Fallback if a concurrent request sneaks in (should be rare)
-            #            return Response(
-            #                {"error": "A pending request already exists between these users."},
-            #                status=status.HTTP_409_CONFLICT,
-            #            )
-        
-
-        # create the friend request (DB constraint catches duplicates)
-        #try:
-            #    friend_request = FriendRequest.objects.create(
-            #        from_user=request.user,
-            #        to_user=to_user,
-            #        status=FriendRequest.Status.PENDING,
-            #    )
-        #except IntegrityError:
-        #    return Response(
-        #        {"error": "A pending request already exists between these users."},
-        #        status=status.HTTP_409_CONFLICT,
-        #    )
 
         serializer = FriendRequestSerializer(friend_request)
 
@@ -340,42 +281,6 @@ class ResponseFriendRequestView(APIView):
                 {"error": "Invalid action. Use 'accept' or 'decline'."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-
-
-        # Before we added 'sent_by'
-        #try:
-        #    friend_request = FriendRequest.objects.get(
-        #        pk=request_id,
-        #        to_user=request.user,
-        #        status=FriendRequest.Status.PENDING,
-        #    )
-        #except FriendRequest.DoesNotExist:
-        #    return  Response(
-        #                {"error": "Friend request not found."},
-        #                status=status.HTTP_404_NOT_FOUND,
-        #            )
-
-        #action = request.data.get("action")
-
-        #if  action == 'accept':
-        #    with transaction.atomic():
-        #        friend_request.status = FriendRequest.Status.ACCEPTED
-        #        friend_request.save()
-        #        friend_request.from_user.friends.add(friend_request.to_user)
-        #        friend_request.to_user.friends.add(friend_request.from_user)
-
-        #    return Response({"status": "Friend request accepted."})
-
-        #elif action == "decline":
-        #    friend_request.status = FriendRequest.Status.DECLINED
-        #    friend_request.save()
-        #    return Response({"status": "Friend request declined."})
-
-        #else:
-        #    return  Response(
-        #                {"error": "Invalid action. Use 'accept' or 'decline'."},
-        #                status=status.HTTP_400_BAD_REQUEST,
-        #            )
 # ===========================================================================
 
 

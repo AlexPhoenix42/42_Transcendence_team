@@ -36,7 +36,11 @@ class FortyTwoProvider(BaseOAuthProvider):
             resp = requests.post("https://api.intra.42.fr/oauth/token", data=data, timeout=10)
         except requests.exceptions.Timeout:
             raise TokenExchangeError("42 token endpoint timed out.")
+        #if  resp.status_code != 200:
+        #    raise TokenExchangeError(f"42 token endpoint returned {resp.status_code}")
         if  resp.status_code != 200:
+            import logging
+            logging.getLogger(__name__).error("42 token exchange failed: %s %s", resp.status_code, resp.text)
             raise TokenExchangeError(f"42 token endpoint returned {resp.status_code}")
 
         payload         = resp.json()

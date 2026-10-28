@@ -23,6 +23,7 @@ VAULT_ROLE_ID       = os.environ.get('VAULT_ROLE_ID')
 VAULT_SECRET_ID     = os.environ.get('VAULT_SECRET_ID')
 
 _secret_cache: dict[str, str] = {}
+_client_cache: hvac.Client | None = None
 
 def _get_approle_credentials_from_file():
     cred_file = "/vault/approle/credentials.json"
@@ -45,7 +46,7 @@ def get_vault_client():
         logger.warning("VAULT_CACERT file %s not found, falling back to insecure", verify)
         verify = False  # only for dev; comment in production
 
-    client = hvac.Client(url=VAULT_ADDR, timeout=5, verify=verify)
+    client = hvac.Client(url=VAULT_ADDR, timeout=30, verify=verify)
 
     if  VAULT_AUTH_METHOD == 'token':
         if  not VAULT_TOKEN:
@@ -87,22 +88,22 @@ def get_vault_client():
     else:
         raise ValueError(f"Unsupported VAULT_AUTH_METHOD: {VAULT_AUTH_METHOD}")
 
-
 def get_vault_secret(path, key, force_refresh=False):
     """
     Retrieve a secret from Vault's KV v2 store.
     Cached per process.
     """
-    #return "tmp"    # this to bypass crash during migration. must comment after migration.
+    global _client_cache
 
     cache_key   = f"{path}:{key}"
     if  not force_refresh and cache_key in _secret_cache:
         return _secret_cache[cache_key]
 
-    client      = get_vault_client()
+    if  _client_cache is None or not _client_cache.is_authenticated():
+        _client_cache = get_vault_client()
 
     try:
-        resp    = client.secrets.kv.v2.read_secret_version(path=path)
+        resp    = _client_cache.secrets.kv.v2.read_secret_version(path=path)
         value   = resp['data']['data'].get(key)
         if  value is None:
             raise KeyError(f"Key '{key}' not found in secret path '{path}'.")
@@ -119,4 +120,36 @@ def get_vault_secret(path, key, force_refresh=False):
         logger.error(
             "Vault read failed for path '%s', key '%s': %s", path, key, e)
         raise RuntimeError(f"Vault error: {e}.")
+
+#def get_vault_secret(path, key, force_refresh=False):
+#    """
+#    Retrieve a secret from Vault's KV v2 store.
+#    Cached per process.
+#    """
+#    #return "tmp"    # this to bypass crash during migration. must comment after migration.
+#
+#    cache_key   = f"{path}:{key}"
+#    if  not force_refresh and cache_key in _secret_cache:
+#        return _secret_cache[cache_key]
+#
+#    client      = get_vault_client()
+#
+#    try:
+#        resp    = client.secrets.kv.v2.read_secret_version(path=path)
+#        value   = resp['data']['data'].get(key)
+#        if  value is None:
+#            raise KeyError(f"Key '{key}' not found in secret path '{path}'.")
+#
+#        _secret_cache[cache_key] = value
+#
+#        return value
+#
+#    except InvalidPath:
+#        logger.error("Secret path '%s' not found", path)
+#        raise KeyError(f"Secret path '{path}' not found")
+#
+#    except Exception as e:
+#        logger.error(
+#            "Vault read failed for path '%s', key '%s': %s", path, key, e)
+#        raise RuntimeError(f"Vault error: {e}.")
 

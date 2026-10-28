@@ -134,10 +134,6 @@ def run_ai_game(game_id: int):
             logger.exception("AI autoplay: Stockfish/engine failed for game %s", game_id)
             break
 
-            #if not ai_data or not ai_data.get("move"):
-            #if nlogger.error("AI autoplay: no move for game %s", game_id)
-            #if nbreak
-
         if not ai_data or not ai_data.get("move") or ai_data["move"] == "(none)":
             # Stalemate or no legal moves — random winner for AI vs AI
             logger.warning("AI autoplay: stalemate/no moves in game %s", game_id)

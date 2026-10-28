@@ -39,7 +39,7 @@ Here's a complete summary of everything we've built, tested, and verified.
 
 ---
 
-## Frontend (`frontend/src/auth/`)
+## Frontend (`frontend-react/src/auth/`)
 
 ### Auth Module (`auth.ts`)
 - In‑memory access token storage (no `localStorage`)

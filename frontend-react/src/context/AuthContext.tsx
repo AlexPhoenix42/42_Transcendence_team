@@ -11,6 +11,7 @@ interface User {
     avatar      : string | null
 	is_staff	: boolean
 	role		: string
+	language	: string
 }
 
 interface LoginResult {
@@ -18,6 +19,7 @@ interface LoginResult {
     requires2FA?    : boolean
     tmpToken?       : string
     error?          : string
+	rawError?		: string
 }
 
 interface AuthContextType {
@@ -31,10 +33,17 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null)
 
+// Extract the human-readable error from a DRF error response.
+// DRF is inconsistent: some endpoints use "error", some "detail",
+// some "non_field_errors" (serializer validation). Try all three.
+function extractError(data: any): string {
+    return data.detail || data.error || data.non_field_errors?.[0] || ""
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
     // Safe because main.tsx renders <I18nProvider> ABOVE <App/>, so this
     // provider is always inside the i18n context.
-    const { ts } = useI18n()
+    const { t, ts } = useI18n()
     const [user, setUser]       = useState<User | null>(null)
     const [loading, setLoading] = useState(true)
 
@@ -69,19 +78,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
             const data = await resp.json()
 
-            if (!resp.ok) {
-				return { success: false, error: data.detail || data.error || data.non_field_errors?.[0] || "Login failed" }
-            }
+			if (!resp.ok) {
+				const raw = extractError(data)
+				return {
+					success: false,
+					error: ts(raw) || t("login.error.failed"),   // translated for display; rawError below for needsResend
+					rawError: raw,
+				}
+			}
 
             if (data.requires_2fa) {
                 return { success: false, requires2FA: true, tmpToken: data.tmp_token }
             }
 
             setAccessToken(data.access)
+			localStorage.setItem("has_session", "1")
             await fetchMe()
             return { success: true }
         } catch {
-            return { success: false, error: "Network error. Please try again." }
+            return { success: false, error: t("common.error.network") }
         }
     }
 
@@ -97,7 +112,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             const data = await resp.json()
 
             if (!resp.ok) {
-                return { success: false, error: ts(data.error) }
+				const raw = extractError(data)
+				return { success: false, error: ts(raw), rawError: raw }
             }
 
             if (data.requires_2fa) {
@@ -105,10 +121,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             }
 
             setAccessToken(data.access)
+			localStorage.setItem("has_session", "1")
             await fetchMe()
             return { success: true }
         } catch {
-            return { success: false, error: "Network error. Please try again." }
+            return { success: false, error: t("common.error.network") }
         }
     }
 
@@ -124,14 +141,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             const data = await resp.json()
 
             if (!resp.ok) {
-                return { success: false, error: ts(data.error) }
+				const raw = extractError(data)
+				return { success: false, error: ts(raw), rawError: raw }
             }
 
             setAccessToken(data.access)
+			localStorage.setItem("has_session", "1")
             await fetchMe()
             return { success: true }
         } catch {
-            return { success: false, error: "Network error. Please try again." }
+            return { success: false, error: t("common.error.network") }
         }
     }
 

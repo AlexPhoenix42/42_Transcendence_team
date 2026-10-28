@@ -124,6 +124,14 @@ export default function TournamentDetail() {
         fetchTournament()
         fetchParticipants()
         fetchMatches()
+
+        function handleFocus() {
+            fetchMatches()
+            fetchTournament()
+        }
+        window.addEventListener("focus", handleFocus)
+
+        return () => window.removeEventListener("focus", handleFocus)
     }, [id])
 
     async function fetchTournament() {
@@ -315,7 +323,7 @@ export default function TournamentDetail() {
     function formatTimer(timer: string | null): string {
         if (!timer) return t("tournaments.unlimited")
         const parts = timer.split("+")
-        return `${parts[0]} min + ${parts[1]} sec`
+        return t("common.timeControl", { min: parts[0], sec: parts[1] })
     }
 
     function statusColor(status: string): string {
@@ -360,7 +368,7 @@ export default function TournamentDetail() {
                             {tournament.status}
                         </span>
                         <span className="text-gray-400 text-sm">
-                            {participants.length}/{tournament.max_players} players
+                            {t("tdetail.playerCount", { count: participants.length, max: tournament.max_players })}
                         </span>
                         <span className="text-gray-400 text-sm">
                             {formatTimer(tournament.timer)}
@@ -445,7 +453,7 @@ export default function TournamentDetail() {
             <div className="bg-gray-800 rounded-lg border border-gray-700 p-5 mb-6">
                 <h2 className="text-xl font-semibold text-white mb-3">{t("tdetail.participants")}</h2>
                 {participants.length === 0 ? (
-                    <p className="text-gray-400">No participants yet.</p>
+                    <p className="text-gray-400">{t("tdetail.noParticipants")}</p>
                 ) : (
                     <div className="flex flex-wrap gap-2">
                         {participants.map((p) => (
@@ -473,10 +481,10 @@ export default function TournamentDetail() {
                         <div key={roundNb} className="mb-6">
                             <h3 className="text-lg font-semibold text-gray-300 mb-3">
                                 {roundNb === roundNumbers[roundNumbers.length - 1] && roundNumbers.length > 1
-                                    ? "Final"
+                                    ? t("bracket.final")
                                     : roundNumbers.length > 2 && roundNb === roundNumbers[roundNumbers.length - 2]
-                                    ? "Semi-Final"
-                                    : `Round ${roundNb}`
+                                    ? t("bracket.semiFinals")
+                                    : t("bracket.round", { n: roundNb })
                                 }
                             </h3>
                             <div className="space-y-2">
@@ -493,7 +501,7 @@ export default function TournamentDetail() {
                                                     ? "text-red-400"
                                                     : "text-white"
                                             }`}>
-                                                {match.player1 || "TBD"}
+                                                {match.player1 || t("bracket.tbd")}
                                             </span>
                                             <span className="text-gray-500">vs</span>
                                             <span className={`font-semibold ${
@@ -503,7 +511,7 @@ export default function TournamentDetail() {
                                                     ? "text-red-400"
                                                     : "text-white"
                                             }`}>
-                                                {match.player2 || "TBD"}
+                                                {match.player2 || t("bracket.tbd")}
                                             </span>
                                             <span className={`text-sm ${matchStatusColor(match.status)}`}>
                                                 {match.status}
@@ -526,10 +534,10 @@ export default function TournamentDetail() {
                                                     className="px-3 py-1 bg-gray-700 text-white rounded hover:bg-gray-600 text-sm"
                                                 >
                                                     {match.status === "IN_PROGRESS" && (match.player1 === user?.username || match.player2 === user?.username)
-                                                        ? "Play"
+                                                        ? t("bracket.play")
                                                         : match.status === "IN_PROGRESS"
-                                                        ? "Watch"
-                                                        : "View"}
+                                                        ? t("bracket.watch")
+                                                        : t("bracket.view")}
                                                 </button>
                                             )}
                                         </div>
@@ -604,7 +612,7 @@ export default function TournamentDetail() {
                         </div>
 						{chatTypingUser && (
                             <div className="px-3 py-1 text-gray-500 text-xs italic">
-                                {chatTypingUser} is typing...
+                                {t("chat.typing", { name: chatTypingUser })}
                             </div>
                         )}
                         <form onSubmit={handleChatSend} className="border-t border-gray-700 p-3 flex gap-2">

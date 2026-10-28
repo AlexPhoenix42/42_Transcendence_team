@@ -6,7 +6,8 @@ import { api, getAccessToken, mediaUrl } from "../api/client.ts"
 import { useNavigate } from "react-router-dom"
 import { useI18n } from "../i18n/I18nProvider.tsx"
 import Achievements from "../components/Achievements.tsx"
-import { validateMaxLength } from '../utils/validate'
+import { validateMaxLength, validate2FACode } from '../utils/validate'
+import { QRCodeSVG } from "qrcode.react"
 
 interface ProfileData {
     username: string
@@ -39,13 +40,20 @@ export default function Profile() {
     const [totpSecret, setTotpSecret] = useState("")
     const [confirmCode, setConfirmCode] = useState("")
     const [recoveryCodes, setRecoveryCodes] = useState<string[]>([])
+	const [confirming2FA, setConfirming2FA] = useState(false)
     const [disablePassword, setDisablePassword] = useState("")
     const [showDisable, setShowDisable] = useState(false)
 	const [disableCode, setDisableCode] = useState("")
 
+	// API Key state
+    const [hasApiKey, setHasApiKey] = useState(false)
+    const [apiKeyPrefix, setApiKeyPrefix] = useState("")
+    const [newApiKey, setNewApiKey] = useState("")
+
     useEffect(() => {
         fetchProfile()
         check2FAStatus()
+		checkApiKeyStatus()
     }, [])
 
     async function fetchProfile() {
@@ -82,7 +90,7 @@ export default function Profile() {
 		const err = validateMaxLength(dispname, 50, "Display name")
             || validateMaxLength(bio, 500, "Bio")
         if (err) {
-            setError(err)
+            setError(t(err))
             return
         }
 
@@ -106,17 +114,28 @@ export default function Profile() {
         }
     }
 
+	async function checkApiKeyStatus() {
+        try {
+            const resp = await api("/api/me/api-key/")
+            if (resp.ok) {
+                const data = await resp.json()
+                setHasApiKey(data.has_key)
+                setApiKeyPrefix(data.prefix || "")
+            }
+        } catch {}
+    }
+
     async function handleAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
         const file = e.target.files?.[0]
         if (!file) return
 
 		const allowedTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"]
         if (!allowedTypes.includes(file.type)) {
-            setError("Avatar must be JPEG, PNG, GIF, or WebP")
+            setError(t("profile.error.avatarType"))
             return
         }
         if (file.size > 5 * 1024 * 1024) {
-            setError("Avatar must be under 5MB")
+            setError(t("profile.error.avatarSize"))
             return
         }
 
@@ -135,6 +154,9 @@ export default function Profile() {
 
             if (resp.ok) {
                 const data = await resp.json()
+				if (data.avatar) {
+                    data.avatar = data.avatar + (data.avatar.includes('?') ? '&' : '?') + 't=' + Date.now()
+                }
                 setProfile(data)
                 setSuccess(t("profile.msg.avatarUpdated"))
             } else {
@@ -169,10 +191,12 @@ export default function Profile() {
     async function handleConfirm2FA(e: React.FormEvent) {
         e.preventDefault()
         setError("")
+		setConfirming2FA(true)
 
 		const err = validate2FACode(confirmCode)
         if (err) {
-            setError(err)
+            setError(t(err))
+			setConfirming2FA(true)
             return
         }
 
@@ -184,45 +208,24 @@ export default function Profile() {
 
             const data = await resp.json()
 
-            if (resp.ok) {
+			if (resp.ok) {
                 setHas2FA(true)
                 setEnabling2FA(false)
                 setQrUri("")
                 setTotpSecret("")
                 setConfirmCode("")
                 setRecoveryCodes(data.recovery_codes || [])
-                setSuccess("2FA enabled successfully!")
+                setError("")
+                setSuccess(t("profile.2fa.msg.enabled"))
             } else {
                 setError(ts(data.error, "twofa.error.invalidCode"))
             }
         } catch {
             setError(t("common.error.network"))
+        } finally {
+            setConfirming2FA(false)
         }
     }
-
-    //async function handleDisable2FA(e: React.FormEvent) {
-    //    e.preventDefault()
-    //    setError("")
-
-    //    try {
-    //        const resp = await api("/api/auth/2fa/disable/", {
-    //            method: "POST",
-    //            body: JSON.stringify({ password: disablePassword }),
-    //        })
-
-    //        if (resp.ok) {
-    //            setHas2FA(false)
-    //            setShowDisable(false)
-    //            setDisablePassword("")
-    //            setSuccess("2FA disabled")
-    //        } else {
-    //            const data = await resp.json()
-    //            setError(ts(data.error))
-    //        }
-    //    } catch {
-    //        setError(t("common.error.network"))
-    //    }
-    //}
 
     async function handleDisable2FA(e: React.FormEvent) {
         e.preventDefault()
@@ -248,7 +251,7 @@ export default function Profile() {
                 setShowDisable(false)
                 setDisablePassword("")
                 setDisableCode("")
-                setSuccess("2FA disabled")
+                setSuccess(t("profile.2fa.msg.disabled"))
             } else {
                 const data = await resp.json()
                 setError(ts(data.error))
@@ -410,10 +413,10 @@ export default function Profile() {
 
                 {enabling2FA ? (
                     <div className="space-y-4">
-                        <p className="text-gray-400">Scan this QR code with your authenticator app, or enter the secret manually:</p>
+                        <p className="text-gray-400">{t("profile.2fa.scanPrompt")}</p>
 
                         <div className="bg-white p-4 rounded inline-block">
-                            <img src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrUri)}`} alt={t("profile.2fa.qrAlt")} />
+							<QRCodeSVG value={qrUri} size={200} />
                         </div>
 
                         <div>
@@ -421,7 +424,7 @@ export default function Profile() {
                             <code className="text-green-400 bg-gray-900 px-3 py-1 rounded text-sm block mt-1 break-all">{totpSecret}</code>
                         </div>
 
-                        <form onSubmit={handleConfirm2FA} className="space-y-3">
+                        <form onSubmit={handleConfirm2FA} noValidate className="space-y-3">
                             <input
                                 type="text"
                                 placeholder={t("profile.2fa.confirmPlaceholder")}
@@ -432,10 +435,10 @@ export default function Profile() {
                                 required
                             />
                             <div className="flex gap-2">
-                                <button type="submit" className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
-                                    {t("common.confirm")}
+								<button type="submit" disabled={confirming2FA} className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                                    {confirming2FA ? t("common.loading") : t("common.confirm")}
                                 </button>
-                                <button type="button" onClick={() => setEnabling2FA(false)} className="px-4 py-2 bg-gray-700 text-white rounded hover:bg-gray-600">
+								<button type="button" onClick={() => setEnabling2FA(false)} disabled={confirming2FA} className="px-4 py-2 bg-gray-700 text-white rounded hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed">
                                     {t("common.cancel")}
                                 </button>
                             </div>
@@ -443,7 +446,7 @@ export default function Profile() {
                     </div>
                 ) : has2FA ? (
                     <div>
-                        <p className="text-green-400 mb-4">2FA is enabled on your account.</p>
+                        <p className="text-green-400 mb-4">{t("profile.2fa.enabledStatus")}</p>
 
                         {showDisable ? (
                             <form onSubmit={handleDisable2FA} className="space-y-3">
@@ -491,6 +494,217 @@ export default function Profile() {
                         </button>
                     </div>
                 )}
+            </div>
+			{/* GDPR Section */}
+            <div className="bg-gray-800 rounded-lg p-6 border border-gray-700 mt-6">
+                <h2 className="text-xl text-white font-semibold mb-4">{t("gdpr.title")}</h2>
+
+                <div className="space-y-4">
+                    {/* Export */}
+                    <div>
+                        <p className="text-gray-400 mb-2">{t("gdpr.exportDesc")}</p>
+                        <div className="flex gap-2">
+                            <select
+                                id="export-format"
+                                defaultValue="json"
+                                className="px-3 py-2 bg-gray-900 text-white border border-gray-700 rounded focus:outline-none focus:border-blue-500"
+                            >
+                                {/* i18n-exempt: format name */}
+                                <option value="json">JSON</option>
+                                <option value="csv">CSV</option>
+                                <option value="xml">XML</option>
+                            </select>
+                            <button
+                                onClick={async () => {
+                                    const fmt = (document.getElementById("export-format") as HTMLSelectElement).value
+                                    const ext = fmt
+                                    try {
+										const resp = await api(`/api/me/export/?export_format=${fmt}`)
+                                        if (resp.ok) {
+                                            const blob = await resp.blob()
+                                            const url = URL.createObjectURL(blob)
+                                            const a = document.createElement("a")
+                                            a.href = url
+                                            a.download = `my_data.${ext}`
+                                            a.click()
+                                            URL.revokeObjectURL(url)
+                                            setSuccess(t("gdpr.exportSuccess"))
+                                        } else {
+                                            setError(t("gdpr.exportError"))
+                                        }
+                                    } catch {
+                                        setError(t("common.error.network"))
+                                    }
+                                }}
+                                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                            >
+                                {t("gdpr.exportBtn")}
+                            </button>
+                        </div>
+                    </div>
+
+                    <hr className="border-gray-700" />
+
+                    {/* Import */}
+                    <div>
+                        <p className="text-gray-400 mb-2">{t("gdpr.importDesc")}</p>
+                        <input
+                            type="file"
+                            accept=".json"
+                            onChange={async (e) => {
+                                const file = e.target.files?.[0]
+                                if (!file) return
+                                if (file.size > 10 * 1024 * 1024) {
+                                    setError(t("gdpr.importTooLarge"))
+                                    return
+                                }
+                                const formData = new FormData()
+                                formData.append("file", file)
+                                try {
+                                    const resp = await fetch("/api/me/import/", {
+                                        method: "POST",
+                                        headers: { "Authorization": `Bearer ${getAccessToken()}` },
+                                        credentials: "include",
+                                        body: formData,
+                                    })
+                                    const data = await resp.json()
+                                    if (resp.ok) {
+                                        const parts: string[] = []
+                                        if (data.updated?.length) parts.push(`${t("gdpr.importUpdated")}: ${data.updated.join(", ")}`)
+                                        if (data.skipped?.length) parts.push(`${t("gdpr.importSkipped")}: ${data.skipped.join(", ")}`)
+                                        if (data.errors?.length) parts.push(`${t("gdpr.importErrors")}: ${data.errors.join(", ")}`)
+                                        setSuccess(parts.join(" | ") || t("gdpr.importSuccess"))
+                                        fetchProfile()
+                                    } else {
+                                        setError(ts(data.error) || t("gdpr.importError"))
+                                    }
+                                } catch {
+                                    setError(t("common.error.network"))
+                                }
+                                e.target.value = ""
+                            }}
+                            className="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 file:cursor-pointer"
+                        />
+                    </div>
+
+                    <hr className="border-gray-700" />
+
+                    {/* Delete account */}
+                    <div>
+                        <p className="text-gray-400 mb-2">{t("gdpr.deleteDesc")}</p>
+                        <button
+                            onClick={async () => {
+                                try {
+                                    const resp = await api("/api/me/delete/", { method: "POST" })
+                                    if (resp.ok) {
+                                        setSuccess(t("gdpr.deleteSuccess"))
+                                    } else {
+                                        const data = await resp.json()
+                                        setError(ts(data.error) || t("gdpr.deleteError"))
+                                    }
+                                } catch {
+                                    setError(t("common.error.network"))
+                                }
+                            }}
+                            className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+                        >
+                            {t("gdpr.deleteBtn")}
+                        </button>
+                    </div>
+                </div>
+            </div>
+			{/* API Key Section */}
+            <div className="bg-gray-800 rounded-lg p-6 border border-gray-700 mt-6">
+                <h2 className="text-xl text-white font-semibold mb-4">{t("apiKey.title")}</h2>
+
+				{newApiKey && (
+                    <div className="bg-yellow-900/50 border border-yellow-500 text-yellow-300 px-4 py-4 rounded mb-4">
+                        <p className="font-bold mb-2">{t("apiKey.saveWarning")}</p>
+                        <div className="flex items-center gap-2">
+                            <code className="text-green-400 bg-gray-900 px-3 py-1 rounded text-sm block break-all flex-1">{newApiKey}</code>
+                            <button
+                                onClick={() => {
+                                    navigator.clipboard.writeText(newApiKey)
+                                    setSuccess(t("apiKey.msg.copied"))
+                                }}
+                                className="px-3 py-1 bg-gray-700 text-white rounded hover:bg-gray-600 text-sm shrink-0"
+                            >
+                                {t("apiKey.copy")}
+                            </button>
+                        </div>
+                    </div>
+                )}
+
+                {hasApiKey ? (
+                    <div>
+                        <p className="text-gray-400 mb-2">{t("apiKey.active")} <code className="text-green-400">{apiKeyPrefix}...</code></p>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={async () => {
+                                    try {
+                                        const resp = await api("/api/me/api-key/generate/", { method: "POST" })
+                                        if (resp.ok) {
+                                            const data = await resp.json()
+                                            setNewApiKey(data.api_key)
+                                            setHasApiKey(true)
+                                            setApiKeyPrefix(data.api_key.substring(0, 8))
+                                            setSuccess(t("apiKey.msg.regenerated"))
+                                        }
+                                    } catch { setError(t("common.error.network")) }
+                                }}
+                                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                            >
+                                {t("apiKey.regenerate")}
+                            </button>
+                            <button
+                                onClick={async () => {
+                                    try {
+                                        const resp = await api("/api/me/api-key/revoke/", { method: "POST" })
+                                        if (resp.ok) {
+                                            setHasApiKey(false)
+                                            setApiKeyPrefix("")
+                                            setNewApiKey("")
+                                            setSuccess(t("apiKey.msg.revoked"))
+                                        }
+                                    } catch { setError(t("common.error.network")) }
+                                }}
+                                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+                            >
+                                {t("apiKey.revoke")}
+                            </button>
+                        </div>
+                    </div>
+                ) : (
+                    <div>
+                        <p className="text-gray-400 mb-4">{t("apiKey.blurb")}</p>
+                        <button
+                            onClick={async () => {
+                                try {
+                                    const resp = await api("/api/me/api-key/generate/", { method: "POST" })
+                                    if (resp.ok) {
+                                        const data = await resp.json()
+                                        setNewApiKey(data.api_key)
+                                        setHasApiKey(true)
+                                        setApiKeyPrefix(data.api_key.substring(0, 8))
+                                        setSuccess(t("apiKey.msg.generated"))
+                                    }
+                                } catch { setError(t("common.error.network")) }
+                            }}
+                            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                        >
+                            {t("apiKey.generate")}
+                        </button>
+                    </div>
+                )}
+
+                <div className="mt-4 text-gray-500 text-sm">
+				    <p className="mb-2">{t("apiKey.endpoints")}</p>
+                    <div className="space-y-1 font-mono text-xs text-gray-400">
+                        {["/api/me/", "/api/leaderboard/", "/api/match-history/", "/api/analytics/", "/api/achievements/", "/api/me/export/"].map((ep) => (
+                            <p key={ep}>curl -sk -H "X-API-Key: YOUR_KEY" {window.location.origin}{ep}</p>
+                        ))}
+                    </div>
+                </div>
             </div>
         </div>
     )

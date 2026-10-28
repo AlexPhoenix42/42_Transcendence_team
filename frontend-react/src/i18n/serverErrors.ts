@@ -60,6 +60,9 @@ const RAW: Record<string, MessageKey> = {
     "no refresh token":                           "srv.noRefreshToken",
     "missing required header":                    "srv.missingHeader",
     "rate limit exceeded. please slow down":      "srv.rateLimited",
+    "account temporarily locked. try again later":"srv.accountLocked",
+    "token and uid required":                     "srv.tokenUidRequired",
+	"invalid username or password":				  "srv.invalidCredentials",
 
     // -- two-factor ------------------------------------------------------
     "a 2fa device is already configured":         "srv.twofaAlreadyConfigured",
@@ -88,7 +91,7 @@ const RAW: Record<string, MessageKey> = {
     "email required":                             "srv.emailRequired",
     "empty message":                              "srv.emptyMessage",
     "invalid json":                               "srv.invalidJson",
-    "invalid action. use":                        "srv.invalidAction",
+    "invalid action. use 'accept' or 'decline'":  "srv.invalidAction",
     "invalid role":                               "srv.invalidRole",
     "invalid duration":                           "srv.invalidDuration",
     "duration must be 1-1440 minutes":            "srv.durationRange",
@@ -96,6 +99,10 @@ const RAW: Record<string, MessageKey> = {
     "question must be 1-500 chars":               "srv.questionLength",
     "internal server error":                      "srv.internalError",
     "pagination error":                           "srv.paginationError",
+    "expected a json object":                     "srv.importNotObject",
+    "invalid json file":                          "srv.invalidJsonFile",
+    "file too large (max 10mb)":                  "srv.importTooLarge",
+    "supported formats: json, csv, xml":          "srv.exportFormat",
 
     // -- users / friends / blocking --------------------------------------
     "user not found":                             "srv.userNotFound",
@@ -117,6 +124,11 @@ const RAW: Record<string, MessageKey> = {
     "a pending request already exists between these users": "srv.requestPending",
     "a pending request already pending":          "srv.requestPending",
     "unable to remove friend":                    "srv.cannotRemoveFriend",
+    "failed to delete account":                   "srv.deleteAccountFailed",
+    "failed to export data":                      "srv.exportFailed",
+    "failed to send confirmation email":          "srv.confirmEmailFailed",
+    "import failed":                              "srv.importFailed",
+    "no api key found":                           "srv.noApiKey",
 
     // -- chat ------------------------------------------------------------
     "cannot create dm with yourself":             "srv.dmSelf",
@@ -127,6 +139,9 @@ const RAW: Record<string, MessageKey> = {
     "invites only in dms":                        "srv.invitesDmOnly",
     "invite expired or invalid":                  "srv.inviteInvalid",
     "cannot accept your own invite":              "srv.cannotAcceptOwnInvite",
+    "no text provided":                           "srv.translateNoText",
+    "no target_lang provided":                    "srv.translateNoLang",
+    "translation failed":                         "srv.translateFailed",
 
     // -- chess / games ---------------------------------------------------
     "ai user not found. run migrations":          "srv.aiUserMissing",
@@ -148,6 +163,7 @@ const RAW: Record<string, MessageKey> = {
     "max players must be 2-6":                    "srv.maxPlayersRange",
     "min players must be 2 to max_players":       "srv.minPlayersRange",
     "failed to determine starting turn":          "srv.noStartingTurn",
+    "only the creator can delete this room":      "srv.onlyCreatorDeleteRoom",
 
     // -- tournaments -----------------------------------------------------
     "tournament is full":                         "srv.tournamentFull",

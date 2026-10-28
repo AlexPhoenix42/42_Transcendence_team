@@ -241,6 +241,9 @@ export const tlh: MessageTable = {
     "friends.tab.friends":    "juppu' ({count})",         // friends
     "friends.tab.requests":   "tlhobmey ({count})",       // requests
     "friends.tab.sent":       "ngeHta' ({count})",        // sent
+	"friends.tab.blocked": "bot ({count})",
+	"friends.noBlocked": "bot pagh.",
+	"friends.unblocked": "{user} botHa'.",
     "friends.addPlaceholder": "pong yIghItlh",            // write a name!
 
     // -- Goose -- Klingon has solid words for death and prison ------

@@ -28,17 +28,20 @@ export default function Friends() {
     const [username, setUsername] = useState("")
     const [error, setError] = useState("")
     const [success, setSuccess] = useState("")
-    const [tab, setTab] = useState<"friends" | "requests" | "sent">("friends")
+	const [tab, setTab] = useState<"friends" | "requests" | "sent" | "blocked">("friends")
+	const [blocked, setBlocked] = useState<Friend[]>([])
 
 	useEffect(() => {
         fetchFriends()
         fetchRequests()
         fetchSentRequests()
+		fetchBlocked()
 
         const interval = setInterval(() => {
             fetchFriends()
             fetchRequests()
             fetchSentRequests()
+			fetchBlocked()
         }, 10000)
 
         return () => clearInterval(interval)
@@ -149,6 +152,13 @@ export default function Friends() {
         }
     }
 
+	async function fetchBlocked() {
+        try {
+            const resp = await api("/api/chat/blocked/")
+            if (resp.ok) setBlocked(await resp.json())
+        } catch {}
+    }
+
     return (
         <div className="max-w-2xl mx-auto">
             <h1 className="text-3xl font-bold text-white mb-6">{t("friends.title")}</h1>
@@ -197,6 +207,12 @@ export default function Friends() {
                 >
                     {t("friends.tab.sent", { count: sentRequests.length })}
                 </button>
+				<button
+                    onClick={() => setTab("blocked")}
+                    className={`px-4 py-2 rounded ${tab === "blocked" ? "bg-red-600 text-white" : "bg-gray-800 text-gray-400"}`}
+                >
+                    {t("friends.tab.blocked", { count: blocked.length })}
+                </button>
             </div>
 
             {tab === "friends" && (
@@ -231,7 +247,7 @@ export default function Friends() {
                     {requests.map((req) => (
                         <div key={req.id} className="bg-gray-800 p-4 rounded-lg border border-gray-700 flex items-center gap-3">
                             <span className="text-white flex-1">
-                                {req.sent_by} wants to be your friend
+                                {t("friends.wantsToBeFriend", { name: req.sent_by })}
                             </span>
                             <button
                                 onClick={() => respondRequest(req.id, "accept")}
@@ -258,13 +274,41 @@ export default function Friends() {
                     {sentRequests.map((req) => (
                         <div key={req.id} className="bg-gray-800 p-4 rounded-lg border border-gray-700 flex items-center gap-3">
                             <span className="text-white flex-1">
-                                Waiting for {req.from_user === req.sent_by ? req.to_user : req.from_user} to respond
+                                {t("friends.waitingFor", { name: req.from_user === req.sent_by ? req.to_user : req.from_user })}
                             </span>
                             <button
                                 onClick={() => cancelRequest(req.id)}
                                 className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 text-sm"
                             >
                                 {t("common.cancel")}
+                            </button>
+                        </div>
+                    ))}
+                </div>
+            )}
+
+			{tab === "blocked" && (
+                <div className="space-y-2">
+                    {blocked.length === 0 ? (
+                        <p className="text-gray-500">{t("friends.noBlocked")}</p>
+                    ) : blocked.map((user) => (
+                        <div key={user.id} className="flex items-center justify-between bg-gray-800 p-3 rounded">
+                            <Link to={`/profile/${user.username}`} className="text-white hover:underline">
+                                {user.username}
+                            </Link>
+                            <button
+                                onClick={async () => {
+                                    try {
+                                        const resp = await api(`/api/chat/unblock/${user.id}/`, { method: "DELETE" })
+                                        if (resp.ok) {
+                                            setSuccess(t("friends.unblocked", { user: user.username }))
+                                            fetchBlocked()
+                                        }
+                                    } catch {}
+                                }}
+                                className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 text-sm"
+                            >
+                                {t("publicProfile.unblock")}
                             </button>
                         </div>
                     ))}

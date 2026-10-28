@@ -118,7 +118,7 @@ export default function Tournaments() {
     function formatTimer(timer: string | null): string {
         if (!timer) return t("tournaments.unlimited")
         const parts = timer.split("+")
-        return `${parts[0]} min + ${parts[1]} sec`
+        return t("common.timeControl", { min: parts[0], sec: parts[1] })
     }
 
     function statusColor(status: string): string {
@@ -187,8 +187,8 @@ export default function Tournaments() {
                             </div>
                         </div>
                         <div className="flex gap-4 text-sm text-gray-400">
-                            <span>Players: {participantCounts[tour.id] || 0}/{tour.max_players}</span>
-                            <span>Time: {formatTimer(tour.timer)}</span>
+                            <span>{t("tournaments.players", { count: participantCounts[tour.id] || 0, max: tour.max_players })}</span>
+                            <span>{t("tournaments.time", { time: formatTimer(tour.timer) })}</span>
                         </div>
                         {tour.description && (
                             <p className="text-gray-400 text-sm mt-2">{tour.description}</p>

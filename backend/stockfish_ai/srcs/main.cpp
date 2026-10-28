@@ -39,45 +39,6 @@ static int difficulty_to_skill(const std::string& diff) {
 }
 
 // ── Run Stockfish and return the best move ─────────────────────────────────
-//static std::string get_best_move(const std::string& fen,
-//                                  const std::string& difficulty,
-//                                  int /*wtime*/, int /*btime*/,
-//                                  int /*winc*/,  int /*binc*/) {
-//    // Build a single printf that sends all UCI commands at once.
-//    // No sleep needed – the pipeline exits when grep finds the bestmove line.
-//    std::ostringstream cmd;
-//    cmd << "printf 'uci\\n"
-//        << "setoption name Skill Level value " << difficulty_to_skill(difficulty) << "\\n"
-//        << "ucinewgame\\n"
-//        << "position fen " << fen << "\\n"
-//        << "go movetime 1000\\n'"
-//        << " | ./stockfish | grep bestmove | head -1";
-//
-//    std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd.str().c_str(), "r"), pclose);
-//    if (!pipe) {
-//        throw std::runtime_error("popen() failed");
-//    }
-//
-//    std::string line;
-//    char buf[256];
-//    while (fgets(buf, sizeof(buf), pipe.get()) != nullptr) {
-//        line = buf;
-//        if (line.rfind("bestmove ", 0) == 0) {  // line starts with "bestmove "
-//            std::istringstream iss(line);
-//            std::string token;
-//            iss >> token;           // "bestmove"
-//            std::string bestmove;
-//            iss >> bestmove;        // the actual move
-//            if (!bestmove.empty()) {
-//                return bestmove;
-//            }
-//        }
-//    }
-//
-//    throw std::runtime_error("No bestmove in Stockfish output");
-//}
-
-// ── Run Stockfish and return the best move ─────────────────────────────────
 static std::string get_best_move(const std::string& fen,
                                   const std::string& difficulty,
                                   int wtime, int btime, int winc, int binc) {

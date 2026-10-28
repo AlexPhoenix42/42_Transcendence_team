@@ -18,7 +18,7 @@ interface Friend {
 }
 
 export default function Chat() {
-    const { t, tn, d, ts } = useI18n()
+    const { t, tn, d, ts, locale } = useI18n()
     const { user } = useAuth()
 	const navigate = useNavigate()
     const [tab, setTab] = useState<Tab>("global")
@@ -41,6 +41,10 @@ export default function Chat() {
 	const [gameInvite, setGameInvite] = useState<{ inviteId: string; fromUsername: string } | null>(null)
     const [dismissedInvites, setDismissedInvites] = useState<Set<string>>(new Set())
 	const [declinedInvites, setDeclinedInvites] = useState<Set<string>>(new Set())
+
+	// Translate
+	const [translatedMessages, setTranslatedMessages] = useState<Record<number, string>>({})
+    const [translatingId, setTranslatingId] = useState<number | null>(null)
 
     const socketRef = useRef<ChatSocket | null>(null)
     const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -83,7 +87,7 @@ export default function Chat() {
         } catch {}
     }
 
-    // Fetch friends for DM tab
+	// Fetch friends for DM tab
     useEffect(() => {
         async function fetchFriends() {
             try {
@@ -97,6 +101,8 @@ export default function Chat() {
             }
         }
         fetchFriends()
+        const interval = setInterval(fetchFriends, 10000)
+        return () => clearInterval(interval)
     }, [])
 
     // Connect to global room on mount
@@ -182,12 +188,6 @@ export default function Chat() {
         }
     }
 
-	//useEffect(() => {
-    //    fetchUnreadCounts()
-    //    const interval = setInterval(fetchUnreadCounts, 15000)
-    //    return () => clearInterval(interval)
-    //}, [])
-
 	    useEffect(() => {
         fetchUnreadCounts()
         const interval = setInterval(() => {
@@ -195,21 +195,9 @@ export default function Chat() {
             if (currentRoomId && tab === "dm") {
                 fetchReadStatus(currentRoomId)
             }
-        }, 5000)
+        }, 30000)
         return () => clearInterval(interval)
     }, [currentRoomId, tab])
-
-    //async function loadHistory(id: number) {
-    //    try {
-    //        const resp = await api(`/api/chat/rooms/${id}/messages/`)
-    //        if (resp.ok) {
-    //            const data = await resp.json()
-    //            setMessages(data.results)
-    //        }
-    //    } catch {
-    //        // Silent fail — WebSocket will deliver new messages
-    //    }
-    //}
 
 	async function loadHistory(id: number) {
         console.log("loadHistory called with room:", id)
@@ -387,6 +375,34 @@ export default function Chat() {
         } catch {}
     }
 
+	async function translateMessage(msgId: number, text: string) {
+        if (translatedMessages[msgId]) {
+            // Toggle off if already translated
+            setTranslatedMessages((prev) => {
+                const next = { ...prev }
+                delete next[msgId]
+                return next
+            })
+            return
+        }
+
+        setTranslatingId(msgId)
+        try {
+            const resp = await api("/api/chat/translate/", {
+                method: "POST",
+                body: JSON.stringify({
+                    text,
+                    target_lang: locale,
+                }),
+            })
+            if (resp.ok) {
+                const data = await resp.json()
+                setTranslatedMessages((prev) => ({ ...prev, [msgId]: data.translated_text }))
+            }
+        } catch {}
+        setTranslatingId(null)
+    }
+
     return (
 		<div className="max-w-4xl mx-auto flex flex-col md:flex-row gap-4 h-[calc(100vh-120px)]">
             {/* Sidebar */}
@@ -470,11 +486,11 @@ export default function Chat() {
                                     <div className="bg-yellow-900/30 border border-yellow-700 rounded-lg px-4 py-3 text-center">
                                         <p className="text-yellow-300 text-sm">
                                             {isOwnInvite
-                                                ? "⚔️ You sent a game invite"
-                                                : `⚔️ ${fromUser} invited you to play chess!`
+                                                ? `⚔️ ${t("chat.invite.sent")}`
+                                                : `⚔️ ${t("chat.invite.received", { name: fromUser })}`
                                             }
                                             {isExpired && !gameStartedAfter && (
-                                                <span className="ms-1 text-gray-500 text-xs">(expired)</span>
+                                                <span className="ms-1 text-gray-500 text-xs">{t("chat.invite.expired")}</span>
                                             )}
                                         </p>
                                         {showButtons && (
@@ -531,8 +547,7 @@ export default function Chat() {
                                 key={msg.id}
                                 className={`flex flex-col ${msg.sender === user?.username ? "items-end" : "items-start"}`}
                             >
-								{/*<div className={`max-w-xs px-4 py-2 rounded-lg ${msg.sender === user?.username ? "bg-blue-600 text-white" : "bg-gray-700 text-white"}`}>*/}
-								<div className={`max-w-[70%] md:max-w-xs px-3 py-1.5 md:px-4 md:py-2 rounded-lg ${msg.sender === user?.username ? "bg-blue-600 text-white" : "bg-gray-700 text-white"}`}>
+								<div className={`max-w-[70%] md:max-w-xs px-3 py-1.5 md:px-4 md:py-2 rounded-lg break-words ${msg.sender === user?.username ? "bg-blue-600 text-white" : "bg-gray-700 text-white"}`}>
                                     {msg.sender !== user?.username && (
                                         <p className="text-xs mb-1">
                                             <span
@@ -550,31 +565,47 @@ export default function Chat() {
                                         </p>
                                     )}
                                     <p dir="auto">{msg.content}</p>
+                                    {translatedMessages[msg.id] && (
+                                        <p dir="auto" className="mt-1 pt-1 border-t border-gray-600 text-sm italic opacity-80">
+                                            {translatedMessages[msg.id]}
+                                        </p>
+                                    )}
                                     {(user?.role === "admin" || user?.role === "moderator") && msg.sender !== "system" && (
                                         <div className="flex gap-1 mt-1">
                                             <button
                                                 onClick={(e) => { e.stopPropagation(); deleteMessage(msg.id) }}
                                                 className="text-[10px] text-red-400 hover:text-red-300"
                                             >
-                                                🗑️ Delete
+                                                🗑️ {t("chat.delete")}
                                             </button>
                                             {msg.sender !== user?.username && (
 												<button
                                                     onClick={(e) => { e.stopPropagation(); setMuteTarget({ id: 0, username: msg.sender }) }}
                                                     className="text-[10px] text-yellow-400 hover:text-yellow-300"
                                                 >
-                                                    🔇 Mute
+                                                    🔇 {t("chat.mute")}
                                                 </button>
                                             )}
                                         </div>
                                     )}
                                 </div>
-                                <p className="text-xs text-gray-500 mt-1">
-                                    {d(msg.created_at)}
-                                    {tab === "dm" && msg.sender === user?.username && otherReadAt && new Date(otherReadAt) >= new Date(msg.created_at) && (
-                                        <span className="ms-2 text-blue-400">✓ Seen</span>
+								<div className="flex items-center gap-2 mt-1">
+                                    <p className="text-xs text-gray-500">
+                                        {d(msg.created_at)}
+                                        {tab === "dm" && msg.sender === user?.username && otherReadAt && new Date(otherReadAt) >= new Date(msg.created_at) && (
+                                            <span className="ms-2 text-blue-400">✓ {t("chat.seen")}</span>
+                                        )}
+                                    </p>
+                                    {locale !== "tlh" && (
+                                    <button
+                                        onClick={() => translateMessage(msg.id, msg.content)}
+                                        className="text-xs text-gray-500 hover:text-blue-400"
+                                        title={translatedMessages[msg.id] ? t("chat.hideTranslation") : t("chat.translate")}
+                                    >
+                                        {translatingId === msg.id ? "⏳" : "🌐"}
+                                    </button>
                                     )}
-                                </p>
+                                </div>
                             </div>
                         )
                     })}
@@ -610,7 +641,7 @@ export default function Chat() {
 				{/* Typing indicator */}
                 {typingUser && (
                     <div className="px-4 py-1 text-gray-500 text-xs italic">
-                        {typingUser} is typing...
+                        {t("chat.typing", { name: typingUser })}
                     </div>
                 )}
 
@@ -618,7 +649,7 @@ export default function Chat() {
                 {gameInvite && gameInvite.fromUsername !== user?.username && (
                     <div className="px-4 py-3 border-t border-gray-700 bg-yellow-900/20 flex items-center justify-between">
                         <span className="text-yellow-300 text-sm">
-                            ⚔️ {gameInvite.fromUsername} invited you to play chess!
+                            ⚔️ {t("chat.invite.received", { name: gameInvite.fromUsername })}
                         </span>
                         <div className="flex gap-2">
                             <button
@@ -640,12 +671,11 @@ export default function Chat() {
                 {/* Sent invite confirmation */}
                 {gameInvite && gameInvite.fromUsername === user?.username && (
                     <div className="px-4 py-2 border-t border-gray-700 bg-blue-900/20">
-                        <span className="text-blue-300 text-sm">⚔️ Game invite sent! Waiting for response...</span>
+                        <span className="text-blue-300 text-sm">⚔️ {t("chat.invite.waiting")}</span>
                     </div>
                 )}
 
                 {/* Input */}
-				{/*<form onSubmit={handleSend} className="p-4 border-t border-gray-700 flex gap-2">*/}
 				<form onSubmit={handleSend} className="p-2 md:p-4 border-t border-gray-700 flex gap-2">
                     <input
                         type="text"
@@ -668,12 +698,6 @@ export default function Chat() {
                             ⚔️
                         </button>
                     )}
-					{/*<button
-                        type="submit"
-                        className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                    >
-                        {t("common.send")}
-                    </button>*/}
 					<button
                         type="submit"
                         className="px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm shrink-0"

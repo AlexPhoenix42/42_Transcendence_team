@@ -39,7 +39,7 @@ export default function ResetPassword() {
 		const err = validatePassword(password)
             || validatePasswordMatch(password, password2)
         if (err) {
-            setError(t("common.error.passwordMismatch"))
+			setError(t(err))
             return
         }
 
@@ -79,7 +79,7 @@ export default function ResetPassword() {
         <div className="w-full max-w-sm">
             <h1 className="text-2xl font-bold text-white text-center mb-6">{t("reset.title")}</h1>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} noValidate className="space-y-4">
                 {error && (
                     <div className="bg-red-900/50 border border-red-500 text-red-300 px-4 py-2 rounded">
                         {error}

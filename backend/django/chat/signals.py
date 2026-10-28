@@ -31,7 +31,6 @@ def force_disconnect_on_logout(sender, user, request, **kwargs):
             group_name,
             {"type": "force_disconnect", "reason": "logged_out"},
         )
-        #logger.info("Force disconnected user %s from all chat rooms", user.pk)
         logger.info("SIGNAL FIRED: sending force_disconnect to group %s", group_name)
     except Exception:
         logger.exception("Failed to force disconnected user %s from chat", user.pk)

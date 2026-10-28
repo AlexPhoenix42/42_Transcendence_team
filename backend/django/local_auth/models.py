@@ -22,6 +22,7 @@ class ResetToken(models.Model):
     TOKEN_TYPES = [
         ("password", "Password Reset"),
         ("2fa", "2FA Reset"),
+        ("delete", "Account Deletion"),
     ]
 
     user = models.ForeignKey(

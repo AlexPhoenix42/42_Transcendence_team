@@ -8,6 +8,7 @@ from .views import (
     BlockUserView, UnblockUserView, BlockedListView,
     MarkReadView, UnreadCountsView, RoomReadStatusView,
     DeleteMessageView, MuteUserView, UnmuteUserView,
+    TranslateMessageView,
 )
 
 urlpatterns = [
@@ -95,6 +96,12 @@ urlpatterns = [
         'unmute/',
         UnmuteUserView.as_view(),
         name="unmute-user"
+    ),
+
+    path(
+        'translate/',
+        TranslateMessageView.as_view(),
+        name="translate-message",
     ),
 ]
 

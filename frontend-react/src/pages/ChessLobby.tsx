@@ -143,10 +143,10 @@ export default function ChessLobby() {
         setSuccess("")
 
         try {
-            const body: Record<string, string> = { ai_difficulty: aiDifficulty }
+			const body: Record<string, string> = { ai_difficulty: aiDifficulty }
             if (aiTimer) body.timer = aiTimer
             if (aiFen.trim()) body.fen = aiFen.trim()
-			if (pvpPractice) body.is_practice = "true"
+			if (aiPractice) body.is_practice = "true"
 
             const resp = await api("/api/chess/ai/", {
                 method: "POST",
@@ -227,7 +227,7 @@ export default function ChessLobby() {
     function formatTimer(timer: string | null): string {
         if (!timer) return t("chessLobby.unlimited")
         const parts = timer.split("+")
-        return `${parts[0]} min + ${parts[1]} sec`
+        return t("common.timeControl", { min: parts[0], sec: parts[1] })
     }
 
     return (
@@ -267,9 +267,9 @@ export default function ChessLobby() {
                                     className="w-full px-4 py-2 bg-gray-900 text-white border border-gray-700 rounded focus:outline-none focus:border-blue-500"
                                 >
                                     <option value="">{t("chessLobby.unlimited")}</option>
-                                    <option value="3+2">3 min + 2 sec</option>
-                                    <option value="5+0">5 min</option>
-                                    <option value="10+5">10 min + 5 sec</option>
+                                    <option value="3+2">{t("common.timeControl", { min: 3, sec: 2 })}</option>
+                                    <option value="5+0">{t("common.timeMinutes", { min: 5 })}</option>
+                                    <option value="10+5">{t("common.timeControl", { min: 10, sec: 5 })}</option>
                                 </select>
                             </div>
                             <div>
@@ -288,7 +288,7 @@ export default function ChessLobby() {
                                     onChange={(e) => setPvpPractice(e.target.checked)}
                                     className="rounded"
                                 />
-                                Practice mode (allows undo + FEN changes)
+                                {t("chessLobby.practiceMode")}
 								</label>
                             </div>
                             <button type="submit" className="w-full py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
@@ -321,12 +321,12 @@ export default function ChessLobby() {
                                     className="w-full px-4 py-2 bg-gray-900 text-white border border-gray-700 rounded focus:outline-none focus:border-blue-500"
                                 >
                                     <option value="">{t("chessLobby.unlimited")}</option>
-                                    <option value="3+2">3 min + 2 sec</option>
-                                    <option value="5+0">5 min</option>
-                                    <option value="10+5">10 min + 5 sec</option>
+                                    <option value="3+2">{t("common.timeControl", { min: 3, sec: 2 })}</option>
+                                    <option value="5+0">{t("common.timeMinutes", { min: 5 })}</option>
+                                    <option value="10+5">{t("common.timeControl", { min: 10, sec: 5 })}</option>
                                 </select>
                             </div>
-                            <div>
+							<div>
                                 <label className="text-gray-400 text-sm">{t("chessLobby.customFen")}</label>
                                 <input
                                     type="text"
@@ -338,11 +338,11 @@ export default function ChessLobby() {
 								<label className="flex items-center gap-2 text-gray-400 text-sm">
                                 <input
                                     type="checkbox"
-                                    checked={pvpPractice}
-                                    onChange={(e) => setPvpPractice(e.target.checked)}
+                                    checked={aiPractice}
+                                    onChange={(e) => setAiPractice(e.target.checked)}
                                     className="rounded"
                                 />
-                                Practice mode (allows undo + FEN changes)
+                                {t("chessLobby.practiceMode")}
 								</label>
                             </div>
                             <button type="submit" className="w-full py-2 bg-green-600 text-white rounded hover:bg-green-700">
@@ -360,8 +360,8 @@ export default function ChessLobby() {
                         {myGames.map((game) => (
                             <div key={game.id} className="bg-gray-800 p-4 rounded-lg border border-gray-700 flex items-center gap-3">
                                 <span className="text-white flex-1">
-                                    {game.player1} vs {game.player2 || "..."} — {formatTimer(game.timer)}
-                                    {game.player2_is_ai && ` (AI ${game.ai_difficulty})`}
+                                    {t("common.versus", { a: game.player1, b: game.player2 || "..." })} — {formatTimer(game.timer)}
+                                    {game.player2_is_ai && ` (${t("chess.aiLabel", { level: game.ai_difficulty ?? "" })})`}
                                 </span>
                                 <button
                                     onClick={() => navigate(`/chess/${game.id}`)}
@@ -421,7 +421,7 @@ export default function ChessLobby() {
                     {liveGames.map((game) => (
                         <div key={game.id} className="bg-gray-800 p-4 rounded-lg border border-gray-700 flex items-center gap-3">
                             <span className="text-white flex-1">
-                                {game.player1} vs {game.player2} — {formatTimer(game.timer)}
+                                {t("common.versus", { a: game.player1, b: game.player2 ?? "" })} — {formatTimer(game.timer)}
                             </span>
                             <button
                                 onClick={() => navigate(`/chess/${game.id}`)}

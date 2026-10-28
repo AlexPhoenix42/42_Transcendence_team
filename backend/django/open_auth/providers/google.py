@@ -16,6 +16,7 @@ class GoogleProvider(BaseOAuthProvider):
             "scope"         : "email profile",
             "access_type"   : "online",
             "state"         : state,
+            "prompt"        : "select_account",
             #"prompt"        : "consent", # force re-authentication
         }
 

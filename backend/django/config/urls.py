@@ -23,6 +23,8 @@ from django.urls                import path, include
 from django.conf                import settings
 from django.conf.urls.static    import static
 
+from chess_game.internal_views  import GameFinishedNotify
+
 from .views                     import (
     health_check, root_debug, system_health, system_health_ready,
 )
@@ -37,14 +39,16 @@ urlpatterns = [
     path('api/',                include('local_auth.urls')),
     path('api/',                include('users.urls')),
     path('api/chess/',          include('chess_game.urls')),
-    #path('api/pacman/',         include('pacman_game.urls')),
+    path('api/pacman/',         include('pacman_game.urls')),
     path('api/friends/',        include('friends.urls')),
     path('api/chat/',           include("chat.urls")),
     path('api/auth/',           include('open_auth.urls')),
     path('api/auth/',           include('two_factor_auth.urls')),
     path('accounts/',           include('allauth.urls')),
     path('api/tournaments/',    include('tournament.urls')),
+    path('api/internal/game-finished/', GameFinishedNotify.as_view(), name='game-finished-notify'),
     path('api/goose/',          include('goose_game.urls')),
+    path('api/audit/',          include('audit.urls')),
 ]
 
 if  settings.DEBUG:

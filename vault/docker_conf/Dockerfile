@@ -34,15 +34,6 @@ FROM	base AS dep
 # Copy production configuration
 COPY	--chown=vault:vault config/config-dep.hcl	/vault/config/config.hcl
 
-#COPY	--chown=vault:vault --chmod=600 \
-#certs/vault-key.pem		/vault/certs/vault-key.pem
-#
-#COPY	--chown=vault:vault --chmod=644 \
-#certs/vault-cert.pem	/vault/certs/vault-cert.pem
-#
-#COPY	--chown=vault:vault --chmod=644 \
-#certs/ca-cert.pem		/vault/certs/ca-cert.pem
-
 # Run entrypoint as root to set permissions
 USER	root
 
