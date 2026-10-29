@@ -56,7 +56,7 @@ openssl x509 -req \
 	-extfile	/vault/certs/nginx.csr.cnf
 
 # 5. Set permissions — nginx (uid 101) must read the key via group
-chown 100:101 /vault/certs/nginx-key.pem
+chown 100:100 /vault/certs/nginx-key.pem
 chmod 640 /vault/certs/nginx-key.pem
 chmod 644 /vault/certs/nginx-cert.pem
 
